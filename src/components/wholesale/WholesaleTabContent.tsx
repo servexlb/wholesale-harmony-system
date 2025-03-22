@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
@@ -58,7 +57,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       return;
     }
     
-    // Create a new wholesale order
     const newOrder: WholesaleOrder = {
       id: `order-${Date.now()}`,
       userId: selectedCustomer,
@@ -74,7 +72,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
     handleOrderPlaced(newOrder);
     toast.success(`Order placed for ${wholesalerCustomers.find(c => c.id === selectedCustomer)?.name}`);
     
-    // Reset form
     setSelectedCustomer('');
     setSelectedProduct('');
     setQuantity(1);
@@ -112,10 +109,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         >
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">Manage Customers</h1>
-            <Button onClick={() => setIsPurchaseDialogOpen(true)}>
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              Purchase for Customer
-            </Button>
           </div>
           <CustomerTable 
             subscriptions={subscriptions} 
@@ -166,7 +159,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         </motion.div>
       )}
       
-      {/* Purchase Dialog */}
       <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
         <DialogContent>
           <DialogHeader>
