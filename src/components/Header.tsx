@@ -59,11 +59,19 @@ const Header = () => {
           to="/" 
           className="flex items-center transition-opacity hover:opacity-80"
         >
-          <img 
-            src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
-            alt="Servexlb Logo" 
-            className="h-10 w-auto"
-          />
+          {darkMode ? (
+            <img 
+              src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
+              alt="Servexlb Logo" 
+              className="h-10 w-auto brightness-0 invert" // Makes the logo white in dark mode
+            />
+          ) : (
+            <img 
+              src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
+              alt="Servexlb Logo" 
+              className="h-10 w-auto brightness-0" // Makes the logo black in light mode
+            />
+          )}
         </Link>
 
         <div className="hidden md:flex relative mx-4 flex-1 max-w-md">
