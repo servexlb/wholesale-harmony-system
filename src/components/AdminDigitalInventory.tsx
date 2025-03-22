@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,11 +95,10 @@ const AdminDigitalInventory: React.FC = () => {
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
-      ...(service.type === "subscription" ? { minQuantity: 1 } : {})
+      minQuantity: service.type === "subscription" ? 1 : undefined
     }));
     
     const formattedDataProducts: Product[] = dataProducts.map(product => {
-      // Create a base product object without minQuantity
       const baseProduct: Product = {
         id: product.id,
         name: product.name,
@@ -117,11 +115,10 @@ const AdminDigitalInventory: React.FC = () => {
         value: product.value
       };
       
-      // Add minQuantity only if it exists in the source data
       if ('minQuantity' in product && product.minQuantity !== undefined) {
         return {
           ...baseProduct,
-          minQuantity: product.minQuantity
+          minQuantity: Number(product.minQuantity)
         };
       }
       
