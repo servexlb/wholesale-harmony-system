@@ -292,6 +292,8 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const updateCredential = (itemId: string, field: keyof DigitalItem['credentials'], value: string) => {
+    console.log(`Updating item ${itemId}, field ${field} to value: ${value}`);
+    
     const updatedInventory = inventory.map(item => {
       if (item.id === itemId) {
         return {
@@ -304,7 +306,13 @@ const AdminDigitalInventory: React.FC = () => {
       }
       return item;
     });
+    
     setInventory(updatedInventory);
+    
+    toast({
+      title: "Credential Updated",
+      description: `Updated ${field} for item ${itemId.substring(0, 8)}...`,
+    });
   };
 
   const availableCount = inventory.filter(item => item.status === "available").length;
@@ -571,86 +579,88 @@ const AdminDigitalInventory: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Service</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Password</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>PIN Code</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Added</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inventory.length === 0 ? (
+          <div className="relative overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
-                    No inventory items found. Add stock to get started.
-                  </TableCell>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Password</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>PIN Code</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Added</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                inventory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.serviceName}</TableCell>
-                    <TableCell>
-                      <Input 
-                        placeholder="Enter email" 
-                        value={item.credentials.email}
-                        onChange={(e) => updateCredential(item.id, 'email', e.target.value)}
-                        className="w-full"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input 
-                        placeholder="Enter password" 
-                        value={item.credentials.password}
-                        onChange={(e) => updateCredential(item.id, 'password', e.target.value)}
-                        className="w-full"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input 
-                        placeholder="Enter username" 
-                        value={item.credentials.username || ""}
-                        onChange={(e) => updateCredential(item.id, 'username', e.target.value)}
-                        className="w-full"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input 
-                        placeholder="Enter PIN code" 
-                        value={item.credentials.pinCode || ""}
-                        onChange={(e) => updateCredential(item.id, 'pinCode', e.target.value)}
-                        className="w-full"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={item.status === "available" ? "outline" : "secondary"}>
-                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(item.addedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.status === "available" && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleDeleteItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {inventory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                      No inventory items found. Add stock to get started.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  inventory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.serviceName}</TableCell>
+                      <TableCell className="min-w-[180px]">
+                        <Input 
+                          placeholder="Enter email" 
+                          value={item.credentials.email}
+                          onChange={(e) => updateCredential(item.id, 'email', e.target.value)}
+                          className="w-full focus:border-blue-500"
+                        />
+                      </TableCell>
+                      <TableCell className="min-w-[180px]">
+                        <Input 
+                          placeholder="Enter password" 
+                          value={item.credentials.password}
+                          onChange={(e) => updateCredential(item.id, 'password', e.target.value)}
+                          className="w-full focus:border-blue-500"
+                        />
+                      </TableCell>
+                      <TableCell className="min-w-[180px]">
+                        <Input 
+                          placeholder="Enter username" 
+                          value={item.credentials.username || ""}
+                          onChange={(e) => updateCredential(item.id, 'username', e.target.value)}
+                          className="w-full focus:border-blue-500"
+                        />
+                      </TableCell>
+                      <TableCell className="min-w-[180px]">
+                        <Input 
+                          placeholder="Enter PIN code" 
+                          value={item.credentials.pinCode || ""}
+                          onChange={(e) => updateCredential(item.id, 'pinCode', e.target.value)}
+                          className="w-full focus:border-blue-500"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.status === "available" ? "outline" : "secondary"}>
+                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(item.addedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.status === "available" && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleDeleteItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -658,3 +668,4 @@ const AdminDigitalInventory: React.FC = () => {
 };
 
 export default AdminDigitalInventory;
+
