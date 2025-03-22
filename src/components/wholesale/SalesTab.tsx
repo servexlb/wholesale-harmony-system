@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Table, 
@@ -29,40 +29,43 @@ const SalesTab: React.FC<SalesTabProps> = ({
   const [filterCustomer, setFilterCustomer] = useState('all');
   const [filterPeriod, setFilterPeriod] = useState('all');
   
-  // Filter orders based on search term, customer, and time period
-  const filteredOrders = orders.filter(order => {
-    const product = products.find(p => p.id === order.serviceId);
-    const customer = customers.find(c => c.id === order.customerId);
-    
-    const matchesSearch = 
-      product?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase());
+  // Memoize filtered orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const product = products.find(p => p.id === order.serviceId);
+      const customer = customers.find(c => c.id === order.customerId);
       
-    const matchesCustomer = filterCustomer === 'all' || order.customerId === filterCustomer;
-    
-    let matchesPeriod = true;
-    const orderDate = new Date(order.createdAt);
-    const now = new Date();
-    
-    if (filterPeriod === 'today') {
-      const today = new Date();
-      matchesPeriod = orderDate.toDateString() === today.toDateString();
-    } else if (filterPeriod === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      matchesPeriod = orderDate >= weekAgo;
-    } else if (filterPeriod === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      matchesPeriod = orderDate >= monthAgo;
-    }
-    
-    return matchesSearch && matchesCustomer && matchesPeriod;
-  });
+      const matchesSearch = 
+        product?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toLowerCase().includes(searchTerm.toLowerCase());
+        
+      const matchesCustomer = filterCustomer === 'all' || order.customerId === filterCustomer;
+      
+      let matchesPeriod = true;
+      const orderDate = new Date(order.createdAt);
+      
+      if (filterPeriod === 'today') {
+        const today = new Date();
+        matchesPeriod = orderDate.toDateString() === today.toDateString();
+      } else if (filterPeriod === 'week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        matchesPeriod = orderDate >= weekAgo;
+      } else if (filterPeriod === 'month') {
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        matchesPeriod = orderDate >= monthAgo;
+      }
+      
+      return matchesSearch && matchesCustomer && matchesPeriod;
+    });
+  }, [orders, customers, searchTerm, filterCustomer, filterPeriod]);
   
   // Calculate total sales amount
-  const totalSales = filteredOrders.reduce((total, order) => total + order.totalPrice, 0);
+  const totalSales = useMemo(() => {
+    return filteredOrders.reduce((total, order) => total + order.totalPrice, 0);
+  }, [filteredOrders]);
   
   return (
     <motion.div
@@ -172,7 +175,7 @@ const SalesTab: React.FC<SalesTabProps> = ({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order) => {
+                filteredOrders.slice(0, 20).map((order) => {
                   const product = products.find(p => p.id === order.serviceId);
                   const customer = customers.find(c => c.id === order.customerId);
                   
@@ -210,4 +213,4 @@ const SalesTab: React.FC<SalesTabProps> = ({
   );
 };
 
-export default SalesTab;
+export default React.memo(SalesTab);

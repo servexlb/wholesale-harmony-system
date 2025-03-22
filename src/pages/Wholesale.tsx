@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -66,13 +65,24 @@ const mockSubscriptions: Subscription[] = [
 
 const Wholesale = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState('products'); // Changed default tab to 'products'
+  const [activeTab, setActiveTab] = useState('products');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
   const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
   const [wholesalerCustomers, setWholesalerCustomers] = useState<typeof customers>([]);
   const location = useLocation();
+
+  const wholesalerCustomers = useMemo(() => {
+    if (!currentWholesaler) return [];
+    return customers.filter(customer => customer.wholesalerId === currentWholesaler);
+  }, [currentWholesaler]);
+  
+  const filteredSubscriptions = useMemo(() => {
+    return mockSubscriptions.filter(sub => 
+      wholesalerCustomers.some(customer => customer.id === sub.userId)
+    );
+  }, [wholesalerCustomers]);
 
   useEffect(() => {
     const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
@@ -81,22 +91,10 @@ const Wholesale = () => {
     if (wholesaleAuth === 'true' && wholesalerId) {
       setIsAuthenticated(true);
       setCurrentWholesaler(wholesalerId);
-      
-      // Filter customers by the current wholesaler
-      const filteredCustomers = customers.filter(customer => 
-        customer.wholesalerId === wholesalerId
-      );
-      setWholesalerCustomers(filteredCustomers);
-      
-      // Filter subscriptions by the customers of this wholesaler
-      const filteredSubscriptions = mockSubscriptions.filter(sub => 
-        filteredCustomers.some(customer => customer.id === sub.userId)
-      );
-      setSubscriptions(filteredSubscriptions);
     }
   }, []);
 
-  const handleOrderPlaced = (order: WholesaleOrder) => {
+  const handleOrderPlaced = useCallback((order: WholesaleOrder) => {
     setOrders(prev => [order, ...prev]);
     
     if (order.credentials) {
@@ -112,32 +110,24 @@ const Wholesale = () => {
       
       setSubscriptions(prev => [...prev, newSubscription]);
     }
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+
+  const handleLogout = useCallback(() => {
     setIsAuthenticated(false);
     localStorage.removeItem('wholesaleAuthenticated');
     localStorage.removeItem('wholesalerId');
-  };
+  }, []);
 
-  const handleLoginSuccess = (username: string) => {
+  const handleLoginSuccess = useCallback((username: string) => {
     setIsAuthenticated(true);
     localStorage.setItem('wholesaleAuthenticated', 'true');
     localStorage.setItem('wholesalerId', username);
     setCurrentWholesaler(username);
-    
-    // Filter customers by the current wholesaler
-    const filteredCustomers = customers.filter(customer => 
-      customer.wholesalerId === username
-    );
-    setWholesalerCustomers(filteredCustomers);
-    
-    // Filter subscriptions by the customers of this wholesaler
-    const filteredSubscriptions = mockSubscriptions.filter(sub => 
-      filteredCustomers.some(customer => customer.id === sub.userId)
-    );
-    setSubscriptions(filteredSubscriptions);
-  };
+  }, []);
 
   if (!isAuthenticated) {
     return <WholesaleAuth onLoginSuccess={handleLoginSuccess} />;
@@ -148,7 +138,6 @@ const Wholesale = () => {
       <Header />
       
       <div className="flex pt-16">
-        {/* Sidebar Component */}
         <WholesaleSidebar 
           sidebarOpen={sidebarOpen}
           activeTab={activeTab}
@@ -156,20 +145,19 @@ const Wholesale = () => {
           handleLogout={handleLogout}
         />
         
-        {/* Mobile Toggle Button */}
         <div className="fixed bottom-4 right-4 z-40 md:hidden">
           <Button 
             size="icon" 
             className="h-12 w-12 rounded-full shadow-md"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={toggleSidebar}
           >
             <MenuIcon className="h-6 w-6" />
           </Button>
         </div>
 
-        {/* Main Content */}
         <motion.main
           className={`flex-1 p-6 pt-8 transition-all duration-300 ${sidebarOpen ? 'md:ml-[250px]' : ''}`}
+          initial={false}
         >
           <div className="container mx-auto max-w-6xl">
             <WholesaleTabContent 
@@ -178,7 +166,7 @@ const Wholesale = () => {
               customers={customers}
               wholesalerCustomers={wholesalerCustomers}
               orders={orders}
-              subscriptions={subscriptions}
+              subscriptions={filteredSubscriptions}
               currentWholesaler={currentWholesaler}
               handleOrderPlaced={handleOrderPlaced}
             />
