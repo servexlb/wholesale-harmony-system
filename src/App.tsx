@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import AdminPanel from "./pages/AdminPanel";
 import AdminAuth from "./components/AdminAuth";
 import NotFound from "./pages/NotFound";
 import Wholesale from "./pages/Wholesale";
+import TransactionHistory from "./pages/TransactionHistory";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +56,7 @@ const App = () => (
               </AdminRoute>
             } />
             <Route path="/wholesale" element={<Wholesale />} />
+            <Route path="/dashboard/transaction-history" element={<TransactionHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>

@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { CreditCard, Repeat, AlertCircle, Copy, Check, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const UserPaymentOptions = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("wish-money");
   const [amount, setAmount] = useState<number | null>(null);
   const [cardNumber, setCardNumber] = useState("");
@@ -16,6 +19,13 @@ const UserPaymentOptions = () => {
   const [cardCVC, setCardCVC] = useState("");
   const [notes, setNotes] = useState("");
   const [copied, setCopied] = useState(false);
+  const [userBalance, setUserBalance] = useState(0);
+  
+  // Get current user balance from localStorage
+  useEffect(() => {
+    const userBalanceStr = localStorage.getItem('userBalance');
+    setUserBalance(userBalanceStr ? parseFloat(userBalanceStr) : 120.00);
+  }, []);
   
   const wishMoneyAccount = "76349522";
   
@@ -28,18 +38,68 @@ const UserPaymentOptions = () => {
   const handleCreditCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would connect to a payment processor
+    
+    // Add transaction to history
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      type: "deposit",
+      amount: amount || 0,
+      method: "Credit Card",
+      status: "completed",
+      date: new Date().toISOString()
+    };
+    
+    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    transactionHistory.push(transaction);
+    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    
+    // Update balance
+    const newBalance = userBalance + (amount || 0);
+    localStorage.setItem('userBalance', newBalance.toString());
+    setUserBalance(newBalance);
+    
     toast.success(`Payment of $${amount?.toFixed(2)} is being processed. Your balance will be updated after verification.`);
     resetForm();
   };
   
   const handleWishMoneySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Add transaction to history
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      type: "deposit",
+      amount: amount || 0,
+      method: "Wish Money",
+      status: "pending",
+      date: new Date().toISOString()
+    };
+    
+    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    transactionHistory.push(transaction);
+    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    
     toast.success("Wish Money payment recorded. Your balance will be updated after verification.");
     resetForm();
   };
   
   const handleBinancePaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Add transaction to history
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      type: "deposit",
+      amount: amount || 0,
+      method: "Binance Pay",
+      status: "pending",
+      date: new Date().toISOString()
+    };
+    
+    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    transactionHistory.push(transaction);
+    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    
     toast.success("Binance Pay transaction initiated. Your balance will be updated after confirmation.");
     resetForm();
   };
@@ -62,10 +122,13 @@ const UserPaymentOptions = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div>
               <h2 className="text-lg font-medium">Your Current Balance</h2>
-              <div className="text-3xl font-bold mt-2">$120.00</div>
+              <div className="text-3xl font-bold mt-2">${userBalance.toFixed(2)}</div>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button className="w-full md:w-auto">
+              <Button 
+                className="w-full md:w-auto"
+                onClick={() => navigate("/dashboard/transaction-history")}
+              >
                 <Repeat className="h-4 w-4 mr-2" />
                 Transaction History
               </Button>

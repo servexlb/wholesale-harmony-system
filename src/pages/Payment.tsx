@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +24,12 @@ const Payment: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "success" | null>(null);
+  const [userBalance, setUserBalance] = useState(10.00);
+  
+  useEffect(() => {
+    const userBalanceStr = localStorage.getItem('userBalance');
+    setUserBalance(userBalanceStr ? parseFloat(userBalanceStr) : 10.00);
+  }, []);
   
   const wishMoneyAccount = "76349522";
   const bankAccount = {
@@ -56,6 +63,22 @@ const Payment: React.FC = () => {
 
     setIsProcessing(true);
 
+    const amountValue = parseFloat(amount);
+    
+    // Add transaction to history
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      type: "deposit",
+      amount: amountValue,
+      method: "Wish Money",
+      status: "pending",
+      date: new Date().toISOString()
+    };
+    
+    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    transactionHistory.push(transaction);
+    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+
     const adminNotification: Partial<AdminNotification> = {
       type: "payment_issue",
       customerName: "Current User",
@@ -86,6 +109,22 @@ const Payment: React.FC = () => {
       return;
     }
 
+    const amountValue = parseFloat(amount);
+    
+    // Add transaction to history
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      type: "deposit",
+      amount: amountValue,
+      method: "Credit Card",
+      status: "pending",
+      date: new Date().toISOString()
+    };
+    
+    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    transactionHistory.push(transaction);
+    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+
     toast("Redirecting to bank payment page...");
     window.open("https://www.yourbank.com/payments", "_blank");
     
@@ -102,6 +141,22 @@ const Payment: React.FC = () => {
       toast.error("Please enter a valid amount");
       return;
     }
+
+    const amountValue = parseFloat(amount);
+    
+    // Add transaction to history
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      type: "deposit",
+      amount: amountValue,
+      method: "Binance Pay",
+      status: "pending",
+      date: new Date().toISOString()
+    };
+    
+    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    transactionHistory.push(transaction);
+    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
 
     toast("Redirecting to Binance Pay...");
     window.open(binancePayUrl, "_blank");
@@ -181,7 +236,7 @@ const Payment: React.FC = () => {
               <div className="flex flex-col md:flex-row justify-between items-center">
                 <div>
                   <h2 className="text-lg font-medium">Your Current Balance</h2>
-                  <div className="text-3xl font-bold mt-2">$10.00</div>
+                  <div className="text-3xl font-bold mt-2">${userBalance.toFixed(2)}</div>
                 </div>
               </div>
             </CardContent>
