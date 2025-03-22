@@ -88,7 +88,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         </TabsList>
       </Tabs>
       
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -100,7 +100,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
           />
         </div>
         
-        <Command className="rounded-lg border shadow-md">
+        <Command className="rounded-lg border shadow-md absolute bottom-full mb-1 w-full z-10">
           <CommandInput 
             placeholder="Search products..." 
             value={productSearch} 
