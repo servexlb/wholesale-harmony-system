@@ -32,6 +32,21 @@ export interface Service {
   availableMonths?: number[];  // Added availableMonths property
 }
 
+// Add a Product interface that matches the Service interface for consistency
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  wholesalePrice: number;
+  category: string;  // Note: this is 'category' rather than 'categoryId'
+  image: string;
+  deliveryTime: string;
+  featured: boolean;
+  type?: "subscription" | "recharge";
+  availableMonths?: number[];
+}
+
 export interface Subscription {
   id: string;
   userId: string;

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -436,14 +435,13 @@ const ProductManager = () => {
       wholesalePrice: 0,
       category: "",
       image: "",
-      type: "recharge",
+      type: "recharge" as "subscription" | "recharge",
       featured: false,
       deliveryTime: "Instant delivery"
     }
   });
   
   const onSubmit = (data) => {
-    // Add the selected months to the form data if it's a subscription
     const productData = {
       ...data,
       availableMonths: data.type === "subscription" ? selectedMonths : [],
@@ -558,7 +556,7 @@ const ProductManager = () => {
                 <div className="space-y-2">
                   <Label htmlFor="type">Product Type</Label>
                   <Select 
-                    onValueChange={(value) => form.setValue("type", value)}
+                    onValueChange={(value: "subscription" | "recharge") => form.setValue("type", value)}
                     defaultValue={form.getValues("type")}
                   >
                     <SelectTrigger>
@@ -668,7 +666,7 @@ const ProductManager = () => {
       )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {productList.map(product => (
+        {productList.map((product) => (
           <Card key={product.id} className="overflow-hidden">
             <div className="aspect-video w-full overflow-hidden relative">
               <img 
@@ -676,6 +674,14 @@ const ProductManager = () => {
                 alt={product.name}
                 className="object-cover w-full h-full transition-transform hover:scale-105"
               />
+              {product.featured && (
+                <Badge
+                  variant="default" 
+                  className="absolute top-2 right-2"
+                >
+                  Featured
+                </Badge>
+              )}
               {product.type && (
                 <Badge
                   variant="outline" 
