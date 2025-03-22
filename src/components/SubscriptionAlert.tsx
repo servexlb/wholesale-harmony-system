@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Subscription } from '@/lib/types';
 import { format } from 'date-fns';
 import { toast } from '@/lib/toast';
+import { getServiceById } from '@/lib/mockData';
 
 interface SubscriptionAlertProps {
   subscription: Subscription;
@@ -27,6 +28,7 @@ const SubscriptionAlert: React.FC<SubscriptionAlertProps> = ({
   onOpenChange,
 }) => {
   const navigate = useNavigate();
+  const service = getServiceById(subscription.serviceId);
 
   const handleRenew = () => {
     // Navigate to service page for renewal
@@ -62,7 +64,7 @@ const SubscriptionAlert: React.FC<SubscriptionAlertProps> = ({
           <div className="text-sm space-y-1">
             <p>
               <span className="text-muted-foreground">Service:</span>{' '}
-              <span className="font-medium">{subscription.serviceName || "Service"}</span>
+              <span className="font-medium">{service?.name || "Unknown Service"}</span>
             </p>
             <p>
               <span className="text-muted-foreground">Status:</span>{' '}

@@ -78,8 +78,8 @@ export const serviceCategories: ServiceCategory[] = [
   },
 ];
 
-// Mock data for services
-export const products: Service[] = [
+// Mock data for services - Rename products to services
+export const services: Service[] = [
   {
     id: "service1",
     name: "Basic Web Hosting",
@@ -290,7 +290,12 @@ export const loginUser = (email: string, password: string): User | null => {
 
 // Mock function to get service by ID
 export const getServiceById = (id: string): Service | undefined => {
-  return products.find((service) => service.id === id);
+  return services.find((service) => service.id === id);
+};
+
+// Mock function to get services by category
+export const getServicesByCategory = (categoryId: string): Service[] => {
+  return services.filter(service => service.categoryId === categoryId);
 };
 
 // Mock function to get user by ID
@@ -317,9 +322,9 @@ export const getCustomerById = (id: string): SimpleCustomer | undefined => {
   return simpleCustomers.find((customer) => customer.id === id);
 };
 
-// Mock function to get product by ID
+// Mock function to get product by ID - Keep this for backwards compatibility
 export const getProductById = (id: string): Service | undefined => {
-  return products.find((product) => product.id === id);
+  return services.find((product) => product.id === id);
 };
 
 // Mock function to simulate fixing a subscription profile
@@ -468,7 +473,6 @@ export const markAllNotificationsAsRead = (): void => {
     id: "sub-expired-1",
     userId: "user1", // Make sure this matches a valid user ID in your login function
     serviceId: "service1",
-    serviceName: "Premium Streaming Service",
     startDate: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(), // 40 days ago
     endDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
     status: "expired",
