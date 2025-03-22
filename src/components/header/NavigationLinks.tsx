@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Settings, User, ShoppingBag } from 'lucide-react';
+import { Briefcase, Settings, User, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 interface NavigationLinksProps {
@@ -9,8 +9,22 @@ interface NavigationLinksProps {
 }
 
 const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated }) => {
+  const handleWhatsAppRedirect = () => {
+    window.open(`https://wa.me/96178991908`, '_blank');
+  };
+
   return (
     <nav className="hidden md:flex items-center space-x-4">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="text-green-500 hover:text-white hover:bg-green-500"
+        onClick={handleWhatsAppRedirect}
+        title="Contact us on WhatsApp"
+      >
+        <MessageCircle className="h-5 w-5" />
+      </Button>
+      
       <Link to="/wholesale">
         <Button variant="outline" size="sm" className="flex gap-2 items-center">
           <Briefcase className="h-4 w-4" />
