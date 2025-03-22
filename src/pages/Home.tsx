@@ -1,7 +1,6 @@
-
 import React from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   PlayCircle, 
   ShoppingCart, 
@@ -20,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import MainLayout from "@/components/MainLayout";
 import { serviceCategories } from "@/lib/mockData";
+import { toast } from "@/lib/toast";
 
 // Featured services data
 const featuredServices = [
@@ -90,6 +90,8 @@ const testimonials = [
 ];
 
 const Home: React.FC = () => {
+  const navigate = useNavigate();
+
   // Helper function to render the correct icon based on icon name
   const renderCategoryIcon = (iconName: string) => {
     switch (iconName) {
@@ -104,6 +106,51 @@ const Home: React.FC = () => {
       default:
         return <Zap className="h-6 w-6 text-primary" />;
     }
+  };
+
+  // Handle purchase of featured service
+  const handlePurchaseService = (service) => {
+    console.log("Purchase featured service:", service);
+    
+    // Get current user balance from localStorage
+    const userBalanceStr = localStorage.getItem('userBalance');
+    const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
+    
+    // Check if user has sufficient balance
+    if (userBalance < service.price) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to make this purchase"
+      });
+      // Redirect to payment page
+      navigate("/payment");
+      return;
+    }
+
+    // Deduct the price from user balance immediately
+    const newBalance = userBalance - service.price;
+    localStorage.setItem('userBalance', newBalance.toString());
+
+    // Create order with pending status
+    const order = {
+      id: `order-${Date.now()}`,
+      serviceId: service.id,
+      serviceName: service.name,
+      totalPrice: service.price,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save order to localStorage
+    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    customerOrders.push(order);
+    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    
+    toast.success("Purchase successful!", {
+      description: `Your order is being processed. $${service.price.toFixed(2)} has been deducted from your balance.`
+    });
+    
+    // Redirect to dashboard
+    navigate("/dashboard");
   };
 
   return (
@@ -270,7 +317,13 @@ const Home: React.FC = () => {
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                         {service.category}
                       </span>
-                      <Button size="sm">Order Now</Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handlePurchaseService(service)}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Order Now
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
