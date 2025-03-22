@@ -60,38 +60,35 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       return;
     }
 
-    // Simulate purchase processing
-    setTimeout(() => {
-      // Deduct the price from user balance immediately
-      const newBalance = userBalance - service.price;
-      localStorage.setItem('userBalance', newBalance.toString());
+    // Deduct the price from user balance immediately
+    const newBalance = userBalance - service.price;
+    localStorage.setItem('userBalance', newBalance.toString());
 
-      // Create order with pending status
-      const order = {
-        id: `order-${Date.now()}`,
-        serviceId: service.id,
-        totalPrice: service.price,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
+    // Create order with pending status
+    const order = {
+      id: `order-${Date.now()}`,
+      serviceId: service.id,
+      totalPrice: service.price,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
 
-      // Save order to localStorage
-      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
-      customerOrders.push(order);
-      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    // Save order to localStorage
+    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    customerOrders.push(order);
+    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
 
-      // In a real app, you would send this to your backend
-      console.log("Created order:", order);
-      
-      toast.success("Purchase successful!", {
-        description: `Your order is being processed. $${service.price.toFixed(2)} has been deducted from your balance.`
-      });
-      
-      setIsPurchasing(false);
-      
-      // Redirect to dashboard
-      navigate("/dashboard");
-    }, 1000);
+    // In a real app, you would send this to your backend
+    console.log("Created order:", order);
+    
+    toast.success("Purchase successful!", {
+      description: `Your order is being processed. $${service.price.toFixed(2)} has been deducted from your balance.`
+    });
+    
+    setIsPurchasing(false);
+    
+    // Redirect to dashboard
+    navigate("/dashboard");
   };
 
   const imageUrl = getImageUrl(service.name);

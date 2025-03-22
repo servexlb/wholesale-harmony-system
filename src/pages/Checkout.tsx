@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -48,51 +47,48 @@ const Checkout: React.FC = () => {
       return;
     }
 
-    // Simulate a network request
-    setTimeout(() => {
-      // If using account balance, deduct the amount immediately
-      if (paymentMethod === "account-balance") {
-        const newBalance = userBalance - total;
-        localStorage.setItem('userBalance', newBalance.toString());
-      }
+    // Deduct the price from user balance immediately
+    if (paymentMethod === "account-balance") {
+      const newBalance = userBalance - total;
+      localStorage.setItem('userBalance', newBalance.toString());
+    }
 
-      // Create order with pending status
-      const order = {
-        id: `order-${Date.now()}`,
-        userId: "user-123", // In a real app, this would be the current user's ID
-        serviceId: "service-123", // In a real app, this would be the actual service ID
-        quantity: 1,
-        totalPrice: total,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending"
-      };
+    // Create order with pending status
+    const order = {
+      id: `order-${Date.now()}`,
+      userId: "user-123", // In a real app, this would be the current user's ID
+      serviceId: "service-123", // In a real app, this would be the actual service ID
+      quantity: 1,
+      totalPrice: total,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending"
+    };
 
-      // Save order to localStorage
-      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
-      customerOrders.push(order);
-      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    // Save order to localStorage
+    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    customerOrders.push(order);
+    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
 
-      // In a real app, you would send this to your backend
-      console.log("Created order:", order);
-      
-      toast.success(
-        paymentMethod === "account-balance"
-          ? "Order placed! Your payment has been processed."
-          : "Order placed! Payment is pending confirmation."
-      );
+    // In a real app, you would send this to your backend
+    console.log("Created order:", order);
+    
+    toast.success(
+      paymentMethod === "account-balance"
+        ? "Order placed! Your payment has been processed."
+        : "Order placed! Payment is pending confirmation."
+    );
 
-      if (paymentMethod === "account-balance") {
-        toast.success("Balance updated", {
-          description: `$${total.toFixed(2)} has been deducted from your balance.`
-        });
-      }
-      
-      setIsProcessing(false);
-      
-      // Redirect to a confirmation page
-      navigate("/dashboard");
-    }, 1500);
+    if (paymentMethod === "account-balance") {
+      toast.success("Balance updated", {
+        description: `$${total.toFixed(2)} has been deducted from your balance.`
+      });
+    }
+    
+    setIsProcessing(false);
+    
+    // Redirect to a confirmation page
+    navigate("/dashboard");
   };
 
   return (

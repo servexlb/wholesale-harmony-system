@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -41,39 +40,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
       return;
     }
 
-    // Simulate purchase processing
-    setTimeout(() => {
-      // Deduct the price from user balance immediately
-      const newBalance = userBalance - price;
-      localStorage.setItem('userBalance', newBalance.toString());
+    // Deduct the price from user balance immediately
+    const newBalance = userBalance - price;
+    localStorage.setItem('userBalance', newBalance.toString());
 
-      // Create order with pending status
-      const order = {
-        id: `order-${Date.now()}`,
-        productId: product.id,
-        quantity: 1,
-        totalPrice: price,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
+    // Create order with pending status
+    const order = {
+      id: `order-${Date.now()}`,
+      productId: product.id,
+      quantity: 1,
+      totalPrice: price,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
 
-      // Save order to localStorage
-      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
-      customerOrders.push(order);
-      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    // Save order to localStorage
+    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    customerOrders.push(order);
+    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
 
-      // In a real app, you would send this to your backend
-      console.log("Created order:", order);
-      
-      toast.success("Purchase successful!", {
-        description: `Your order is being processed. $${price.toFixed(2)} has been deducted from your balance.`
-      });
-      
-      setIsPurchasing(false);
-      
-      // Redirect to dashboard
-      navigate("/dashboard");
-    }, 1000);
+    // In a real app, you would send this to your backend
+    console.log("Created order:", order);
+    
+    toast.success("Purchase successful!", {
+      description: `Your order is being processed. $${price.toFixed(2)} has been deducted from your balance.`
+    });
+    
+    setIsPurchasing(false);
+    
+    // Redirect to dashboard
+    navigate("/dashboard");
   };
 
   return (
