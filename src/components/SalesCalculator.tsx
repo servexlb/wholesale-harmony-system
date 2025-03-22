@@ -1,16 +1,14 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { sales, customers, products, getCustomerById, getProductById } from '@/lib/data';
 
-// Import our new components
+// Import our components
 import SalesSummaryStats from './sales/SalesSummaryStats';
 import MonthlySalesChart from './sales/charts/MonthlySalesChart';
 import SalesDistributionChart from './sales/charts/SalesDistributionChart';
 
 const SalesCalculator = () => {
-  const [period, setPeriod] = useState('all');
-  
   // Calculate totals
   const totalSales = useMemo(() => {
     return sales.reduce((total, sale) => total + sale.total, 0);
@@ -23,7 +21,7 @@ const SalesCalculator = () => {
     return totalSales / sales.length;
   }, [totalSales]);
 
-  // Generate chart data
+  // Generate chart data for distribution charts
   const salesByCustomer = useMemo(() => {
     const salesMap = new Map();
     
@@ -41,7 +39,7 @@ const SalesCalculator = () => {
       const customer = getCustomerById(customerId);
       return {
         name: customer?.name || 'Unknown',
-        value: total
+        value: total as number
       };
     }).sort((a, b) => b.value - a.value);
   }, []);
@@ -62,14 +60,14 @@ const SalesCalculator = () => {
       const product = getProductById(productId);
       return {
         name: product?.name || 'Unknown',
-        value: total
+        value: total as number
       };
     }).sort((a, b) => b.value - a.value);
   }, []);
 
   // Generate monthly data for bar chart
   const monthlySalesData = useMemo(() => {
-    const months = {};
+    const months: Record<string, number> = {};
     
     // Initialize all months
     for (let i = 0; i < 12; i++) {
