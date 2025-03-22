@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Clock, Tag, ShoppingCart } from "lucide-react";
+import { Clock, Tag, ShoppingCart, RotateCw, Zap, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -51,6 +51,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             Featured
           </Badge>
         )}
+        {service.type && (
+          <Badge
+            variant="outline" 
+            className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
+          >
+            {service.type === "subscription" ? (
+              <RotateCw className="h-3 w-3 mr-1" />
+            ) : (
+              <Zap className="h-3 w-3 mr-1" />
+            )}
+            {service.type === "subscription" ? "Subscription" : "Recharge"}
+          </Badge>
+        )}
       </div>
       <CardHeader className="p-4 pb-0">
         <div className="flex justify-between items-start">
@@ -62,7 +75,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
         <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">
           {service.description}
         </p>
-        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-1" />
             {service.deliveryTime}
@@ -71,6 +84,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             <Tag className="h-4 w-4 mr-1" />
             ${service.price.toFixed(2)}
           </div>
+          {service.type === "subscription" && service.availableMonths && service.availableMonths.length > 0 && (
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 mr-1" />
+              {service.availableMonths.join(", ")} {service.availableMonths.length === 1 ? "month" : "months"}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between">

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -9,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MainLayout from "@/components/MainLayout";
 import { useForm } from "react-hook-form";
 import AdminSupportTickets from "@/components/AdminSupportTickets";
@@ -19,7 +21,8 @@ import {
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
   Pencil, Image, Upload, Type, LayoutDashboard,
-  Save, Trash2, CreditCard, Key, Server, LogOut
+  Save, Trash2, CreditCard, Key, Server, LogOut,
+  RotateCw, Zap, Calendar, List
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
 import { toast } from "@/lib/toast";
@@ -421,6 +424,8 @@ const ProductManager = () => {
   const [productList, setProductList] = useState(products);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const availableMonthOptions = [1, 3, 6, 12, 24];
   
   const form = useForm({
     defaultValues: {
@@ -429,18 +434,27 @@ const ProductManager = () => {
       price: 0,
       wholesalePrice: 0,
       category: "",
-      image: ""
+      image: "",
+      type: "recharge",
+      featured: false,
+      deliveryTime: "Instant delivery"
     }
   });
   
   const onSubmit = (data) => {
+    // Add the selected months to the form data if it's a subscription
+    const productData = {
+      ...data,
+      availableMonths: data.type === "subscription" ? selectedMonths : [],
+    };
+    
     if (editingProduct) {
       setProductList(productList.map(p => 
-        p.id === editingProduct.id ? {...data, id: editingProduct.id} : p
+        p.id === editingProduct.id ? {...productData, id: editingProduct.id} : p
       ));
     } else {
       const newProduct = {
-        ...data,
+        ...productData,
         id: `p${productList.length + 1}`
       };
       setProductList([...productList, newProduct]);
@@ -448,19 +462,33 @@ const ProductManager = () => {
     setShowForm(false);
     setEditingProduct(null);
     form.reset();
+    setSelectedMonths([]);
+    toast.success(`Product ${editingProduct ? "updated" : "added"} successfully`);
   };
   
   const handleEdit = (product) => {
     setEditingProduct(product);
+    setSelectedMonths(product.availableMonths || []);
     form.reset({
       name: product.name,
       description: product.description,
       price: product.price,
       wholesalePrice: product.wholesalePrice,
       category: product.category,
-      image: product.image
+      image: product.image,
+      type: product.type || "recharge",
+      featured: product.featured || false,
+      deliveryTime: product.deliveryTime || "Instant delivery"
     });
     setShowForm(true);
+  };
+  
+  const toggleMonth = (month) => {
+    if (selectedMonths.includes(month)) {
+      setSelectedMonths(selectedMonths.filter(m => m !== month));
+    } else {
+      setSelectedMonths([...selectedMonths, month].sort((a, b) => a - b));
+    }
   };
   
   return (
@@ -470,6 +498,7 @@ const ProductManager = () => {
         <Button onClick={() => {
           setEditingProduct(null);
           form.reset();
+          setSelectedMonths([]);
           setShowForm(!showForm);
         }}>
           <PlusCircle className="h-4 w-4 mr-2" />
@@ -524,6 +553,42 @@ const ProductManager = () => {
                     required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="type">Product Type</Label>
+                  <Select 
+                    onValueChange={(value) => form.setValue("type", value)}
+                    defaultValue={form.getValues("type")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="subscription">
+                        <div className="flex items-center">
+                          <RotateCw className="h-4 w-4 mr-2" />
+                          Subscription
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="recharge">
+                        <div className="flex items-center">
+                          <Zap className="h-4 w-4 mr-2" />
+                          Recharge
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryTime">Delivery Time</Label>
+                  <Input 
+                    id="deliveryTime" 
+                    {...form.register("deliveryTime")} 
+                    defaultValue="Instant delivery"
+                    required
+                  />
+                </div>
                 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="image">Image URL</Label>
@@ -543,9 +608,39 @@ const ProductManager = () => {
                     className="min-h-[100px]"
                   />
                 </div>
+
+                {form.watch("type") === "subscription" && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Available Subscription Months
+                    </Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {availableMonthOptions.map((month) => (
+                        <Button
+                          key={month}
+                          type="button"
+                          variant={selectedMonths.includes(month) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleMonth(month)}
+                          className="flex items-center"
+                        >
+                          {month} {month === 1 ? "month" : "months"}
+                        </Button>
+                      ))}
+                    </div>
+                    {selectedMonths.length === 0 && form.watch("type") === "subscription" && (
+                      <p className="text-sm text-destructive">Please select at least one subscription duration</p>
+                    )}
+                  </div>
+                )}
                 
                 <div className="flex items-center space-x-2 md:col-span-2">
-                  <Checkbox id="featured" />
+                  <Checkbox 
+                    id="featured" 
+                    checked={form.watch("featured")}
+                    onCheckedChange={(checked) => form.setValue("featured", !!checked)}
+                  />
                   <Label htmlFor="featured">Featured Product</Label>
                 </div>
               </div>
@@ -558,7 +653,10 @@ const ProductManager = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button 
+                  type="submit"
+                  disabled={form.watch("type") === "subscription" && selectedMonths.length === 0}
+                >
                   <Save className="h-4 w-4 mr-2" />
                   {editingProduct ? "Update" : "Add"} Product
                 </Button>
@@ -571,12 +669,25 @@ const ProductManager = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {productList.map(product => (
           <Card key={product.id} className="overflow-hidden">
-            <div className="aspect-video w-full overflow-hidden">
+            <div className="aspect-video w-full overflow-hidden relative">
               <img 
                 src={product.image} 
                 alt={product.name}
                 className="object-cover w-full h-full transition-transform hover:scale-105"
               />
+              {product.type && (
+                <Badge
+                  variant="outline" 
+                  className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
+                >
+                  {product.type === "subscription" ? (
+                    <RotateCw className="h-3 w-3 mr-1" />
+                  ) : (
+                    <Zap className="h-3 w-3 mr-1" />
+                  )}
+                  {product.type === "subscription" ? "Subscription" : "Recharge"}
+                </Badge>
+              )}
             </div>
             <CardHeader>
               <div className="flex justify-between">
@@ -597,9 +708,15 @@ const ProductManager = () => {
             <CardContent>
               <div className="flex justify-between mb-2">
                 <div>
-                  <p className="font-medium">${product.price.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">Wholesale: ${product.wholesalePrice.toFixed(2)}</p>
+                  <p className="font-medium">${product.price?.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Wholesale: ${product.wholesalePrice?.toFixed(2)}</p>
                 </div>
+                {product.type === "subscription" && product.availableMonths && product.availableMonths.length > 0 && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <List className="h-4 w-4 mr-1" />
+                    {product.availableMonths.join(", ")} {product.availableMonths.length === 1 ? "month" : "months"}
+                  </div>
+                )}
               </div>
               <p className="text-sm line-clamp-2">{product.description}</p>
             </CardContent>
