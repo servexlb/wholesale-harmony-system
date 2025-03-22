@@ -30,8 +30,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Product, Customer, WholesaleOrder } from '@/lib/types';
-import { customers } from '@/lib/data';
+import { WholesaleOrder } from '@/lib/types';
+import { Product, Customer, customers } from '@/lib/data';
 import { Plus } from 'lucide-react';
 
 // Form validation schema
