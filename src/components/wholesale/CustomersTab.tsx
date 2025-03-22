@@ -5,8 +5,6 @@ import CustomerTable from '@/components/CustomerTable';
 import { Customer } from '@/lib/data';
 import { Subscription } from '@/lib/types';
 import ExportData from './ExportData';
-import { UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface CustomersTabProps {
   customers: Customer[];
@@ -54,10 +52,6 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
             filename="wholesale-customers" 
             disabled={customers.length === 0}
           />
-          <Button>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Customer
-          </Button>
         </div>
       </div>
       <CustomerTable 
