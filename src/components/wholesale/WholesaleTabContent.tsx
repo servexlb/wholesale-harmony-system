@@ -40,6 +40,11 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   const [quantity, setQuantity] = useState<number>(1);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   
+  const handlePurchaseForCustomer = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    setIsPurchaseDialogOpen(true);
+  };
+  
   const handlePurchaseSubmit = () => {
     if (!selectedCustomer || !selectedProduct) {
       toast.error("Please select both a customer and a product");
@@ -116,6 +121,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
             subscriptions={subscriptions} 
             customers={wholesalerCustomers} 
             wholesalerId={currentWholesaler}
+            onPurchaseForCustomer={handlePurchaseForCustomer}
           />
         </motion.div>
       )}

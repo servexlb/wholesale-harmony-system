@@ -39,7 +39,8 @@ import {
   UserCog,
   CreditCard,
   KeyRound,
-  Calendar
+  Calendar,
+  ShoppingBag
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -58,12 +59,14 @@ interface CustomerTableProps {
   subscriptions?: Subscription[];
   customers?: Customer[];
   wholesalerId?: string;
+  onPurchaseForCustomer?: (customerId: string) => void;
 }
 
 const CustomerTable: React.FC<CustomerTableProps> = ({ 
   subscriptions = [], 
   customers = allCustomers,
-  wholesalerId = ''
+  wholesalerId = '',
+  onPurchaseForCustomer
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -118,6 +121,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
                     key={customer.id} 
                     customer={customer} 
                     subscriptions={subscriptions.filter(sub => sub.userId === customer.id)}
+                    onPurchaseForCustomer={onPurchaseForCustomer}
                   />
                 ))
               )}
@@ -132,9 +136,10 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
 interface CustomerRowProps {
   customer: Customer;
   subscriptions: Subscription[];
+  onPurchaseForCustomer?: (customerId: string) => void;
 }
 
-const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) => {
+const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions, onPurchaseForCustomer }) => {
   const [expanded, setExpanded] = useState(false);
 
   const getSubscriptionStatusColor = (endDate: string) => {
@@ -292,6 +297,17 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onPurchaseForCustomer) {
+                    onPurchaseForCustomer(customer.id);
+                  }
+                }}
+              >
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Purchase for Customer
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <FileText className="h-4 w-4 mr-2" />
                 View Orders
