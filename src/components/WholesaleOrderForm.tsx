@@ -31,7 +31,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { WholesaleOrder } from '@/lib/types';
-import { Product, Customer, customers } from '@/lib/data';
+import { Product, Customer, customers as allCustomers } from '@/lib/data';
 import { Plus, User, ChevronDown } from 'lucide-react';
 import CustomerSubscriptions from './CustomerSubscriptions';
 
@@ -61,12 +61,16 @@ interface WholesaleOrderFormProps {
   products: Product[];
   onOrderPlaced: (order: WholesaleOrder) => void;
   subscriptions?: any[]; // Mock subscriptions for demo
+  wholesalerId?: string;
+  customers?: Customer[];
 }
 
 const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
   products,
   onOrderPlaced,
-  subscriptions = []
+  subscriptions = [],
+  wholesalerId = '',
+  customers = allCustomers
 }) => {
   const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   const [customersList, setCustomersList] = useState<Customer[]>(customers);
@@ -98,8 +102,8 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
     // In a real app, this would be an API call
     const newOrder: WholesaleOrder = {
       id: `order-${Date.now()}`,
-      userId: "wholesale-user-id", // This would come from auth context
-      wholesalerId: "wholesale-user-id", // This would come from auth context
+      userId: wholesalerId, // Use the current wholesaler ID
+      wholesalerId: wholesalerId, // Use the current wholesaler ID
       serviceId: values.productId,
       customerId: values.customerId,
       quantity: values.quantity,
@@ -130,6 +134,7 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       email: data.email,
       phone: data.phone,
       company: data.company,
+      wholesalerId: wholesalerId, // Assign the customer to the current wholesaler
     };
 
     setCustomersList(prev => [...prev, newCustomer]);
@@ -174,7 +179,8 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value);
-                      handleCustomerChange(value);
+                      setSelectedCustomerId(value);
+                      setShowSubscriptions(false);
                     }}
                     defaultValue={field.value}
                   >

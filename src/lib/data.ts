@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -21,6 +22,7 @@ export interface Customer {
   email: string;
   company?: string;
   notes?: string;
+  wholesalerId?: string; // Add this field to track which wholesaler the customer belongs to
 }
 
 export interface Sale {
@@ -102,7 +104,8 @@ export const customers: Customer[] = [
     phone: "+1 (555) 123-4567",
     email: "jane@example.com",
     company: "Smith Home Goods",
-    notes: "Prefers delivery on Tuesdays"
+    notes: "Prefers delivery on Tuesdays",
+    wholesalerId: "wholesaler1"
   },
   {
     id: "c2",
@@ -110,7 +113,8 @@ export const customers: Customer[] = [
     phone: "+1 (555) 987-6543",
     email: "michael@example.com",
     company: "Urban Living Co.",
-    notes: ""
+    notes: "",
+    wholesalerId: "admin"
   },
   {
     id: "c3",
@@ -118,7 +122,8 @@ export const customers: Customer[] = [
     phone: "+1 (555) 456-7890",
     email: "emma@example.com",
     company: "Williams Decor",
-    notes: "New customer as of Jan 2023"
+    notes: "New customer as of Jan 2023",
+    wholesalerId: "wholesaler1"
   },
 ];
 

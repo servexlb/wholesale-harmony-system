@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -21,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Customer, 
-  customers, 
+  customers as allCustomers, 
   fixSubscriptionProfile, 
   reportPaymentIssue, 
   reportPasswordIssue,
@@ -55,74 +54,22 @@ import {
 // Mock data for subscriptions - in a real app this would come from props
 import { products } from '@/lib/data';
 
-// Mock data for subscriptions - in a real app this would come from props
-const mockSubscriptions: Subscription[] = [
-  {
-    id: 'sub-1',
-    userId: 'c1',
-    serviceId: 'p1',
-    startDate: '2023-08-01T00:00:00Z',
-    endDate: new Date(Date.now() + 86400000 * 10).toISOString(), // 10 days from now
-    status: 'active',
-    credentials: {
-      email: 'customer1@example.com',
-      password: 'password123'
-    },
-    durationMonths: 1
-  },
-  {
-    id: 'sub-2',
-    userId: 'c1',
-    serviceId: 'p2',
-    startDate: '2023-09-15T00:00:00Z',
-    endDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 days from now
-    status: 'active',
-    credentials: {
-      email: 'service2@example.com',
-      password: 'password456'
-    },
-    durationMonths: 3
-  },
-  {
-    id: 'sub-3',
-    userId: 'c2',
-    serviceId: 'p3',
-    startDate: '2023-10-10T00:00:00Z',
-    endDate: new Date().toISOString(), // Today
-    status: 'active',
-    credentials: {
-      email: 'service3@example.com',
-      password: 'password789'
-    },
-    durationMonths: 6
-  },
-  {
-    id: 'sub-4',
-    userId: 'c3',
-    serviceId: 'p1',
-    startDate: '2023-07-20T00:00:00Z',
-    endDate: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
-    status: 'expired',
-    credentials: {
-      email: 'expired@example.com',
-      password: 'password999'
-    },
-    durationMonths: 1
-  }
-];
-
 interface CustomerTableProps {
   subscriptions?: Subscription[];
+  customers?: Customer[];
+  wholesalerId?: string;
 }
 
 const CustomerTable: React.FC<CustomerTableProps> = ({ 
-  subscriptions = mockSubscriptions 
+  subscriptions = [], 
+  customers = allCustomers,
+  wholesalerId = ''
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
+    (customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone.includes(searchTerm))
   );
 
   return (

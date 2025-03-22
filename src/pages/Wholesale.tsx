@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
@@ -81,12 +82,29 @@ const Wholesale = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
+  const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
+  const [wholesalerCustomers, setWholesalerCustomers] = useState<typeof customers>([]);
   const location = useLocation();
 
   useEffect(() => {
     const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
-    if (wholesaleAuth === 'true') {
+    const wholesalerId = localStorage.getItem('wholesalerId');
+    
+    if (wholesaleAuth === 'true' && wholesalerId) {
       setIsAuthenticated(true);
+      setCurrentWholesaler(wholesalerId);
+      
+      // Filter customers by the current wholesaler
+      const filteredCustomers = customers.filter(customer => 
+        customer.wholesalerId === wholesalerId
+      );
+      setWholesalerCustomers(filteredCustomers);
+      
+      // Filter subscriptions by the customers of this wholesaler
+      const filteredSubscriptions = mockSubscriptions.filter(sub => 
+        filteredCustomers.some(customer => customer.id === sub.userId)
+      );
+      setSubscriptions(filteredSubscriptions);
     }
   }, []);
 
@@ -111,6 +129,26 @@ const Wholesale = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('wholesaleAuthenticated');
+    localStorage.removeItem('wholesalerId');
+  };
+
+  const handleLoginSuccess = (username: string) => {
+    setIsAuthenticated(true);
+    localStorage.setItem('wholesaleAuthenticated', 'true');
+    localStorage.setItem('wholesalerId', username);
+    setCurrentWholesaler(username);
+    
+    // Filter customers by the current wholesaler
+    const filteredCustomers = customers.filter(customer => 
+      customer.wholesalerId === username
+    );
+    setWholesalerCustomers(filteredCustomers);
+    
+    // Filter subscriptions by the customers of this wholesaler
+    const filteredSubscriptions = mockSubscriptions.filter(sub => 
+      filteredCustomers.some(customer => customer.id === sub.userId)
+    );
+    setSubscriptions(filteredSubscriptions);
   };
 
   if (!isAuthenticated) {
@@ -118,10 +156,7 @@ const Wholesale = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-24 container mx-auto max-w-7xl px-6 min-h-[80vh] flex items-center justify-center">
-          <WholesaleLogin onSuccess={() => {
-            setIsAuthenticated(true);
-            localStorage.setItem('wholesaleAuthenticated', 'true');
-          }} />
+          <WholesaleLogin onSuccess={handleLoginSuccess} />
         </main>
       </div>
     );
@@ -256,6 +291,8 @@ const Wholesale = () => {
                   products={products} 
                   onOrderPlaced={handleOrderPlaced}
                   subscriptions={subscriptions}
+                  wholesalerId={currentWholesaler}
+                  customers={wholesalerCustomers}
                 />
                 
                 {orders.length > 0 && (
@@ -277,7 +314,7 @@ const Wholesale = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {orders.map((order) => {
                             const product = products.find(p => p.id === order.serviceId);
-                            const customer = customers.find(c => c.id === order.customerId);
+                            const customer = wholesalerCustomers.find(c => c.id === order.customerId);
                             return (
                               <tr key={order.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
@@ -315,7 +352,11 @@ const Wholesale = () => {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl font-bold mb-8">Manage Customers</h1>
-                <CustomerTable subscriptions={subscriptions} />
+                <CustomerTable 
+                  subscriptions={subscriptions} 
+                  customers={wholesalerCustomers} 
+                  wholesalerId={currentWholesaler}
+                />
               </motion.div>
             )}
             
