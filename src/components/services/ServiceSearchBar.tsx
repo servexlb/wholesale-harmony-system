@@ -2,6 +2,8 @@
 import React from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ServiceCategory } from "@/lib/types";
 
 interface ServiceSearchBarProps {
@@ -46,6 +48,32 @@ const ServiceSearchBar: React.FC<ServiceSearchBarProps> = ({
             </option>
           ))}
         </select>
+      </div>
+      
+      {/* Categories Filter Pills - Desktop */}
+      <div className="hidden md:flex flex-wrap gap-2">
+        <Button 
+          variant={selectedCategory === null ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedCategory(null)}
+          className="rounded-full"
+        >
+          All
+        </Button>
+        {serviceCategories.map(category => (
+          <Badge
+            key={category.id}
+            variant={selectedCategory === category.id ? "default" : "outline"}
+            className={`cursor-pointer px-3 py-1 ${
+              selectedCategory === category.id 
+              ? "" 
+              : "hover:bg-primary/10"
+            }`}
+            onClick={() => setSelectedCategory(category.id)}
+          >
+            {category.name}
+          </Badge>
+        ))}
       </div>
     </div>
   );

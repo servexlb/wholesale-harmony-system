@@ -24,8 +24,22 @@ const ServicesList: React.FC<ServicesListProps> = ({
   return (
     <>
       {/* Results Count */}
-      <div className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Showing {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
+        {selectedCategory && (
+          <>
+            {" in "}
+            <span className="font-medium">
+              {serviceCategories.find(cat => cat.id === selectedCategory)?.name || "selected category"}
+            </span>
+          </>
+        )}
+        {searchQuery && (
+          <>
+            {" matching "}
+            <span className="font-medium">"{searchQuery}"</span>
+          </>
+        )}
       </div>
       
       {/* Services List */}

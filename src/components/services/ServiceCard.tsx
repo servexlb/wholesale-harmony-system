@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
@@ -47,37 +48,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const isRecharge = service.type === "recharge";
   const isGiftCard = service.type === "giftcard";
   
-  // Get appropriate quantity label
-  const getQuantityLabel = () => {
-    if (isSubscription) {
-      return "Months";
-    } else {
-      return "Quantity";
-    }
-  };
-  
-  // Generate a more specific image URL for each service type
-  const getImageUrl = (serviceName: string) => {
-    const name = serviceName.toLowerCase();
-    
-    if (name.includes('netflix')) return "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&h=400&fit=crop";
-    if (name.includes('amazon') || name.includes('prime')) return "https://images.unsplash.com/photo-1584905066893-7d5c142ba4e1?w=600&h=400&fit=crop";
-    if (name.includes('disney')) return "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=400&fit=crop";
-    if (name.includes('apple') || name.includes('itunes')) return "https://images.unsplash.com/photo-1585184394271-4c0a47dc59c9?w=600&h=400&fit=crop";
-    if (name.includes('spotify') || name.includes('music')) return "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&h=400&fit=crop";
-    if (name.includes('youtube')) return "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600&h=400&fit=crop";
-    if (name.includes('hbo')) return "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&h=400&fit=crop";
-    if (name.includes('playstation') || name.includes('xbox') || name.includes('game')) return "https://images.unsplash.com/photo-1592155931584-901ac15763e3?w=600&h=400&fit=crop";
-    if (name.includes('gift') || name.includes('card')) return "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&h=400&fit=crop";
-    if (name.includes('vpn') || name.includes('security')) return "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop";
-    if (name.includes('adobe') || name.includes('creative') || name.includes('canva')) return "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=600&h=400&fit=crop";
-    if (name.includes('microsoft') || name.includes('office')) return "https://images.unsplash.com/photo-1588200618450-3a5b122c9fb9?w=600&h=400&fit=crop";
-    if (name.includes('premium') || name.includes('subscription')) return "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=600&h=400&fit=crop";
-    
-    // Default image with service name
-    return `https://placehold.co/600x400/3949ab/ffffff?text=${encodeURIComponent(serviceName)}`;
-  };
-
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
     // Reset fields
@@ -162,6 +132,28 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   };
 
   const imageUrl = getImageUrl(service.name);
+
+  // Generate a more specific image URL for each service type
+  function getImageUrl(serviceName: string) {
+    const name = serviceName.toLowerCase();
+    
+    if (name.includes('netflix')) return "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&h=400&fit=crop";
+    if (name.includes('amazon') || name.includes('prime')) return "https://images.unsplash.com/photo-1584905066893-7d5c142ba4e1?w=600&h=400&fit=crop";
+    if (name.includes('disney')) return "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=400&fit=crop";
+    if (name.includes('apple') || name.includes('itunes')) return "https://images.unsplash.com/photo-1585184394271-4c0a47dc59c9?w=600&h=400&fit=crop";
+    if (name.includes('spotify') || name.includes('music')) return "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&h=400&fit=crop";
+    if (name.includes('youtube')) return "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600&h=400&fit=crop";
+    if (name.includes('hbo')) return "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&h=400&fit=crop";
+    if (name.includes('playstation') || name.includes('xbox') || name.includes('game')) return "https://images.unsplash.com/photo-1592155931584-901ac15763e3?w=600&h=400&fit=crop";
+    if (name.includes('gift') || name.includes('card')) return "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&h=400&fit=crop";
+    if (name.includes('vpn') || name.includes('security')) return "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop";
+    if (name.includes('adobe') || name.includes('creative') || name.includes('canva')) return "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=600&h=400&fit=crop";
+    if (name.includes('microsoft') || name.includes('office')) return "https://images.unsplash.com/photo-1588200618450-3a5b122c9fb9?w=600&h=400&fit=crop";
+    if (name.includes('premium') || name.includes('subscription')) return "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=600&h=400&fit=crop";
+    
+    // Default image with service name
+    return `https://placehold.co/600x400/3949ab/ffffff?text=${encodeURIComponent(serviceName)}`;
+  }
 
   return (
     <>
@@ -286,6 +278,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
+            {/* Use Select for subscription duration selection instead of quantity controls */}
             {isSubscription && service.availableMonths && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Duration:</span>
@@ -293,8 +286,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                   defaultValue={service.availableMonths[0]?.toString() || "1"}
                   onValueChange={setSelectedDuration}
                 >
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Select duration" />
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select months" />
                   </SelectTrigger>
                   <SelectContent>
                     {service.availableMonths.map(month => (
@@ -324,9 +317,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
+            {/* Only show quantity controls for non-subscription and non-recharge products */}
             {!isSubscription && !isRecharge && (
               <div className="flex justify-between items-center mb-4">
-                <span className="font-medium">{getQuantityLabel()}:</span>
+                <span className="font-medium">Quantity:</span>
                 <div className="flex items-center">
                   <Button 
                     type="button" 
@@ -363,13 +357,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </span>
             </div>
             
-            {service.type === "recharge" && !isRecharge && (
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Recharge Type:</span>
-                <span>Standard Amount</span>
-              </div>
-            )}
-            
+            {/* Additional details based on service type */}
             {isSubscription && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Subscription Duration:</span>
