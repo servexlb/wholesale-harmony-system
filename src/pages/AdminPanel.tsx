@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -12,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import MainLayout from "@/components/MainLayout";
 import { useForm } from "react-hook-form";
+import AdminSupportTickets from "@/components/AdminSupportTickets";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
@@ -561,7 +561,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/services" element={<AdminServices />} />
               <Route path="/orders" element={<AdminOrders />} />
               <Route path="/customization" element={<AdminCustomization />} />
-              <Route path="/support" element={<div>Support Tickets</div>} />
+              <Route path="/support" element={<AdminSupportTickets />} />
               <Route path="/reports" element={<div>Reports and Analytics</div>} />
               <Route path="/settings" element={<div>Admin Settings</div>} />
             </Routes>

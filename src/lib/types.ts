@@ -1,4 +1,3 @@
-
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -63,6 +62,7 @@ export interface SupportTicket {
   status: "open" | "in-progress" | "resolved" | "closed";
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string;
 }
 
 export interface TicketResponse {

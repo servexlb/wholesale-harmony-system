@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
+import SupportTicketForm from "@/components/SupportTicketForm";
 import { 
   CreditCard, 
   Package, 
@@ -79,7 +80,7 @@ const ProductsView = () => (
               </span>
             </div>
             <h3 className="text-lg font-medium">{service.name}</h3>
-            <p className="mt-2 text-sm text-muted-foreground flex-grow">
+            <p className="mt-2 text-sm text-muted-foreground">
               {service.description}
             </p>
             <div className="mt-4 flex items-center justify-between">
@@ -337,7 +338,7 @@ const Dashboard: React.FC = () => {
               <Route path="/subscriptions" element={<div className="p-4">Subscriptions content</div>} />
               <Route path="/orders" element={<div className="p-4">Orders content</div>} />
               <Route path="/payments" element={<div className="p-4">Payments content</div>} />
-              <Route path="/support" element={<div className="p-4">Support content</div>} />
+              <Route path="/support" element={<SupportTicketForm />} />
               <Route path="/settings" element={<div className="p-4">Settings content</div>} />
             </Routes>
           </main>
