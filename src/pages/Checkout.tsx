@@ -1,13 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
@@ -17,24 +15,40 @@ const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState("account-balance");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [insufficientBalance, setInsufficientBalance] = useState(false);
   
   // Mock user balance - in a real app, this would come from your auth/user state
   const userBalance = 10.00; // Lower than the total to trigger insufficient balance scenario
   const total = 12.99;
 
+  // Check if user has sufficient balance on component mount
+  useEffect(() => {
+    if (paymentMethod === "account-balance" && userBalance < total) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to make this purchase"
+      });
+      // Redirect to payment page after a short delay
+      setTimeout(() => {
+        navigate("/payment");
+      }, 1500);
+    }
+  }, []);
+
   const handleCompletePurchase = () => {
     setIsProcessing(true);
-    setInsufficientBalance(false);
+
+    // Check balance again when attempting purchase
+    if (paymentMethod === "account-balance" && userBalance < total) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to make this purchase"
+      });
+      setIsProcessing(false);
+      // Redirect to payment page
+      navigate("/payment");
+      return;
+    }
 
     // Simulate a network request
     setTimeout(() => {
-      if (paymentMethod === "account-balance" && userBalance < total) {
-        setInsufficientBalance(true);
-        setIsProcessing(false);
-        return;
-      }
-
       // Create order with pending status
       const order = {
         id: `order-${Date.now()}`,
@@ -74,33 +88,7 @@ const Checkout: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" placeholder="Enter your first name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" placeholder="Enter your last name" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="Enter your email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" placeholder="Enter your phone number" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mt-6">
+            <Card className="mt-0">
               <CardHeader>
                 <CardTitle>Payment Method</CardTitle>
               </CardHeader>
@@ -130,13 +118,14 @@ const Checkout: React.FC = () => {
                   </div>
                 </RadioGroup>
 
-                {insufficientBalance && (
-                  <Alert variant="destructive" className="mt-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Insufficient balance. Please add funds to your account or select a different payment method.
-                    </AlertDescription>
-                  </Alert>
+                {paymentMethod === "account-balance" && userBalance < total && (
+                  <div className="mt-4 p-4 border border-red-200 bg-red-50 rounded-md text-red-800 flex items-start">
+                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Insufficient balance</p>
+                      <p className="text-sm">Your current balance (${userBalance.toFixed(2)}) is less than the total (${total.toFixed(2)}). You'll be redirected to add funds.</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
