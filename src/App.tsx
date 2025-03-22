@@ -27,7 +27,10 @@ const queryClient = new QueryClient();
 
 // Admin authentication check
 const AdminRoute = ({ children }) => {
-  const isAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
+  // Check both localStorage and sessionStorage for admin authentication
+  const isAuthenticated = 
+    localStorage.getItem("adminAuthenticated") === "true" || 
+    sessionStorage.getItem("adminAuthenticated") === "true";
   
   if (!isAuthenticated) {
     return <Navigate to="/admin-auth" replace />;

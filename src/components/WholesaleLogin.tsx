@@ -5,6 +5,7 @@ import { Lock, ArrowRight, AlertCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { checkWholesaleCredentials } from '@/lib/data';
 import { toast } from '@/lib/toast';
 
@@ -17,6 +18,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +28,15 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
     // Simulate network request
     setTimeout(() => {
       if (checkWholesaleCredentials(username, password)) {
+        // Store credentials if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('wholesaleAuthenticated', 'true');
+          localStorage.setItem('wholesaleUsername', username);
+        } else {
+          sessionStorage.setItem('wholesaleAuthenticated', 'true');
+          sessionStorage.setItem('wholesaleUsername', username);
+        }
+        
         toast.success('Welcome to wholesale portal', {
           description: 'You now have access to wholesale features'
         });
@@ -107,6 +118,20 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
                   Incorrect username or password
                 </p>
               )}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="remember-wholesale" 
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <Label 
+                htmlFor="remember-wholesale" 
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                Keep me signed in
+              </Label>
             </div>
 
             <Button 

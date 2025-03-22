@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, AlertCircle, LogIn, Info } from "lucide-react";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { GoogleLogin } from '@react-oauth/google';
 import SubscriptionAlert from "@/components/SubscriptionAlert";
 import { Subscription } from "@/lib/types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -22,10 +23,26 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(true);
   
   // For subscription alert
   const [showSubscriptionAlert, setShowSubscriptionAlert] = useState(false);
   const [expiredSubscription, setExpiredSubscription] = useState<Subscription | null>(null);
+  
+  // Check for stored credentials on component mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('authenticatedUser');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      toast.success("Logged in automatically!");
+      
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [navigate]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +60,14 @@ const Login: React.FC = () => {
       
       if (user) {
         toast.success("Login successful!");
+        
+        // Save to localStorage if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('authenticatedUser', JSON.stringify(user));
+        } else {
+          // Use sessionStorage if not remembering
+          sessionStorage.setItem('authenticatedUser', JSON.stringify(user));
+        }
         
         // Check for expired subscriptions
         const today = new Date();
@@ -79,6 +104,21 @@ const Login: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     toast.success("Google sign-in successful!");
+    
+    // Create a simplified user object for Google login
+    const googleUser = {
+      id: credentialResponse.clientId || 'google-user',
+      email: 'google@user.com', // In a real app, decode the JWT to get the email
+      name: 'Google User',
+      role: 'user'
+    };
+    
+    // Store in localStorage if remember me is checked
+    if (rememberMe) {
+      localStorage.setItem('authenticatedUser', JSON.stringify(googleUser));
+    } else {
+      sessionStorage.setItem('authenticatedUser', JSON.stringify(googleUser));
+    }
     
     // In a real implementation, you would verify the Google token on your backend
     // and check for expired subscriptions there
@@ -174,6 +214,20 @@ const Login: React.FC = () => {
                   required
                 />
               </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="remember-me" 
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <Label 
+                htmlFor="remember-me" 
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                Remember me
+              </Label>
             </div>
             
             <Button 

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Key, Lock, AlertCircle } from "lucide-react";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import MainLayout from "@/components/MainLayout";
 import { toast } from "@/lib/toast";
 
@@ -17,6 +18,15 @@ const AdminAuth: React.FC = () => {
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // Check for stored admin authentication on component mount
+  useEffect(() => {
+    const adminAuthenticated = localStorage.getItem("adminAuthenticated");
+    if (adminAuthenticated === "true") {
+      navigate("/admin");
+    }
+  }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +42,13 @@ const AdminAuth: React.FC = () => {
     // Simple timeout to simulate verification
     setTimeout(() => {
       if (accessCode === ADMIN_ACCESS_CODE) {
-        // Store in session storage that admin is authenticated
-        sessionStorage.setItem("adminAuthenticated", "true");
+        // Store in localStorage or sessionStorage based on rememberMe
+        if (rememberMe) {
+          localStorage.setItem("adminAuthenticated", "true");
+        } else {
+          sessionStorage.setItem("adminAuthenticated", "true");
+        }
+        
         toast.success("Access granted!");
         navigate("/admin");
       } else {
@@ -81,6 +96,20 @@ const AdminAuth: React.FC = () => {
                   required
                 />
               </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="remember-admin" 
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <Label 
+                htmlFor="remember-admin" 
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                Keep me signed in
+              </Label>
             </div>
             
             <Button 

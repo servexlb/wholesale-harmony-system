@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import WholesaleLogin from '@/components/WholesaleLogin';
@@ -25,7 +24,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 
-// Mock data for subscriptions
 const mockSubscriptions: Subscription[] = [
   {
     id: 'sub-1',
@@ -85,10 +83,16 @@ const Wholesale = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
   const location = useLocation();
 
+  useEffect(() => {
+    const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
+    if (wholesaleAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const handleOrderPlaced = (order: WholesaleOrder) => {
     setOrders(prev => [order, ...prev]);
     
-    // If order includes credentials, create a new subscription
     if (order.credentials) {
       const newSubscription: Subscription = {
         id: `sub-${Date.now()}`,
@@ -106,6 +110,7 @@ const Wholesale = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem('wholesaleAuthenticated');
   };
 
   if (!isAuthenticated) {
@@ -113,7 +118,10 @@ const Wholesale = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-24 container mx-auto max-w-7xl px-6 min-h-[80vh] flex items-center justify-center">
-          <WholesaleLogin onSuccess={() => setIsAuthenticated(true)} />
+          <WholesaleLogin onSuccess={() => {
+            setIsAuthenticated(true);
+            localStorage.setItem('wholesaleAuthenticated', 'true');
+          }} />
         </main>
       </div>
     );
@@ -124,7 +132,6 @@ const Wholesale = () => {
       <Header />
       
       <div className="flex pt-16">
-        {/* Sidebar */}
         <motion.aside
           initial={{ width: sidebarOpen ? 250 : 0, opacity: sidebarOpen ? 1 : 0 }}
           animate={{ width: sidebarOpen ? 250 : 0, opacity: sidebarOpen ? 1 : 0 }}
@@ -198,7 +205,6 @@ const Wholesale = () => {
           </div>
         </motion.aside>
         
-        {/* Mobile Sidebar Toggle */}
         <div className="fixed bottom-4 right-4 z-40 md:hidden">
           <Button 
             size="icon" 
@@ -209,7 +215,6 @@ const Wholesale = () => {
           </Button>
         </div>
 
-        {/* Main Content */}
         <motion.main
           className={`flex-1 p-6 pt-8 transition-all duration-300 ${sidebarOpen ? 'md:ml-[250px]' : ''}`}
         >
