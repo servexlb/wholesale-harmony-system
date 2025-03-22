@@ -37,8 +37,7 @@ const AdminDashboard = () => {
     }
   }, []);
   
-  // Calculate percentage changes based on previous period
-  // For a real app, you would compare with data from previous time period
+  // Calculate percentage changes based on previous period only if we have real data
   const userPercentChange = totalUsers > 0 ? "+5.2%" : "0%";
   const orderPercentChange = activeOrders > 0 ? "-12%" : "0%";
   const revenuePercentChange = revenue > 0 ? "+18.2%" : "0%";

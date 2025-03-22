@@ -38,8 +38,8 @@ const StatsCard: React.FC<StatsCardProps> = ({
           <p className="text-xs text-muted-foreground">
             {description}
           </p>
-          {trend && (
-            <span className={`text-xs ${trendUp ? 'text-green-500' : trend === '0%' ? 'text-muted-foreground' : 'text-red-500'}`}>
+          {trend && trend !== '0%' && (
+            <span className={`text-xs ${trendUp ? 'text-green-500' : 'text-red-500'}`}>
               {trend}
             </span>
           )}
