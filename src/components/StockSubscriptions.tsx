@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check, Calendar, RefreshCw, CreditCard } from 'lucide-react';
@@ -12,6 +13,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { InputWithIcon } from '@/components/ui/input-with-icon';
 import { Button } from '@/components/ui/button';
 import { Subscription } from '@/lib/types';
 import { products, customers } from '@/lib/data';
@@ -102,13 +104,13 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({
     return (
       <div className="space-y-6">
         <div className="sticky top-16 z-10 bg-background pb-4 pt-2">
-          <Input
+          <InputWithIcon
             placeholder="Search by name, phone, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
             type="search"
-            icon={<Search className="h-4 w-4 text-muted-foreground" />}
+            icon={<Search className="h-4 w-4" />}
           />
         </div>
 
@@ -232,13 +234,13 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({
         <CardTitle>Stock Management</CardTitle>
         <CardDescription>Manage your active subscriptions and their credentials</CardDescription>
         <div className="mt-4">
-          <Input
+          <InputWithIcon
             placeholder="Search by name, phone, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
             type="search"
-            icon={<Search className="h-4 w-4 text-muted-foreground" />}
+            icon={<Search className="h-4 w-4" />}
           />
         </div>
       </CardHeader>
