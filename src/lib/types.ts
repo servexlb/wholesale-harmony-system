@@ -28,6 +28,8 @@ export interface Service {
   image: string;
   deliveryTime: string;
   featured: boolean;
+  type?: "subscription" | "recharge";  // Added type property
+  availableMonths?: number[];  // Added availableMonths property
 }
 
 export interface Subscription {
