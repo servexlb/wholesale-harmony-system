@@ -47,6 +47,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   }, []);
   
   const handleOpenPurchaseDialog = useCallback(() => {
+    console.log('Opening purchase dialog from Products tab');
     setSelectedCustomer(''); // Reset customer when opening from products tab
     setIsPurchaseDialogOpen(true);
   }, []);

@@ -34,9 +34,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
   // Combine products and services
   const allItems = [...products, ...servicesAsProducts];
   
-  // Handler for when a product card is clicked - making this more direct
-  const handleProductClick = useCallback(() => {
-    console.log("Opening purchase dialog");
+  // Handler for when a product is clicked
+  const handleProductClick = useCallback((product: Product) => {
+    console.log("Product clicked:", product.name);
     onOpenPurchaseDialog();
   }, [onOpenPurchaseDialog]);
   
@@ -55,11 +55,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {allItems.map((product) => (
-          <div key={product.id} className="h-full cursor-pointer" onClick={handleProductClick}>
+          <div 
+            key={product.id} 
+            className="cursor-pointer h-full" 
+            onClick={() => handleProductClick(product)}
+            style={{ display: 'block' }}
+          >
             <ProductCard 
               product={product} 
               isWholesale={true}
-              onClick={handleProductClick}
+              onClick={() => handleProductClick(product)}
             />
           </div>
         ))}
