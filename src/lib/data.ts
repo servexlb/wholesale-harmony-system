@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +6,12 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
+  type?: "subscription" | "recharge" | "giftcard";
+  value?: number;
+  deliveryTime?: string;
+  featured?: boolean;
+  availableMonths?: number[];
+  apiUrl?: string;
 }
 
 export interface Customer {
