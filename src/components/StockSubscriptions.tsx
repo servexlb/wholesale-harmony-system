@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX, Search, Phone } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -12,8 +12,10 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Subscription } from '@/lib/types';
 import { products, customers } from '@/lib/data';
+import { toast } from '@/lib/toast';
 
 interface StockSubscriptionsProps {
   subscriptions: Subscription[];
@@ -21,6 +23,8 @@ interface StockSubscriptionsProps {
 
 const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   
   // Filter active subscriptions only
   const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active');
@@ -52,6 +56,20 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
     if (daysLeft === 0) return { status: "expires today", color: "destructive", icon: <CircleAlert className="h-4 w-4" /> };
     if (daysLeft <= 3) return { status: `expires in ${daysLeft} days`, color: "orange", icon: <CircleAlert className="h-4 w-4" /> };
     return { status: `expires in ${daysLeft} days`, color: "green", icon: <Clock className="h-4 w-4" /> };
+  };
+  
+  const copyToClipboard = (text: string, id: string, field: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setCopiedField(field);
+      toast.success(`Copied ${field} to clipboard!`);
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedId(null);
+        setCopiedField(null);
+      }, 2000);
+    });
   };
   
   return (
@@ -103,7 +121,21 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                     <TableCell>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Phone className="h-3 w-3" />
-                        {customer?.phone || 'N/A'}
+                        <span>{customer?.phone || 'N/A'}</span>
+                        {customer?.phone && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 ml-1" 
+                            onClick={() => copyToClipboard(customer.phone, subscription.id, 'phone')}
+                          >
+                            {copiedId === subscription.id && copiedField === 'phone' ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{product?.name || 'Unknown Service'}</TableCell>
@@ -129,9 +161,58 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                     <TableCell>{new Date(subscription.endDate).toLocaleDateString()}</TableCell>
                     <TableCell>
                       {subscription.credentials ? (
-                        <div className="bg-muted/30 p-2 rounded text-sm">
-                          <div><span className="font-medium">Email:</span> {subscription.credentials.email}</div>
-                          <div><span className="font-medium">Password:</span> {subscription.credentials.password}</div>
+                        <div className="bg-muted/30 p-2 rounded text-sm space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Email:</span> 
+                            <div className="flex items-center gap-1">
+                              {subscription.credentials.email}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6" 
+                                onClick={() => copyToClipboard(subscription.credentials!.email, subscription.id, 'email')}
+                              >
+                                {copiedId === subscription.id && copiedField === 'email' ? (
+                                  <Check className="h-3 w-3 text-green-500" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Password:</span> 
+                            <div className="flex items-center gap-1">
+                              {subscription.credentials.password}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6" 
+                                onClick={() => copyToClipboard(subscription.credentials!.password, subscription.id, 'password')}
+                              >
+                                {copiedId === subscription.id && copiedField === 'password' ? (
+                                  <Check className="h-3 w-3 text-green-500" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full mt-1 text-xs h-7" 
+                            onClick={() => {
+                              const fullText = `Email: ${subscription.credentials!.email}\nPassword: ${subscription.credentials!.password}`;
+                              copyToClipboard(fullText, subscription.id, 'all-credentials');
+                            }}
+                          >
+                            {copiedId === subscription.id && copiedField === 'all-credentials' ? (
+                              <><Check className="h-3 w-3 mr-1 text-green-500" /> Copied all</>
+                            ) : (
+                              <><Copy className="h-3 w-3 mr-1" /> Copy all credentials</>
+                            )}
+                          </Button>
                         </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">No credentials</span>
