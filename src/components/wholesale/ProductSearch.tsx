@@ -100,12 +100,6 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         </div>
         
         <Command className="rounded-lg border shadow-md absolute bottom-full mb-1 w-full z-10">
-          <CommandInput 
-            placeholder="Search products..." 
-            value={productSearch} 
-            onValueChange={handleSearchChange} 
-            className="h-9" 
-          />
           <CommandList className="max-h-[300px] overflow-auto">
             <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
             {Object.keys(productsByCategory).length === 0 ? (
