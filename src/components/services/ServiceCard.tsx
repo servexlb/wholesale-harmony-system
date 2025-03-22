@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
@@ -47,7 +46,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const isSubscription = service.type === "subscription";
   const isRecharge = service.type === "recharge";
   const isGiftCard = service.type === "giftcard";
-  
+
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
     // Reset fields
@@ -298,7 +297,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                   Subscription Duration <span className="text-red-500">*</span>
                 </label>
                 <Select 
-                  defaultValue={service.availableMonths?.[0]?.toString() || "1"}
+                  value={selectedDuration}
                   onValueChange={setSelectedDuration}
                 >
                   <SelectTrigger className="w-full">
@@ -359,7 +358,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                     <Input
                       type="number"
                       min="1"
-                      value={quantity}
+                      value={quantity.toString()}
                       onChange={handleQuantityChange}
                       className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
                     />
@@ -395,7 +394,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                   <Input
                     type="number"
                     min="1"
-                    value={quantity}
+                    value={quantity.toString()}
                     onChange={handleQuantityChange}
                     className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
                   />

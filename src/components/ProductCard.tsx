@@ -273,7 +273,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                   Subscription Duration <span className="text-red-500">*</span>
                 </label>
                 <Select 
-                  defaultValue="1"
+                  value={selectedDuration}
                   onValueChange={setSelectedDuration}
                 >
                   <SelectTrigger className="w-full">
@@ -324,7 +324,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                     <Input
                       type="number"
                       min="1"
-                      value={quantity}
+                      value={quantity.toString()}
                       onChange={handleQuantityChange}
                       className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
                     />
@@ -360,7 +360,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                   <Input
                     type="number"
                     min="1"
-                    value={quantity}
+                    value={quantity.toString()}
                     onChange={handleQuantityChange}
                     className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
                   />

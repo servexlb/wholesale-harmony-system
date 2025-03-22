@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -204,7 +203,7 @@ const ProductDetail = () => {
                     Subscription Duration
                   </label>
                   <Select 
-                    defaultValue="1" 
+                    value={selectedDuration}
                     onValueChange={setSelectedDuration}
                   >
                     <SelectTrigger className="w-full">
@@ -231,7 +230,7 @@ const ProductDetail = () => {
                   <Input
                     type="number"
                     min="1"
-                    value={quantity}
+                    value={quantity.toString()}
                     onChange={handleQuantityChange}
                     className="mx-2 w-16 text-center"
                   />
@@ -377,7 +376,7 @@ const ProductDetail = () => {
                   Subscription Duration <span className="text-red-500">*</span>
                 </label>
                 <Select 
-                  defaultValue="1"
+                  value={selectedDuration}
                   onValueChange={setSelectedDuration}
                 >
                   <SelectTrigger className="w-full">
@@ -408,7 +407,7 @@ const ProductDetail = () => {
                   <Input
                     type="number"
                     min="1"
-                    value={quantity}
+                    value={quantity.toString()}
                     onChange={handleQuantityChange}
                     className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
                   />
