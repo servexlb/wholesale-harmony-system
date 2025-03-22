@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
@@ -298,7 +299,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                 </label>
                 <Select 
                   value={selectedDuration}
-                  onValueChange={setSelectedDuration}
+                  onValueChange={(value) => setSelectedDuration(value)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select months" />
@@ -338,40 +339,42 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                 <p className="text-xs text-muted-foreground">
                   This ID is required to process your recharge
                 </p>
-                
-                {/* Add quantity controls for recharge products */}
-                <div className="mt-4">
-                  <label className="text-sm font-medium">
-                    Quantity
-                  </label>
-                  <div className="flex items-center mt-1">
-                    <Button 
-                      type="button" 
-                      size="icon"
-                      variant="outline" 
-                      className="h-8 w-8 rounded-r-none"
-                      onClick={decreaseQuantity}
-                      disabled={quantity <= 1}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={quantity.toString()}
-                      onChange={handleQuantityChange}
-                      className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
-                    />
-                    <Button 
-                      type="button" 
-                      size="icon"
-                      variant="outline" 
-                      className="h-8 w-8 rounded-l-none"
-                      onClick={increaseQuantity}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
+              </div>
+            )}
+            
+            {/* Always show quantity controls for recharge products */}
+            {isRecharge && (
+              <div className="mt-4">
+                <label className="text-sm font-medium">
+                  Quantity
+                </label>
+                <div className="flex items-center mt-1">
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-r-none"
+                    onClick={decreaseQuantity}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={quantity.toString()}
+                    onChange={handleQuantityChange}
+                    className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
+                  />
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-l-none"
+                    onClick={increaseQuantity}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
             )}
@@ -392,8 +395,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                     <Minus className="h-3 w-3" />
                   </Button>
                   <Input
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     value={quantity.toString()}
                     onChange={handleQuantityChange}
                     className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
