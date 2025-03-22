@@ -12,6 +12,8 @@ import { loginUser } from "@/lib/mockData";
 import { toast } from "@/lib/toast";
 import { Separator } from "@/components/ui/separator";
 import { GoogleLogin } from '@react-oauth/google';
+import SubscriptionAlert from "@/components/SubscriptionAlert";
+import { Subscription } from "@/lib/types";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +22,10 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  
+  // For subscription alert
+  const [showSubscriptionAlert, setShowSubscriptionAlert] = useState(false);
+  const [expiredSubscription, setExpiredSubscription] = useState<Subscription | null>(null);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +43,21 @@ const Login: React.FC = () => {
       
       if (user) {
         toast.success("Login successful!");
+        
+        // Check for expired subscriptions
+        const today = new Date();
+        // In a real app, this would come from an API call
+        const userSubscriptions = (window as any).mockUserSubscriptions || [];
+        const expired = userSubscriptions.find((sub: Subscription) => 
+          sub.userId === user.id && 
+          sub.status === "expired" && 
+          new Date(sub.endDate) < today
+        );
+        
+        if (expired) {
+          setExpiredSubscription(expired);
+          setShowSubscriptionAlert(true);
+        }
         
         if (user.role === "admin") {
           navigate("/admin");
@@ -58,6 +79,9 @@ const Login: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     toast.success("Google sign-in successful!");
+    
+    // In a real implementation, you would verify the Google token on your backend
+    // and check for expired subscriptions there
     navigate("/dashboard");
   };
 
@@ -199,6 +223,15 @@ const Login: React.FC = () => {
           </div>
         </div>
       </motion.div>
+      
+      {/* Subscription Alert Dialog */}
+      {expiredSubscription && (
+        <SubscriptionAlert 
+          subscription={expiredSubscription}
+          open={showSubscriptionAlert}
+          onOpenChange={setShowSubscriptionAlert}
+        />
+      )}
     </MainLayout>
   );
 };
