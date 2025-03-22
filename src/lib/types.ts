@@ -1,4 +1,3 @@
-
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -30,6 +29,7 @@ export interface Service {
   featured: boolean;
   type?: "subscription" | "recharge";  // Added type property
   availableMonths?: number[];  // Added availableMonths property
+  apiUrl?: string;  // Added API URL for recharge services
 }
 
 // Product interface with explicit properties to match the actual data structure
@@ -45,6 +45,7 @@ export interface Product {
   featured: boolean;
   type?: "subscription" | "recharge";
   availableMonths?: number[];
+  apiUrl?: string;  // Added API URL for recharge products
 }
 
 export interface Subscription {
@@ -79,6 +80,7 @@ export interface Order {
     password: string;
   };
   durationMonths?: number; // Duration of subscription in months
+  paymentStatus?: "paid" | "pending" | "insufficient_balance"; // Added payment status
 }
 
 export interface WholesaleOrder extends Order {

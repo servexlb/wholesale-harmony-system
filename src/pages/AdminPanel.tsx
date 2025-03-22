@@ -438,7 +438,8 @@ const ProductManager = () => {
       image: "",
       type: "recharge" as "subscription" | "recharge",
       featured: false,
-      deliveryTime: "Instant delivery"
+      deliveryTime: "Instant delivery",
+      apiUrl: ""
     }
   });
   
@@ -478,7 +479,8 @@ const ProductManager = () => {
       image: product.image,
       type: product.type || "recharge",
       featured: product.featured || false,
-      deliveryTime: product.deliveryTime || "Instant delivery"
+      deliveryTime: product.deliveryTime || "Instant delivery",
+      apiUrl: product.apiUrl || ""
     });
     setShowForm(true);
   };
@@ -609,6 +611,20 @@ const ProductManager = () => {
                   />
                 </div>
 
+                {form.watch("type") === "recharge" && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="apiUrl">API URL for Recharge</Label>
+                    <Input 
+                      id="apiUrl" 
+                      {...form.register("apiUrl")}
+                      placeholder="https://api.example.com/recharge"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter the API endpoint to use for processing recharge requests
+                    </p>
+                  </div>
+                )}
+
                 {form.watch("type") === "subscription" && (
                   <div className="space-y-2 md:col-span-2">
                     <Label className="flex items-center">
@@ -723,6 +739,12 @@ const ProductManager = () => {
                   <div className="flex items-center text-sm text-muted-foreground">
                     <List className="h-4 w-4 mr-1" />
                     {product.availableMonths.join(", ")} {product.availableMonths.length === 1 ? "month" : "months"}
+                  </div>
+                )}
+                {product.type === "recharge" && product.apiUrl && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Server className="h-4 w-4 mr-1" />
+                    API Connected
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,9 +7,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import MainLayout from "@/components/MainLayout";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/lib/toast";
 
 const Checkout: React.FC = () => {
+  const navigate = useNavigate();
+  const [paymentMethod, setPaymentMethod] = useState("account-balance");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [insufficientBalance, setInsufficientBalance] = useState(false);
+  
+  // Mock user balance - in a real app, this would come from your auth/user state
+  const userBalance = 10.00; // Lower than the total to trigger insufficient balance scenario
+  const total = 12.99;
+
+  const handleCompletePurchase = () => {
+    setIsProcessing(true);
+    setInsufficientBalance(false);
+
+    // Simulate a network request
+    setTimeout(() => {
+      if (paymentMethod === "account-balance" && userBalance < total) {
+        setInsufficientBalance(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Create order with pending status
+      const order = {
+        id: `order-${Date.now()}`,
+        userId: "user-123", // In a real app, this would be the current user's ID
+        serviceId: "service-123", // In a real app, this would be the actual service ID
+        quantity: 1,
+        totalPrice: total,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending"
+      };
+
+      // In a real app, you would send this to your backend
+      console.log("Created order:", order);
+      
+      toast.success(
+        paymentMethod === "account-balance"
+          ? "Purchase complete! You'll receive your credentials shortly."
+          : "Order placed! Payment is pending confirmation."
+      );
+      setIsProcessing(false);
+      
+      // Redirect to a confirmation page
+      navigate("/dashboard");
+    }, 1500);
+  };
+
   return (
     <MainLayout>
       <motion.div
@@ -53,11 +105,15 @@ const Checkout: React.FC = () => {
                 <CardTitle>Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
-                <RadioGroup defaultValue="account-balance">
+                <RadioGroup 
+                  defaultValue="account-balance"
+                  value={paymentMethod}
+                  onValueChange={setPaymentMethod}
+                >
                   <div className="flex items-center space-x-2 border p-4 rounded-md">
                     <RadioGroupItem value="account-balance" id="account-balance" />
                     <Label htmlFor="account-balance" className="flex-1">
-                      Account Balance ($120.00 available)
+                      Account Balance (${userBalance.toFixed(2)} available)
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2 border p-4 rounded-md mt-2">
@@ -73,6 +129,15 @@ const Checkout: React.FC = () => {
                     </Label>
                   </div>
                 </RadioGroup>
+
+                {insufficientBalance && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Insufficient balance. Please add funds to your account or select a different payment method.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -103,12 +168,18 @@ const Checkout: React.FC = () => {
                   <Separator />
                   <div className="flex justify-between font-bold">
                     <p>Total</p>
-                    <p>$12.99</p>
+                    <p>${total}</p>
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full">Complete Purchase</Button>
+                <Button 
+                  className="w-full" 
+                  onClick={handleCompletePurchase}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Processing..." : "Complete Purchase"}
+                </Button>
               </CardFooter>
             </Card>
           </div>
