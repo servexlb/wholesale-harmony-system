@@ -3,60 +3,37 @@ import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Users, ShoppingCart, DollarSign } from "lucide-react";
+import { sales, customers } from "@/lib/data";
 
 const AdminDashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeOrders, setActiveOrders] = useState(0);
   const [revenue, setRevenue] = useState(0);
-  
-  // Target values (what the counters will increment towards)
-  const targetUsers = 1294;
-  const targetOrders = 42;
-  const targetRevenue = 12345;
-  
+
   useEffect(() => {
-    // Simulate users coming in by incremental updates
-    const userInterval = setInterval(() => {
-      setTotalUsers(prev => {
-        if (prev < targetUsers) {
-          return Math.min(prev + Math.floor(Math.random() * 5) + 1, targetUsers);
-        }
-        return prev;
-      });
-    }, 2000);
+    // Get real user data from customers array in data.ts
+    setTotalUsers(customers.length);
     
-    // Simulate new orders being created
-    const orderInterval = setInterval(() => {
-      setActiveOrders(prev => {
-        if (prev < targetOrders) {
-          return Math.min(prev + Math.floor(Math.random() * 2) + 1, targetOrders);
-        }
-        return prev;
-      });
-    }, 3000);
+    // Get real orders data
+    // First check for orders in localStorage
+    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    setActiveOrders(customerOrders.length);
     
-    // Simulate revenue increasing
-    const revenueInterval = setInterval(() => {
-      setRevenue(prev => {
-        if (prev < targetRevenue) {
-          return Math.min(prev + Math.floor(Math.random() * 100) + 50, targetRevenue);
-        }
-        return prev;
-      });
-    }, 1500);
-    
-    // Clean up intervals on component unmount
-    return () => {
-      clearInterval(userInterval);
-      clearInterval(orderInterval);
-      clearInterval(revenueInterval);
-    };
+    // Calculate real revenue from sales in data.ts
+    const totalRevenue = sales.reduce((acc, sale) => {
+      if (sale.paid) {
+        return acc + sale.total;
+      }
+      return acc;
+    }, 0);
+    setRevenue(totalRevenue);
   }, []);
   
-  // Calculate percentage changes - start with 0% since we're starting from 0
-  const userPercentChange = totalUsers > 0 ? "+5.2%" : "0%";
-  const orderPercentChange = activeOrders > 0 ? "-12%" : "0%";
-  const revenuePercentChange = revenue > 0 ? "+18.2%" : "0%";
+  // Calculate percentage changes based on previous period
+  // For a real app, you would compare with data from previous time period
+  const userPercentChange = "+5.2%";
+  const orderPercentChange = "-12%";
+  const revenuePercentChange = "+18.2%";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
