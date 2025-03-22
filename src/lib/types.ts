@@ -87,3 +87,10 @@ export interface TicketResponse {
   message: string;
   createdAt: string;
 }
+
+// Simple customer interface for wholesale
+export interface SimpleCustomer {
+  id: string;
+  name: string;
+  phone: string;
+}

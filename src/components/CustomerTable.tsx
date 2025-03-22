@@ -20,26 +20,93 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Customer, customers } from '@/lib/data';
+import { Subscription } from '@/lib/types';
 import { 
   MoreHorizontal, 
   Search, 
   Phone, 
-  Mail, 
   Edit,
   Trash2, 
   FileText, 
-  UserPlus 
+  UserPlus,
+  Key
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
-const CustomerTable: React.FC = () => {
+// Mock subscriptions (this would come from props in a real app)
+import { products } from '@/lib/data';
+
+// Mock data for subscriptions - in a real app this would come from props
+const mockSubscriptions: Subscription[] = [
+  {
+    id: 'sub-1',
+    userId: 'c1',
+    serviceId: 'p1',
+    startDate: '2023-08-01T00:00:00Z',
+    endDate: new Date(Date.now() + 86400000 * 10).toISOString(), // 10 days from now
+    status: 'active',
+    credentials: {
+      email: 'customer1@example.com',
+      password: 'password123'
+    }
+  },
+  {
+    id: 'sub-2',
+    userId: 'c1',
+    serviceId: 'p2',
+    startDate: '2023-09-15T00:00:00Z',
+    endDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 days from now
+    status: 'active',
+    credentials: {
+      email: 'service2@example.com',
+      password: 'password456'
+    }
+  },
+  {
+    id: 'sub-3',
+    userId: 'c2',
+    serviceId: 'p3',
+    startDate: '2023-10-10T00:00:00Z',
+    endDate: new Date().toISOString(), // Today
+    status: 'active',
+    credentials: {
+      email: 'service3@example.com',
+      password: 'password789'
+    }
+  },
+  {
+    id: 'sub-4',
+    userId: 'c3',
+    serviceId: 'p1',
+    startDate: '2023-07-20T00:00:00Z',
+    endDate: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
+    status: 'expired',
+    credentials: {
+      email: 'expired@example.com',
+      password: 'password999'
+    }
+  }
+];
+
+interface CustomerTableProps {
+  subscriptions?: Subscription[];
+}
+
+const CustomerTable: React.FC<CustomerTableProps> = ({ 
+  subscriptions = mockSubscriptions 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (customer.company && customer.company.toLowerCase().includes(searchTerm.toLowerCase()))
+    customer.phone.includes(searchTerm)
   );
 
   return (
@@ -70,21 +137,24 @@ const CustomerTable: React.FC = () => {
               <TableRow>
                 <TableHead className="w-[250px]">Customer</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead>Active Subscriptions</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                     No customers found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredCustomers.map((customer) => (
-                  <CustomerRow key={customer.id} customer={customer} />
+                  <CustomerRow 
+                    key={customer.id} 
+                    customer={customer} 
+                    subscriptions={subscriptions.filter(sub => sub.userId === customer.id)}
+                  />
                 ))
               )}
             </TableBody>
@@ -97,68 +167,185 @@ const CustomerTable: React.FC = () => {
 
 interface CustomerRowProps {
   customer: Customer;
+  subscriptions: Subscription[];
 }
 
-const CustomerRow: React.FC<CustomerRowProps> = ({ customer }) => {
+const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const getSubscriptionStatusColor = (endDate: string) => {
+    const today = new Date();
+    const end = new Date(endDate);
+    const daysLeft = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) return "destructive";
+    if (daysLeft === 0) return "destructive";
+    if (daysLeft <= 3) return "orange"; 
+    return "green";
+  };
+
   return (
-    <motion.tr
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="hover:bg-muted/50"
-    >
-      <TableCell className="font-medium">
-        <Link 
-          to={`/wholesale/customers/${customer.id}`}
-          className="hover:underline transition-all"
-        >
-          {customer.name}
-        </Link>
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-col gap-1">
+    <>
+      <motion.tr
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="hover:bg-muted/50 cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <TableCell className="font-medium">
+          <Link 
+            to={`/wholesale/customers/${customer.id}`}
+            className="hover:underline transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {customer.name}
+          </Link>
+        </TableCell>
+        <TableCell>
           <div className="flex items-center text-sm">
             <Phone className="h-3 w-3 mr-2 text-muted-foreground" />
             <span>{customer.phone}</span>
           </div>
-          <div className="flex items-center text-sm">
-            <Mail className="h-3 w-3 mr-2 text-muted-foreground" />
-            <span>{customer.email}</span>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell>{customer.company || "—"}</TableCell>
-      <TableCell className="max-w-[200px] truncate">
-        {customer.notes || "—"}
-      </TableCell>
-      <TableCell className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <FileText className="h-4 w-4 mr-2" />
-              View Orders
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Customer
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Customer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </motion.tr>
+        </TableCell>
+        <TableCell>
+          {subscriptions.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {subscriptions.map((sub) => {
+                const product = products.find(p => p.id === sub.serviceId);
+                const statusColor = getSubscriptionStatusColor(sub.endDate);
+                
+                return (
+                  <TooltipProvider key={sub.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge 
+                          variant={
+                            statusColor === "green" ? "default" : 
+                            statusColor === "orange" ? "outline" : 
+                            "destructive"
+                          }
+                          className={
+                            statusColor === "orange" 
+                              ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
+                              : ""
+                          }
+                        >
+                          {product?.name || 'Unknown'}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          <p className="font-medium">{product?.name || 'Unknown'}</p>
+                          <p>Expires: {new Date(sub.endDate).toLocaleDateString()}</p>
+                          {sub.credentials && (
+                            <div className="pt-1 border-t">
+                              <div className="flex items-center gap-1">
+                                <Key className="h-3 w-3" />
+                                <span className="text-xs">{sub.credentials.email}</span>
+                              </div>
+                              <div className="text-xs">
+                                Password: {sub.credentials.password}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-sm">No active subscriptions</span>
+          )}
+        </TableCell>
+        <TableCell className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <FileText className="h-4 w-4 mr-2" />
+                View Orders
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Customer
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Customer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </motion.tr>
+      {expanded && subscriptions.length > 0 && (
+        <TableRow>
+          <TableCell colSpan={4} className="bg-muted/20 p-0">
+            <div className="p-4">
+              <h4 className="font-medium mb-2">Subscription Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {subscriptions.map((sub) => {
+                  const product = products.find(p => p.id === sub.serviceId);
+                  const statusColor = getSubscriptionStatusColor(sub.endDate);
+                  
+                  return (
+                    <div key={sub.id} className="bg-white p-3 rounded-md border shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h5 className="font-medium">{product?.name || 'Unknown Service'}</h5>
+                          <p className="text-sm text-muted-foreground">
+                            Expires: {new Date(sub.endDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            statusColor === "green" ? "default" : 
+                            statusColor === "orange" ? "outline" : 
+                            "destructive"
+                          }
+                          className={
+                            statusColor === "orange" 
+                              ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
+                              : ""
+                          }
+                        >
+                          {statusColor === "green" ? "Active" : 
+                           statusColor === "orange" ? "Expiring Soon" : 
+                           "Expired"}
+                        </Badge>
+                      </div>
+                      
+                      {sub.credentials && (
+                        <div className="mt-2 pt-2 border-t">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Key className="h-3 w-3 text-primary" />
+                            <span className="text-sm font-medium">Credentials</span>
+                          </div>
+                          <div className="bg-muted/30 p-2 rounded text-sm">
+                            <div><span className="font-medium">Email:</span> {sub.credentials.email}</div>
+                            <div><span className="font-medium">Password:</span> {sub.credentials.password}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
   );
 };
 
