@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -13,11 +14,12 @@ import MainLayout from "@/components/MainLayout";
 import { useForm } from "react-hook-form";
 import AdminSupportTickets from "@/components/AdminSupportTickets";
 import AdminBalanceManagement from "@/components/AdminBalanceManagement";
+import AdminDigitalInventory from "@/components/AdminDigitalInventory";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
   Pencil, Image, Upload, Type, LayoutDashboard,
-  Save, Trash2, CreditCard
+  Save, Trash2, CreditCard, Key, Server
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
 
@@ -521,6 +523,14 @@ const AdminPanel: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 
+                    onClick={() => navigate("/admin/inventory")}
+                  >
+                    <Server className="mr-2 h-4 w-4" />
+                    Digital Inventory
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
                     onClick={() => navigate("/admin/balance")}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
@@ -569,6 +579,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/customers" element={<AdminCustomers />} />
               <Route path="/services" element={<AdminServices />} />
               <Route path="/orders" element={<AdminOrders />} />
+              <Route path="/inventory" element={<AdminDigitalInventory />} />
               <Route path="/balance" element={<AdminBalanceManagement />} />
               <Route path="/customization" element={<AdminCustomization />} />
               <Route path="/support" element={<AdminSupportTickets />} />
