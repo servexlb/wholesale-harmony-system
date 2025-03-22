@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -94,6 +95,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
   const decreaseQuantity = () => {
     setQuantity(prev => prev > 1 ? prev - 1 : 1);
+  };
+
+  // Helper to determine if product is a subscription
+  const isSubscription = product.type === 'subscription';
+  
+  // Helper to determine if product is a gift card
+  const isGiftCard = product.type === 'giftcard';
+
+  // Get appropriate quantity label
+  const getQuantityLabel = () => {
+    if (isSubscription) {
+      return quantity === 1 ? 'Month' : 'Months';
+    } else {
+      return 'Quantity';
+    }
   };
 
   return (
@@ -199,7 +215,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
           
           <div className="py-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Price per unit:</span>
+              <span className="font-medium">Price per {isSubscription ? 'month' : 'unit'}:</span>
               <span className="font-bold">${price.toFixed(2)}</span>
             </div>
             
@@ -214,7 +230,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
             </div>
             
             <div className="flex justify-between items-center mb-4">
-              <span className="font-medium">Quantity:</span>
+              <span className="font-medium">{getQuantityLabel()}:</span>
               <div className="flex items-center">
                 <Button 
                   type="button" 
@@ -245,7 +261,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <span className="font-bold">${(price * quantity).toFixed(2)}</span>
             </div>
             
-            {product.type === 'giftcard' && (
+            {isSubscription && (
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-medium">Duration:</span>
+                <span>{quantity} {quantity === 1 ? 'month' : 'months'}</span>
+              </div>
+            )}
+            
+            {isGiftCard && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Gift Card Value:</span>
                 <span>${product.value?.toFixed(2) || price.toFixed(2)}</span>
