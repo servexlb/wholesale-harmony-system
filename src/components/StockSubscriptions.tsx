@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check, Calendar } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check, Calendar, RefreshCw, CreditCard } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -17,12 +17,17 @@ import { Subscription } from '@/lib/types';
 import { products, customers } from '@/lib/data';
 import { toast } from '@/lib/toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import SubscriptionActions from '@/components/customer/SubscriptionActions';
 
 interface StockSubscriptionsProps {
   subscriptions: Subscription[];
+  allowRenewal?: boolean;
 }
 
-const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }) => {
+const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ 
+  subscriptions,
+  allowRenewal = false 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -71,6 +76,16 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
         setCopiedId(null);
         setCopiedField(null);
       }, 2000);
+    });
+  };
+
+  const handleRenewSubscription = (subscription: Subscription) => {
+    const product = products.find(p => p.id === subscription.serviceId);
+    const customer = customers.find(c => c.id === subscription.userId);
+    
+    // In a real app, this would process a renewal
+    toast.success(`Renewal initiated for ${customer?.name}'s ${product?.name} subscription`, {
+      description: "The account will be renewed after payment processing"
     });
   };
   
@@ -222,6 +237,20 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                   ) : (
                     <div className="text-muted-foreground text-sm">No credentials</div>
                   )}
+                  
+                  {allowRenewal && (
+                    <div className="mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full flex items-center justify-center gap-1 text-primary" 
+                        onClick={() => handleRenewSubscription(subscription)}
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        <span>Renew Account</span>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -260,12 +289,13 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
               <TableHead>Status</TableHead>
               <TableHead>Expiry Date</TableHead>
               <TableHead>Credentials</TableHead>
+              {allowRenewal && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredSubscriptions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={allowRenewal ? 8 : 7} className="h-24 text-center">
                   No active subscriptions found
                 </TableCell>
               </TableRow>
@@ -388,6 +418,19 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                         <span className="text-muted-foreground text-sm">No credentials</span>
                       )}
                     </TableCell>
+                    {allowRenewal && (
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1 text-primary" 
+                          onClick={() => handleRenewSubscription(subscription)}
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          <span>Renew Account</span>
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
