@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { Product, Customer } from '@/lib/data';
 import { WholesaleOrder, Subscription } from '@/lib/types';
 import ProductsTab from './ProductsTab';
@@ -20,6 +20,13 @@ interface WholesaleTabContentProps {
   handleOrderPlaced: (order: WholesaleOrder) => void;
 }
 
+// Create memoized tab components to prevent unnecessary re-renders
+const MemoizedProductsTab = memo(ProductsTab);
+const MemoizedCustomersTab = memo(CustomersTab);
+const MemoizedStockTab = memo(StockTab);
+const MemoizedSalesTab = memo(SalesTab);
+const MemoizedSettingsTab = memo(SettingsTab);
+
 const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   activeTab,
   products,
@@ -33,46 +40,44 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   
-  const handlePurchaseForCustomer = (customerId: string) => {
+  const handlePurchaseForCustomer = useCallback((customerId: string) => {
     setSelectedCustomer(customerId);
     setIsPurchaseDialogOpen(true);
+  }, []);
+  
+  const handleOpenPurchaseDialog = useCallback(() => {
+    setSelectedCustomer(''); // Reset customer when opening from products tab
+    setIsPurchaseDialogOpen(true);
+  }, []);
+  
+  // Only render the active tab to reduce DOM size and improve performance
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'products':
+        return <MemoizedProductsTab products={products} onOpenPurchaseDialog={handleOpenPurchaseDialog} />;
+      case 'customers':
+        return (
+          <MemoizedCustomersTab 
+            customers={wholesalerCustomers} 
+            subscriptions={subscriptions} 
+            wholesalerId={currentWholesaler} 
+            onPurchaseForCustomer={handlePurchaseForCustomer} 
+          />
+        );
+      case 'stock':
+        return <MemoizedStockTab subscriptions={subscriptions} />;
+      case 'sales':
+        return <MemoizedSalesTab orders={orders} customers={wholesalerCustomers} />;
+      case 'settings':
+        return <MemoizedSettingsTab />;
+      default:
+        return null;
+    }
   };
   
   return (
-    <>      
-      {activeTab === 'products' && (
-        <ProductsTab 
-          products={products} 
-          onOpenPurchaseDialog={() => {
-            setSelectedCustomer(''); // Reset customer when opening from products tab
-            setIsPurchaseDialogOpen(true);
-          }} 
-        />
-      )}
-      
-      {activeTab === 'customers' && (
-        <CustomersTab 
-          customers={wholesalerCustomers} 
-          subscriptions={subscriptions} 
-          wholesalerId={currentWholesaler} 
-          onPurchaseForCustomer={handlePurchaseForCustomer} 
-        />
-      )}
-      
-      {activeTab === 'stock' && (
-        <StockTab subscriptions={subscriptions} />
-      )}
-      
-      {activeTab === 'sales' && (
-        <SalesTab 
-          orders={orders}
-          customers={wholesalerCustomers}
-        />
-      )}
-      
-      {activeTab === 'settings' && (
-        <SettingsTab />
-      )}
+    <>
+      {renderActiveTab()}
       
       <PurchaseDialog 
         open={isPurchaseDialogOpen}
@@ -87,4 +92,4 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   );
 };
 
-export default WholesaleTabContent;
+export default memo(WholesaleTabContent);

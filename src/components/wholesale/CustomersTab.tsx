@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import CustomerTable from '@/components/CustomerTable';
 import { Customer } from '@/lib/data';
@@ -19,30 +19,33 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
   wholesalerId, 
   onPurchaseForCustomer 
 }) => {
-  // Prepare export data
-  const exportData = customers.map(customer => {
-    const customerSubscriptions = subscriptions.filter(sub => sub.userId === customer.id);
-    return {
-      ID: customer.id,
-      Name: customer.name,
-      Email: customer.email,
-      Phone: customer.phone || 'N/A',
-      CompanyName: customer.company || 'N/A',
-      Notes: customer.notes || 'N/A',
-      SubscriptionsCount: customerSubscriptions.length,
-      TotalSpent: customerSubscriptions.reduce((total, sub) => {
-        // Since the Subscription type doesn't have a direct price property,
-        // we need to use a property that does exist or default to 0
-        return total + 0; // For now, we'll just use 0 as we can't accurately calculate spent amount
-      }, 0)
-    };
-  });
+  // Prepare export data - memoized to prevent recalculation on every render
+  const exportData = useMemo(() => {
+    if (!customers.length) return [];
+    
+    return customers.map(customer => {
+      const customerSubscriptions = subscriptions.filter(sub => sub.userId === customer.id);
+      return {
+        ID: customer.id,
+        Name: customer.name,
+        Email: customer.email,
+        Phone: customer.phone || 'N/A',
+        CompanyName: customer.company || 'N/A',
+        Notes: customer.notes || 'N/A',
+        SubscriptionsCount: customerSubscriptions.length,
+        TotalSpent: customerSubscriptions.reduce((total, sub) => {
+          // No real calculation here as mentioned in the original code
+          return total + 0;
+        }, 0)
+      };
+    });
+  }, [customers, subscriptions]);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.3 }} // Reduce animation duration
     >
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Manage Customers</h1>
@@ -64,4 +67,4 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
   );
 };
 
-export default CustomersTab;
+export default React.memo(CustomersTab);
