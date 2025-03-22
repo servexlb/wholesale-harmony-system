@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -14,7 +15,7 @@ import { useForm } from "react-hook-form";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
-  Pencil, Image, Upload, Typography, Type, LayoutDashboard,
+  Pencil, Image, Upload, Type, LayoutDashboard,
   Save, Trash2
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
@@ -200,7 +201,10 @@ const ContentEditor = () => {
                     </Button>
                     <Button 
                       size="sm"
-                      onClick={() => saveContent(item.id, document.getElementById(`content-${item.id}`).value)}
+                      onClick={() => {
+                        const textareaElement = document.getElementById(`content-${item.id}`) as HTMLTextAreaElement;
+                        saveContent(item.id, textareaElement.value);
+                      }}
                     >
                       <Save className="h-4 w-4 mr-2" />
                       Save
