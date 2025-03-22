@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +7,32 @@ import { useForm } from "react-hook-form";
 import { PlusCircle } from "lucide-react";
 import { Product } from "@/lib/types";
 import { products } from "@/lib/data";
+import { services } from "@/lib/mockData";
 
 const ProductManager = () => {
-  const [productList, setProductList] = useState<Product[]>(products as Product[]);
+  // Combine products from both data sources
+  const [productList, setProductList] = useState<Product[]>([]);
+  
+  useEffect(() => {
+    // Convert services to Product type format and combine with products
+    const servicesAsProducts = services.map(service => ({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      wholesalePrice: service.wholesalePrice,
+      image: service.image,
+      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+      featured: service.featured,
+      type: service.type as any,
+      deliveryTime: service.deliveryTime,
+      apiUrl: service.apiUrl
+    }));
+    
+    // Combine both product lists
+    setProductList([...products, ...servicesAsProducts]);
+  }, []);
+  
   const [showForm, setShowForm] = useState(false);
   
   // This is just a placeholder component to avoid making the refactoring too long
