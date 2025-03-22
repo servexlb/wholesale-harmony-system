@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Store } from 'lucide-react';
 
 interface LogoProps {
   darkMode: boolean;
@@ -22,16 +22,22 @@ const Logo: React.FC<LogoProps> = ({ darkMode }) => {
         </div>
       )}
       
-      <img 
-        src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
-        alt="Servexlb Logo" 
-        className={`h-10 w-auto ${darkMode ? 'brightness-0 invert' : 'contrast-150 brightness-50'} ${imageLoaded ? 'block' : 'hidden'}`}
-        onLoad={() => setImageLoaded(true)}
-        onError={() => setImageError(true)}
-      />
-      
-      {imageError && (
-        <span className="font-bold text-xl">ServexLB</span>
+      {!imageError ? (
+        <img 
+          src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
+          alt="Servexlb Logo" 
+          className={`h-10 w-auto ${darkMode ? 'brightness-0 invert' : 'contrast-150 brightness-50'} ${imageLoaded ? 'block' : 'hidden'}`}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => {
+            console.log("Logo image failed to load");
+            setImageError(true);
+          }}
+        />
+      ) : (
+        <div className="flex items-center">
+          <Store className="h-6 w-6 mr-2" />
+          <span className="font-bold text-xl">ServexLB</span>
+        </div>
       )}
     </Link>
   );

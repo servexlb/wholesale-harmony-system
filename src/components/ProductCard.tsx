@@ -5,8 +5,9 @@ import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye, Image as ImageIcon } from 'lucide-react';
+import { CreditCard, Eye, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ProductCardProps {
   product: Product;
@@ -77,8 +78,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     >
       <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-50 relative">
         {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
-            <ImageIcon className="h-10 w-10 text-gray-300" />
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <Loader2 className="h-10 w-10 text-gray-300 animate-spin" />
           </div>
         )}
         
@@ -92,12 +93,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               isHovered ? "scale-105" : "scale-100"
             )}
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
+            onError={() => {
+              console.log(`Product image failed to load: ${product.image}`);
+              setImageError(true);
+            }}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
             <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
-            <span className="text-sm text-gray-500">Image unavailable</span>
+            <span className="text-sm text-gray-500">{product.name}</span>
           </div>
         )}
       </div>

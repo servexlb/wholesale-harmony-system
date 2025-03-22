@@ -1,12 +1,12 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Service, ServiceCategory } from "@/lib/types";
 import { toast } from "@/lib/toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ServiceCardProps {
   service: Service;
@@ -84,22 +84,27 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     }, 1000);
   };
 
+  const imageUrl = getImageUrl(service.name);
+
   return (
     <Card key={service.id} className="overflow-hidden transition-all hover:shadow-md">
       <div className="aspect-video relative">
         {!imageLoaded && !imageError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
-            <ImageIcon className="h-10 w-10 text-gray-300" />
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <Loader2 className="h-10 w-10 text-gray-300 animate-spin" />
           </div>
         )}
         
         {!imageError ? (
           <img 
-            src={getImageUrl(service.name)} 
+            src={imageUrl} 
             alt={service.name}
             className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
+            onError={() => {
+              console.log(`Service image failed to load: ${imageUrl}`);
+              setImageError(true);
+            }}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
