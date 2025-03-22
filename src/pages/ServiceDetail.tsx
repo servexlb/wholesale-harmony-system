@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -19,6 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Service } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { services } from "@/lib/mockData";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,10 @@ const ServiceDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [gameAccountId, setGameAccountId] = useState<string>("");
+  const [customerName, setCustomerName] = useState<string>("");
+  const [customerEmail, setCustomerEmail] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [additionalInfo, setAdditionalInfo] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,8 +77,8 @@ const ServiceDetail: React.FC = () => {
     );
   }
 
-  const isSubscription = service.type === "subscription";
-  const isGameRecharge = service.type === "recharge" || service.categoryId === "category6";
+  const isSubscription = service?.type === "subscription";
+  const isGameRecharge = service?.type === "recharge" || service?.categoryId === "category6";
 
   const increaseQuantity = () => {
     setQuantity(prev => prev + 1);
@@ -94,14 +99,11 @@ const ServiceDetail: React.FC = () => {
     setGameAccountId(e.target.value);
   };
 
-  // Fixed total price calculation for recharge products
   const calculateTotal = () => {
     if (isGameRecharge && customAmount) {
-      // For recharge products, the price is the service price
-      return service.wholesalePrice * (parseInt(customAmount) || 0);
+      return service!.wholesalePrice * (parseInt(customAmount) || 0);
     } else {
-      // For regular products, multiply the price by quantity
-      return service.wholesalePrice * quantity;
+      return service!.wholesalePrice * quantity;
     }
   };
 
@@ -112,7 +114,6 @@ const ServiceDetail: React.FC = () => {
   };
   
   const handleBuyNow = () => {
-    // For game recharges, validate required fields first
     if (isGameRecharge) {
       if (!customAmount || parseInt(customAmount) <= 0) {
         toast.error("Invalid amount", {
@@ -127,9 +128,28 @@ const ServiceDetail: React.FC = () => {
         });
         return;
       }
+
+      if (!customerName || !customerEmail) {
+        toast.error("Customer information required", {
+          description: "Please enter your name and email"
+        });
+        return;
+      }
     }
     
-    console.log("Buy now:", { service, quantity, gameAccountId, customAmount, total });
+    console.log("Buy now:", { 
+      service, 
+      quantity, 
+      gameAccountId, 
+      customAmount, 
+      total,
+      customerInfo: {
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+        additionalInfo: additionalInfo
+      }
+    });
     
     if (userBalance < total) {
       toast.error("Insufficient balance", {
@@ -139,35 +159,61 @@ const ServiceDetail: React.FC = () => {
       return;
     }
     
-    // For recharge services, redirect to a confirmation page
     if (isGameRecharge) {
-      // Store the recharge details in sessionStorage to retrieve in the confirmation page
       sessionStorage.setItem('rechargeDetails', JSON.stringify({
-        serviceId: service.id,
-        serviceName: service.name,
+        serviceId: service?.id,
+        serviceName: service?.name,
         amount: customAmount,
         gameAccountId: gameAccountId,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
+        additionalInfo: additionalInfo,
         total: total
       }));
       
-      navigate(`/service/${service.id}/recharge-confirm`);
+      const customerRequests = JSON.parse(localStorage.getItem('customerRequests') || '[]');
+      customerRequests.push({
+        id: `request-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        serviceId: service?.id,
+        serviceName: service?.name,
+        amount: customAmount,
+        gameAccountId: gameAccountId,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
+        additionalInfo: additionalInfo,
+        total: total,
+        status: 'pending'
+      });
+      localStorage.setItem('customerRequests', JSON.stringify(customerRequests));
+      
+      navigate(`/service/${service?.id}/recharge-confirm`);
       return;
     }
     
-    // Non-recharge services follow the original flow
     setIsProcessing(true);
     
     setTimeout(() => {
       const order = {
         id: `order-${Date.now()}`,
-        serviceId: service.id,
+        serviceId: service?.id,
         quantity: quantity,
         customAmount: customAmount,
         gameAccountId: gameAccountId,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
+        additionalInfo: additionalInfo,
         totalPrice: total,
         status: "pending",
         createdAt: new Date().toISOString(),
       };
+
+      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+      customerOrders.push(order);
+      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
 
       console.log("Created order:", order);
       
@@ -245,12 +291,12 @@ const ServiceDetail: React.FC = () => {
             <Card>
               <CardContent className="p-6">
                 <div className="text-center mb-4">
-                  <span className="text-3xl font-bold">${service.price}</span>
+                  <span className="text-3xl font-bold">${service?.price}</span>
                   <p className="text-sm text-gray-500">Regular Price</p>
                 </div>
                 
                 <div className="text-center mb-6">
-                  <span className="text-2xl font-semibold text-primary">${service.wholesalePrice}</span>
+                  <span className="text-2xl font-semibold text-primary">${service?.wholesalePrice}</span>
                   <p className="text-sm text-gray-500">Wholesale Price</p>
                 </div>
                 
@@ -339,6 +385,62 @@ const ServiceDetail: React.FC = () => {
                         Your in-game ID where the recharge will be applied
                       </p>
                     </div>
+                    
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="font-medium mb-3">Customer Information</h3>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">
+                            Name <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="text"
+                            placeholder="Your full name"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">
+                            Email <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="email"
+                            placeholder="Your email address"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">
+                            Phone Number
+                          </label>
+                          <Input
+                            type="tel"
+                            placeholder="Your phone number"
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">
+                            Additional Information
+                          </label>
+                          <Textarea
+                            placeholder="Any special requirements or notes"
+                            value={additionalInfo}
+                            onChange={(e) => setAdditionalInfo(e.target.value)}
+                            className="resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </>
                 )}
                 
@@ -362,7 +464,7 @@ const ServiceDetail: React.FC = () => {
                 <div className="mt-6 text-sm text-gray-500">
                   <div className="flex items-center justify-between py-1">
                     <span>Delivery:</span>
-                    <span className="font-medium">{service.deliveryTime}</span>
+                    <span className="font-medium">{service?.deliveryTime}</span>
                   </div>
                   <div className="flex items-center justify-between py-1">
                     <span>Support:</span>
