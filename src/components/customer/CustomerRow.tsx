@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Phone } from 'lucide-react';
+import { Phone, Calendar, Key } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Link } from 'react-router-dom';
 import { Subscription } from '@/lib/types';
@@ -11,7 +11,6 @@ import CustomerActionsMenu from './CustomerActionsMenu';
 import ExpandedSubscriptionDetails from './ExpandedSubscriptionDetails';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Key } from 'lucide-react';
 
 interface CustomerRowProps {
   customer: Customer;
