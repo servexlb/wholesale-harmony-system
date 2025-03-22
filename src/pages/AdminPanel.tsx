@@ -12,11 +12,12 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, For
 import MainLayout from "@/components/MainLayout";
 import { useForm } from "react-hook-form";
 import AdminSupportTickets from "@/components/AdminSupportTickets";
+import AdminBalanceManagement from "@/components/AdminBalanceManagement";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
   Pencil, Image, Upload, Type, LayoutDashboard,
-  Save, Trash2
+  Save, Trash2, CreditCard
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
 
@@ -520,6 +521,14 @@ const AdminPanel: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 
+                    onClick={() => navigate("/admin/balance")}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    User Balance
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
                     onClick={() => navigate("/admin/customization")}
                   >
                     <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -560,6 +569,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/customers" element={<AdminCustomers />} />
               <Route path="/services" element={<AdminServices />} />
               <Route path="/orders" element={<AdminOrders />} />
+              <Route path="/balance" element={<AdminBalanceManagement />} />
               <Route path="/customization" element={<AdminCustomization />} />
               <Route path="/support" element={<AdminSupportTickets />} />
               <Route path="/reports" element={<div>Reports and Analytics</div>} />

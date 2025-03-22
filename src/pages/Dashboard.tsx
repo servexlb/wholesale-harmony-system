@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import SupportTicketForm from "@/components/SupportTicketForm";
+import UserPaymentOptions from "@/components/UserPaymentOptions";
 import { 
   CreditCard, 
   Package, 
@@ -331,7 +332,7 @@ const Dashboard: React.FC = () => {
               <Route path="/overview" element={<DashboardHome />} />
               <Route path="/subscriptions" element={<div className="p-4">Subscriptions content</div>} />
               <Route path="/orders" element={<div className="p-4">Orders content</div>} />
-              <Route path="/payments" element={<div className="p-4">Payments content</div>} />
+              <Route path="/payments" element={<UserPaymentOptions />} />
               <Route path="/support" element={<SupportTicketForm />} />
               <Route path="/settings" element={<div className="p-4">Settings content</div>} />
             </Routes>
