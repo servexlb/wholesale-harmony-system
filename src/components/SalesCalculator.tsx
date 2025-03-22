@@ -1,35 +1,12 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { 
-  BarChart, 
-  PieChart, 
-  Bar, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer, 
-  CartesianGrid 
-} from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { sales, customers, products, getCustomerById, getProductById } from '@/lib/data';
-import { DollarSign, TrendingUp, ShoppingBag, Users } from 'lucide-react';
+
+// Import our new components
+import SalesSummaryStats from './sales/SalesSummaryStats';
+import MonthlySalesChart from './sales/charts/MonthlySalesChart';
+import SalesDistributionChart from './sales/charts/SalesDistributionChart';
 
 const SalesCalculator = () => {
   const [period, setPeriod] = useState('all');
@@ -112,9 +89,6 @@ const SalesCalculator = () => {
     }));
   }, []);
 
-  // Colors for charts
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -122,179 +96,21 @@ const SalesCalculator = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Revenue"
-          value={`$${totalSales.toFixed(2)}`}
-          description="Lifetime sales amount"
-          icon={<DollarSign className="h-5 w-5" />}
-          trend="+12.5%"
-          trendUp={true}
-        />
-        <StatsCard
-          title="Average Order"
-          value={`$${averageOrderValue.toFixed(2)}`}
-          description="Per transaction"
-          icon={<TrendingUp className="h-5 w-5" />}
-          trend="+3.2%"
-          trendUp={true}
-        />
-        <StatsCard
-          title="Products Sold"
-          value={totalProducts.toString()}
-          description="Unique products"
-          icon={<ShoppingBag className="h-5 w-5" />}
-          trend="0%"
-          trendUp={false}
-        />
-        <StatsCard
-          title="Customers"
-          value={totalCustomers.toString()}
-          description="Total customers"
-          icon={<Users className="h-5 w-5" />}
-          trend="+5.3%"
-          trendUp={true}
-        />
-      </div>
+      <SalesSummaryStats 
+        totalSales={totalSales}
+        totalCustomers={totalCustomers}
+        totalProducts={totalProducts}
+        averageOrderValue={averageOrderValue}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 overflow-hidden">
-          <CardHeader>
-            <CardTitle>Monthly Sales</CardTitle>
-            <CardDescription>
-              Revenue per month across all customers
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="h-[300px] p-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={monthlySalesData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      borderRadius: '6px',
-                      border: '1px solid #eaeaea',
-                      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                  <Bar dataKey="total" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales Distribution</CardTitle>
-            <CardDescription>
-              By customers and products
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="customers">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="customers">By Customer</TabsTrigger>
-                <TabsTrigger value="products">By Product</TabsTrigger>
-              </TabsList>
-              <TabsContent value="customers" className="space-y-4 mt-4">
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={salesByCustomer.slice(0, 5)}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {salesByCustomer.slice(0, 5).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-              <TabsContent value="products" className="space-y-4 mt-4">
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={salesByProduct.slice(0, 5)}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {salesByProduct.slice(0, 5).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <MonthlySalesChart monthlySalesData={monthlySalesData} />
+        <SalesDistributionChart 
+          salesByCustomer={salesByCustomer} 
+          salesByProduct={salesByProduct} 
+        />
       </div>
     </motion.div>
-  );
-};
-
-interface StatsCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-  trend: string;
-  trendUp: boolean;
-}
-
-const StatsCard: React.FC<StatsCardProps> = ({ 
-  title, 
-  value, 
-  description, 
-  icon,
-  trend,
-  trendUp 
-}) => {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-          {icon}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="flex items-center space-x-2">
-          <p className="text-xs text-muted-foreground">
-            {description}
-          </p>
-          <span className={`text-xs ${trendUp ? 'text-green-500' : trend === '0%' ? 'text-muted-foreground' : 'text-red-500'}`}>
-            {trend}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
