@@ -8,6 +8,8 @@ import { Customer, Product } from '@/lib/data';
 import { toast } from 'sonner';
 import { WholesaleOrder } from '@/lib/types';
 import { Search, Calendar, Zap, Package, Clock } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 interface PurchaseDialogProps {
   open: boolean;
@@ -34,19 +36,38 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [productSearch, setProductSearch] = useState<string>('');
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
+  const [activeTab, setActiveTab] = useState('all');
   
   // Reset search when dialog closes
   useEffect(() => {
     if (!open) {
       setProductSearch('');
+      setActiveTab('all');
     }
   }, [open]);
 
-  // Filter products based on search query
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    product.description.toLowerCase().includes(productSearch.toLowerCase())
-  );
+  // Filter products based on search query and active tab
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      product.description.toLowerCase().includes(productSearch.toLowerCase());
+      
+    if (activeTab === 'all') return matchesSearch;
+    if (activeTab === 'subscription') return matchesSearch && product.type === 'subscription';
+    if (activeTab === 'recharge') return matchesSearch && product.type === 'recharge';
+    if (activeTab === 'giftcard') return matchesSearch && (product.type === 'giftcard' || !product.type);
+    
+    return matchesSearch;
+  });
+
+  // Group products by category
+  const productsByCategory = filteredProducts.reduce((acc, product) => {
+    const category = product.category || 'Uncategorized';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(product);
+    return acc;
+  }, {} as Record<string, Product[]>);
 
   const selectedProductData = products.find(p => p.id === selectedProduct);
   const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
@@ -90,14 +111,18 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   // Mock function to load purchase history
   const loadPurchaseHistory = (customerId: string) => {
-    // In a real application, this would fetch from an API
-    // For now, we'll just use the existing purchase history in state
     setShowPurchaseHistory(true);
+  };
+
+  const renderProductIcon = (type?: string) => {
+    if (type === 'subscription') return <Calendar className="h-4 w-4 text-blue-500" />;
+    if (type === 'recharge') return <Zap className="h-4 w-4 text-amber-500" />;
+    return <Package className="h-4 w-4 text-green-500" />;
   };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Purchase for Customer</DialogTitle>
         </DialogHeader>
@@ -172,6 +197,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           
           <div>
             <label className="text-sm font-medium mb-1 block">Product</label>
+            
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+              <TabsList className="grid grid-cols-4 mb-2">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="subscription">Subscriptions</TabsTrigger>
+                <TabsTrigger value="recharge">Recharges</TabsTrigger>
+                <TabsTrigger value="giftcard">Gift Cards</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
             <div className="space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -184,23 +219,31 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 />
               </div>
               
-              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredProducts.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      <div className="flex items-center gap-2">
-                        {product.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
-                        {product.type === 'recharge' && <Zap className="h-4 w-4 text-amber-500" />}
-                        {(!product.type || product.type === 'giftcard') && <Package className="h-4 w-4 text-green-500" />}
-                        <span>{product.name} - ${product.wholesalePrice.toFixed(2)}</span>
-                      </div>
-                    </SelectItem>
+              <Command className="rounded-lg border shadow-md">
+                <CommandInput placeholder="Search products..." value={productSearch} onValueChange={setProductSearch} className="h-9" />
+                <CommandList className="max-h-[250px] overflow-auto">
+                  <CommandEmpty>No products found.</CommandEmpty>
+                  {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
+                    <CommandGroup key={category} heading={category}>
+                      {categoryProducts.map((product) => (
+                        <CommandItem
+                          key={product.id}
+                          onSelect={() => {
+                            setSelectedProduct(product.id);
+                          }}
+                          className={`flex items-center gap-2 cursor-pointer ${selectedProduct === product.id ? 'bg-accent text-accent-foreground' : ''}`}
+                        >
+                          {renderProductIcon(product.type)}
+                          <div className="flex flex-col">
+                            <span className="font-medium">{product.name}</span>
+                            <span className="text-xs text-muted-foreground">${product.wholesalePrice.toFixed(2)}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
                   ))}
-                </SelectContent>
-              </Select>
+                </CommandList>
+              </Command>
             </div>
           </div>
           
