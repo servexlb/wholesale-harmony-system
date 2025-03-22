@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye, ImageIcon } from 'lucide-react';
+import { CreditCard, Eye, ImageIcon, Minus, Plus } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -14,6 +14,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { toast } from '@/lib/toast';
 
 interface ProductCardProps {
@@ -28,6 +29,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [accountId, setAccountId] = useState("");
   const navigate = useNavigate();
 
   const price = isWholesale ? product.wholesalePrice : product.price;
@@ -38,10 +40,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
+    // Reset fields when opening dialog
+    setAccountId("");
     setIsConfirmDialogOpen(true);
   };
 
   const handleBuyNow = () => {
+    // Validate account ID for recharge products
+    if (product.type === 'recharge' && !accountId.trim()) {
+      toast.error("Account ID required", {
+        description: "Please enter your account ID for this recharge"
+      });
+      return;
+    }
+    
     console.log("Buy now clicked for product:", product);
     setIsPurchasing(true);
     
@@ -65,6 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
       id: `order-${Date.now()}`,
       productId: product.id,
       quantity: quantity,
+      accountId: product.type === 'recharge' ? accountId : undefined,
       totalPrice: price * quantity,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -102,6 +115,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
   
   // Helper to determine if product is a gift card
   const isGiftCard = product.type === 'giftcard';
+
+  // Helper to determine if product is a recharge
+  const isRecharge = product.type === 'recharge';
 
   // Get appropriate quantity label
   const getQuantityLabel = () => {
@@ -213,7 +229,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
+          <div className="py-4 space-y-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Price per {isSubscription ? 'month' : 'unit'}:</span>
               <span className="font-bold">${price.toFixed(2)}</span>
@@ -229,6 +245,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <span>{product.category}</span>
             </div>
             
+            {isRecharge && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Account ID <span className="text-red-500">*</span>
+                </label>
+                <Input 
+                  placeholder="Enter your account ID"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  This ID is required to process your recharge
+                </p>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center mb-4">
               <span className="font-medium">{getQuantityLabel()}:</span>
               <div className="flex items-center">
@@ -238,8 +271,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                   variant="outline" 
                   className="h-8 w-8 rounded-r-none"
                   onClick={decreaseQuantity}
+                  disabled={quantity <= 1}
                 >
-                  <span>-</span>
+                  <Minus className="h-3 w-3" />
                 </Button>
                 <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
                   {quantity}
@@ -251,7 +285,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                   className="h-8 w-8 rounded-l-none"
                   onClick={increaseQuantity}
                 >
-                  <span>+</span>
+                  <Plus className="h-3 w-3" />
                 </Button>
               </div>
             </div>

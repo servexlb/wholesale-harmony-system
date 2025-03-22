@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Service, ServiceCategory } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,12 +37,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
+  const [accountId, setAccountId] = useState("");
   
   // Get current user balance from localStorage
   const userBalanceStr = localStorage.getItem('userBalance');
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
   
   const isSubscription = service.type === "subscription";
+  const isRecharge = service.type === "recharge";
+  const isGiftCard = service.type === "giftcard";
   
   // Get appropriate quantity label
   const getQuantityLabel = () => {
@@ -77,6 +80,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
+    // Reset fields
+    setAccountId("");
+    
     // For subscriptions, set default selected duration
     if (isSubscription && service.availableMonths && service.availableMonths.length > 0) {
       setSelectedDuration(service.availableMonths[0].toString());
@@ -85,6 +91,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   };
 
   const handleBuyNow = () => {
+    // Validate account ID for recharge services
+    if (isRecharge && !accountId.trim()) {
+      toast.error("Account ID required", {
+        description: "Please enter your account ID for this recharge"
+      });
+      return;
+    }
+    
     console.log("Buy now clicked for service:", service);
     setIsPurchasing(true);
     
@@ -114,6 +128,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       serviceId: service.id,
       quantity: isSubscription ? 1 : quantity,
       durationMonths: isSubscription ? parseInt(selectedDuration) : undefined,
+      accountId: isRecharge ? accountId : undefined,
       totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -225,6 +240,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             )}
           </div>
         </CardContent>
+        
         <CardFooter className="p-4 pt-0 flex justify-between">
           <Link to={`/services/${service.id}`}>
             <Button variant="outline" size="sm">
@@ -252,15 +268,17 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
+          <div className="py-4 space-y-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Base Price:</span>
               <span className="font-bold">${service.price.toFixed(2)} {isSubscription ? '/month' : ''}</span>
             </div>
+            
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Service:</span>
               <span>{service.name}</span>
             </div>
+            
             {category && (
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Category:</span>
@@ -289,7 +307,24 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {!isSubscription && (
+            {isRecharge && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Account ID <span className="text-red-500">*</span>
+                </label>
+                <Input 
+                  placeholder="Enter your account ID"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  This ID is required to process your recharge
+                </p>
+              </div>
+            )}
+            
+            {!isSubscription && !isRecharge && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">{getQuantityLabel()}:</span>
                 <div className="flex items-center">
@@ -299,6 +334,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                     variant="outline" 
                     className="h-8 w-8 rounded-r-none"
                     onClick={decreaseQuantity}
+                    disabled={quantity <= 1}
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
@@ -327,7 +363,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </span>
             </div>
             
-            {service.type === "recharge" && (
+            {service.type === "recharge" && !isRecharge && (
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Recharge Type:</span>
                 <span>Standard Amount</span>
@@ -338,6 +374,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Subscription Duration:</span>
                 <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
+              </div>
+            )}
+            
+            {isGiftCard && (
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-medium">Gift Card Value:</span>
+                <span>${service.value?.toFixed(2) || service.price.toFixed(2)}</span>
               </div>
             )}
             

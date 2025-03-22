@@ -6,6 +6,15 @@ import { Product, getProductById, products } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, ArrowLeft, Plus, Minus, Check, CreditCard } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +22,9 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [accountId, setAccountId] = useState('');
+  const [isPurchasing, setIsPurchasing] = useState(false);
   
   useEffect(() => {
     if (id) {
@@ -34,6 +46,40 @@ const ProductDetail = () => {
         onClick: () => console.log('View cart'),
       },
     });
+  };
+
+  const showPurchaseConfirmation = () => {
+    // Reset fields when opening dialog
+    setAccountId('');
+    setIsConfirmDialogOpen(true);
+  };
+  
+  const handleBuyNow = () => {
+    if (product?.type === 'recharge' && !accountId.trim()) {
+      toast.error("Account ID required", {
+        description: "Please enter your account ID for this purchase"
+      });
+      return;
+    }
+    
+    setIsPurchasing(true);
+    
+    // Simulate purchase processing
+    setTimeout(() => {
+      toast.success(`Purchase successful!`, {
+        description: `${quantity} × ${product?.name} has been purchased`,
+      });
+      setIsPurchasing(false);
+      setIsConfirmDialogOpen(false);
+    }, 1000);
+  };
+  
+  const increaseQuantity = () => {
+    setQuantity(q => q + 1);
+  };
+  
+  const decreaseQuantity = () => {
+    setQuantity(q => Math.max(1, q - 1));
   };
   
   if (loading) {
@@ -70,6 +116,7 @@ const ProductDetail = () => {
   
   const isSubscription = product.type === 'subscription';
   const isGiftCard = product.type === 'giftcard';
+  const isRecharge = product.type === 'recharge';
 
   const getQuantityLabel = () => {
     if (isSubscription) {
@@ -138,7 +185,7 @@ const ProductDetail = () => {
                   variant="outline" 
                   size="icon"
                   disabled={quantity <= 1}
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  onClick={decreaseQuantity}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -146,7 +193,7 @@ const ProductDetail = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  onClick={() => setQuantity(q => q + 1)}
+                  onClick={increaseQuantity}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -163,7 +210,7 @@ const ProductDetail = () => {
                 <Button 
                   className="flex-1" 
                   size="lg"
-                  onClick={handleAddToCart}
+                  onClick={showPurchaseConfirmation}
                 >
                   <CreditCard className="mr-2 h-5 w-5" />
                   Buy Now
@@ -172,8 +219,10 @@ const ProductDetail = () => {
                   variant="secondary" 
                   className="flex-1" 
                   size="lg"
+                  onClick={handleAddToCart}
                 >
-                  Buy Later
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  Add to Cart
                 </Button>
               </div>
               
@@ -255,6 +304,109 @@ const ProductDetail = () => {
           </div>
         </div>
       </footer>
+      
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Purchase</DialogTitle>
+            <DialogDescription>
+              Please review your order details before confirming.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">Product:</span>
+              <span>{product?.name}</span>
+            </div>
+            
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">Price per {isSubscription ? 'month' : 'unit'}:</span>
+              <span className="font-bold">${product?.price.toFixed(2)}</span>
+            </div>
+            
+            {isSubscription ? (
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Duration:</span>
+                <span>{quantity} {quantity === 1 ? 'month' : 'months'}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">{getQuantityLabel()}:</span>
+                <div className="flex items-center">
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-r-none"
+                    onClick={decreaseQuantity}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
+                    {quantity}
+                  </div>
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-l-none"
+                    onClick={increaseQuantity}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {isRecharge && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Account ID <span className="text-red-500">*</span>
+                </label>
+                <Input 
+                  placeholder="Enter your account ID"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  This ID is required to process your recharge
+                </p>
+              </div>
+            )}
+            
+            {isGiftCard && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Gift Card Value:</span>
+                <span>${product?.value?.toFixed(2) || product?.price.toFixed(2)}</span>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="font-medium">Total:</span>
+              <span className="font-bold">${(product?.price! * quantity).toFixed(2)}</span>
+            </div>
+            
+            {product?.deliveryTime && (
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <span>Estimated Delivery:</span>
+                <span>{product?.deliveryTime}</span>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBuyNow} disabled={isPurchasing}>
+              {isPurchasing ? "Processing..." : "Confirm Purchase"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
