@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, Home, Package, LifeBuoy, HelpCircle } from "lucide-react";
+import { ShoppingCart, User, Home, Package, LifeBuoy, HelpCircle, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/Header";
@@ -112,6 +112,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showFooter = true }) 
                   </svg>
                 </a>
               </div>
+            </div>
+            
+            {/* Subtle Admin Button */}
+            <div className="flex justify-center mt-8">
+              <Link to="/admin-auth">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground/50 hover:text-muted-foreground/80 text-xs p-1 h-auto"
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  <span>Admin</span>
+                </Button>
+              </Link>
             </div>
           </div>
         </footer>
