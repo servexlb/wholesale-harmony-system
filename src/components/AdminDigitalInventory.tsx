@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,22 +99,34 @@ const AdminDigitalInventory: React.FC = () => {
       ...(service.type === "subscription" ? { minQuantity: 1 } : {})
     }));
     
-    const formattedDataProducts: Product[] = dataProducts.map(product => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      wholesalePrice: product.wholesalePrice,
-      image: product.image,
-      category: product.category,
-      featured: product.featured || false,
-      type: product.type,
-      deliveryTime: product.deliveryTime || "",
-      apiUrl: product.apiUrl,
-      availableMonths: product.availableMonths,
-      value: product.value,
-      ...(typeof product.minQuantity !== 'undefined' ? { minQuantity: product.minQuantity } : {})
-    }));
+    const formattedDataProducts: Product[] = dataProducts.map(product => {
+      // Create a base product object without minQuantity
+      const baseProduct: Product = {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        wholesalePrice: product.wholesalePrice,
+        image: product.image,
+        category: product.category,
+        featured: product.featured || false,
+        type: product.type,
+        deliveryTime: product.deliveryTime || "",
+        apiUrl: product.apiUrl,
+        availableMonths: product.availableMonths,
+        value: product.value
+      };
+      
+      // Add minQuantity only if it exists in the source data
+      if ('minQuantity' in product && product.minQuantity !== undefined) {
+        return {
+          ...baseProduct,
+          minQuantity: product.minQuantity
+        };
+      }
+      
+      return baseProduct;
+    });
     
     setAllProducts([...formattedDataProducts, ...servicesAsProducts]);
   }, []);
