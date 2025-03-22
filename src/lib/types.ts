@@ -96,3 +96,15 @@ export interface SimpleCustomer {
   name: string;
   phone: string;
 }
+
+// Admin notification system
+export interface AdminNotification {
+  id: string;
+  type: "profile_fix" | "payment_issue";
+  subscriptionId: string;
+  userId: string;
+  customerName: string;
+  serviceName: string;
+  createdAt: string;
+  read: boolean;
+}

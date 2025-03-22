@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -31,7 +30,8 @@ export interface Sale {
   paid: boolean;
 }
 
-// Mock data
+import { AdminNotification } from '@/lib/types';
+
 export const products: Product[] = [
   {
     id: "p1",
@@ -152,7 +152,29 @@ export const sales: Sale[] = [
   },
 ];
 
-// Wholesale credentials
+export const adminNotifications: AdminNotification[] = [
+  {
+    id: "n1",
+    type: "profile_fix",
+    subscriptionId: "sub-1",
+    userId: "c1",
+    customerName: "Jane Smith",
+    serviceName: "Premium Ceramic Vase",
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    read: false
+  },
+  {
+    id: "n2",
+    type: "payment_issue",
+    subscriptionId: "sub-3",
+    userId: "c2",
+    customerName: "Michael Johnson",
+    serviceName: "Minimalist Wall Clock",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    read: true
+  }
+];
+
 const wholesaleUsers = [
   { username: 'wholesaler1', password: 'password123' },
   { username: 'admin', password: 'admin123' }
@@ -184,16 +206,57 @@ export const getSalesByCustomerId = (customerId: string): Sale[] => {
   return sales.filter(sale => sale.customerId === customerId);
 };
 
-export const fixSubscriptionProfile = (subscriptionId: string): Promise<boolean> => {
-  // This is a mock function that would normally call an API
+export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const newNotification: AdminNotification = {
+    id: `n${adminNotifications.length + 1}`,
+    type: "profile_fix",
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    createdAt: new Date().toISOString(),
+    read: false
+  };
+  
+  adminNotifications.unshift(newNotification);
+  
   return new Promise((resolve) => {
     setTimeout(() => resolve(true), 1000);
   });
 };
 
-export const reportPaymentIssue = (subscriptionId: string): Promise<boolean> => {
-  // This is a mock function that would normally call an API
+export const reportPaymentIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const newNotification: AdminNotification = {
+    id: `n${adminNotifications.length + 1}`,
+    type: "payment_issue",
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    createdAt: new Date().toISOString(),
+    read: false
+  };
+  
+  adminNotifications.unshift(newNotification);
+  
   return new Promise((resolve) => {
     setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const getAdminNotifications = (): AdminNotification[] => {
+  return adminNotifications;
+};
+
+export const markNotificationAsRead = (notificationId: string): void => {
+  const notification = adminNotifications.find(n => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
+  }
+};
+
+export const markAllNotificationsAsRead = (): void => {
+  adminNotifications.forEach(notification => {
+    notification.read = true;
   });
 };

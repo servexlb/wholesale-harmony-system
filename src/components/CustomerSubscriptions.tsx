@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Subscription } from '@/lib/types';
-import { products } from '@/lib/data';
+import { products, fixSubscriptionProfile, reportPaymentIssue, getCustomerById, getProductById } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -45,16 +45,40 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
     return { status: "active", color: "green", icon: <Clock className="h-4 w-4" /> };
   };
 
-  const handleFixProfile = (subscriptionId: string) => {
-    toast.success("Profile fix request submitted", {
-      description: "Our team will review and fix the profile within 24 hours."
-    });
+  const handleFixProfile = async (subscriptionId: string, serviceId: string) => {
+    const customer = getCustomerById(customerId);
+    const product = getProductById(serviceId);
+    
+    if (customer && product) {
+      await fixSubscriptionProfile(
+        subscriptionId, 
+        customerId, 
+        customer.name, 
+        product.name
+      );
+      
+      toast.success("Profile fix request submitted", {
+        description: "Our team will review and fix the profile within 24 hours."
+      });
+    }
   };
 
-  const handleFixPayment = (subscriptionId: string) => {
-    toast.success("Payment issue reported", {
-      description: "Our team will contact you shortly to resolve the payment issue."
-    });
+  const handleFixPayment = async (subscriptionId: string, serviceId: string) => {
+    const customer = getCustomerById(customerId);
+    const product = getProductById(serviceId);
+    
+    if (customer && product) {
+      await reportPaymentIssue(
+        subscriptionId, 
+        customerId, 
+        customer.name, 
+        product.name
+      );
+      
+      toast.success("Payment issue reported", {
+        description: "Our team will contact you shortly to resolve the payment issue."
+      });
+    }
   };
   
   return (
@@ -129,7 +153,7 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                         size="sm" 
                         variant="outline" 
                         className="flex items-center gap-1" 
-                        onClick={() => handleFixProfile(subscription.id)}
+                        onClick={() => handleFixProfile(subscription.id, subscription.serviceId)}
                       >
                         <UserCog className="h-3 w-3" />
                         <span>Fix Profile</span>
@@ -138,7 +162,7 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                         size="sm" 
                         variant="outline" 
                         className="flex items-center gap-1"
-                        onClick={() => handleFixPayment(subscription.id)}
+                        onClick={() => handleFixPayment(subscription.id, subscription.serviceId)}
                       >
                         <CreditCard className="h-3 w-3" />
                         <span>Payment Issue</span>

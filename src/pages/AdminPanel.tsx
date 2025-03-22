@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import AdminSupportTickets from "@/components/AdminSupportTickets";
 import AdminBalanceManagement from "@/components/AdminBalanceManagement";
 import AdminDigitalInventory from "@/components/AdminDigitalInventory";
+import AdminNotifications from "@/components/AdminNotifications";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
@@ -628,10 +629,13 @@ const AdminPanel: React.FC = () => {
       >
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Admin Panel</h1>
-          <Button variant="destructive" size="sm" onClick={handleLogout} className="flex gap-2">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            <AdminNotifications />
+            <Button variant="destructive" size="sm" onClick={handleLogout} className="flex gap-2">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
