@@ -70,7 +70,6 @@ const Wholesale = () => {
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
   const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
-  const [wholesalerCustomers, setWholesalerCustomers] = useState<typeof customers>([]);
   const location = useLocation();
 
   const wholesalerCustomers = useMemo(() => {
