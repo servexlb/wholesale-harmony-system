@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -18,9 +17,12 @@ import {
   Calendar,
   CreditCard as CreditCardIcon,
   User, 
-  HelpCircle
+  HelpCircle,
+  ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { services } from "@/lib/mockData";
+import { Link } from "react-router-dom";
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -56,6 +58,46 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   );
 };
 
+const ProductsView = () => (
+  <div className="space-y-6">
+    <h1 className="text-2xl font-bold mb-6">Available Products</h1>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {services.map((service) => (
+        <Card key={service.id} className="overflow-hidden flex flex-col h-full">
+          <div className="aspect-video w-full overflow-hidden">
+            <img 
+              src={service.image} 
+              alt={service.name} 
+              className="h-full w-full object-cover transition-transform hover:scale-105"
+            />
+          </div>
+          <CardContent className="p-6 flex-grow flex flex-col">
+            <div className="mb-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {service.categoryId}
+              </span>
+            </div>
+            <h3 className="text-lg font-medium">{service.name}</h3>
+            <p className="mt-2 text-sm text-muted-foreground flex-grow">
+              {service.description}
+            </p>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-lg font-semibold">${service.price.toFixed(2)}</div>
+              <Button asChild>
+                <Link to={`/services/${service.id}`}>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Purchase
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  </div>
+);
+
 const DashboardHome = () => (
   <div className="space-y-6">
     <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
@@ -73,6 +115,7 @@ const DashboardHome = () => (
           <Button variant="outline" className="w-full mt-4">Manage Subscriptions</Button>
         </CardContent>
       </Card>
+      
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
@@ -196,11 +239,11 @@ const DashboardHome = () => (
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentTab, setCurrentTab] = useState('overview');
+  const [currentTab, setCurrentTab] = useState('products');
 
   const handleTabChange = (value: string) => {
     setCurrentTab(value);
-    navigate(`/dashboard${value !== 'overview' ? `/${value}` : ''}`);
+    navigate(`/dashboard${value !== 'products' ? `/${value}` : ''}`);
   };
 
   return (
@@ -212,7 +255,6 @@ const Dashboard: React.FC = () => {
         className="container mx-auto px-4 py-8"
       >
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar for larger screens */}
           <aside className="hidden md:block w-64 shrink-0">
             <div className="sticky top-24 bg-card border rounded-lg overflow-hidden">
               <div className="p-4 border-b">
@@ -221,9 +263,16 @@ const Dashboard: React.FC = () => {
               <nav className="p-2">
                 <ul className="space-y-1">
                   <SidebarItem 
+                    icon={Package} 
+                    label="Products" 
+                    href="/dashboard"
+                    active={currentTab === 'products'} 
+                    onClick={() => handleTabChange('products')}
+                  />
+                  <SidebarItem 
                     icon={HomeIcon} 
                     label="Overview" 
-                    href="/dashboard"
+                    href="/dashboard/overview"
                     active={currentTab === 'overview'} 
                     onClick={() => handleTabChange('overview')}
                   />
@@ -267,9 +316,7 @@ const Dashboard: React.FC = () => {
             </div>
           </aside>
           
-          {/* Main content */}
           <main className="flex-1">
-            {/* Tabs for mobile */}
             <div className="md:hidden mb-6">
               <Tabs 
                 defaultValue={currentTab} 
@@ -277,16 +324,16 @@ const Dashboard: React.FC = () => {
                 onValueChange={handleTabChange}
               >
                 <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="products">Products</TabsTrigger>
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
-                  <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
             
-            {/* Content */}
             <Routes>
-              <Route path="/" element={<DashboardHome />} />
+              <Route path="/" element={<ProductsView />} />
+              <Route path="/overview" element={<DashboardHome />} />
               <Route path="/subscriptions" element={<div className="p-4">Subscriptions content</div>} />
               <Route path="/orders" element={<div className="p-4">Orders content</div>} />
               <Route path="/payments" element={<div className="p-4">Payments content</div>} />
