@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, ArrowRight, AlertCircle } from 'lucide-react';

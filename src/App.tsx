@@ -16,6 +16,7 @@ import ServiceDetail from "./pages/ServiceDetail";
 import Checkout from "./pages/Checkout";
 import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
+import Wholesale from "./pages/Wholesale";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/services/:id" element={<ServiceDetail />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/admin/*" element={<AdminPanel />} />
+            <Route path="/wholesale" element={<Wholesale />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>
