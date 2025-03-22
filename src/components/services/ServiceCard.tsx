@@ -222,11 +222,35 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               <span>{service.name}</span>
             </div>
             {category && (
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Category:</span>
                 <span>{category.name}</span>
               </div>
             )}
+            
+            {service.type === "subscription" && service.availableMonths && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Duration:</span>
+                <span>
+                  {service.availableMonths.length > 0 
+                    ? `${service.availableMonths[0]} month${service.availableMonths[0] !== 1 ? 's' : ''}` 
+                    : "1 month"
+                  }
+                </span>
+              </div>
+            )}
+            
+            {service.type === "recharge" && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Recharge Type:</span>
+                <span>Standard Amount</span>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Estimated Delivery:</span>
+              <span>{service.deliveryTime}</span>
+            </div>
           </div>
           
           <DialogFooter>

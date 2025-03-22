@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
-import { Check, Clock, ChevronLeft, Minus, Plus } from "lucide-react";
+import { Check, Clock, ChevronLeft, Minus, Plus, AlertCircle, CreditCard, Calendar } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +21,14 @@ import { toast } from "@/lib/toast";
 import { services } from "@/lib/mockData";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +43,8 @@ const ServiceDetail: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDuration, setSelectedDuration] = useState("1");
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   
   const userBalance = 120.00;
   
@@ -79,6 +90,7 @@ const ServiceDetail: React.FC = () => {
 
   const isSubscription = service?.type === "subscription";
   const isGameRecharge = service?.type === "recharge" || service?.categoryId === "category6";
+  const isGiftCard = service?.categoryId === "category7";
 
   const increaseQuantity = () => {
     setQuantity(prev => prev + 1);
@@ -102,6 +114,8 @@ const ServiceDetail: React.FC = () => {
   const calculateTotal = () => {
     if (isGameRecharge && customAmount) {
       return service!.wholesalePrice * (parseInt(customAmount) || 0);
+    } else if (isSubscription) {
+      return service!.wholesalePrice * parseInt(selectedDuration);
     } else {
       return service!.wholesalePrice * quantity;
     }
@@ -113,7 +127,7 @@ const ServiceDetail: React.FC = () => {
     console.log("Add to cart:", { service, quantity, gameAccountId, total });
   };
   
-  const handleBuyNow = () => {
+  const showPurchaseConfirmation = () => {
     if (isGameRecharge) {
       if (!customAmount || parseInt(customAmount) <= 0) {
         toast.error("Invalid amount", {
@@ -137,6 +151,10 @@ const ServiceDetail: React.FC = () => {
       }
     }
     
+    setIsConfirmDialogOpen(true);
+  };
+  
+  const handleBuyNow = () => {
     console.log("Buy now:", { 
       service, 
       quantity, 
@@ -189,6 +207,7 @@ const ServiceDetail: React.FC = () => {
       });
       localStorage.setItem('customerRequests', JSON.stringify(customerRequests));
       
+      setIsConfirmDialogOpen(false);
       navigate(`/service/${service?.id}/recharge-confirm`);
       return;
     }
@@ -196,10 +215,16 @@ const ServiceDetail: React.FC = () => {
     setIsProcessing(true);
     
     setTimeout(() => {
+      // Deduct the price from user balance
+      const userBalanceStr = localStorage.getItem('userBalance');
+      const currentBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00;
+      const newBalance = currentBalance - total;
+      localStorage.setItem('userBalance', newBalance.toString());
+      
       const order = {
         id: `order-${Date.now()}`,
         serviceId: service?.id,
-        quantity: quantity,
+        quantity: isSubscription ? parseInt(selectedDuration) : quantity,
         customAmount: customAmount,
         gameAccountId: gameAccountId,
         customerName: customerName,
@@ -217,11 +242,12 @@ const ServiceDetail: React.FC = () => {
 
       console.log("Created order:", order);
       
-      toast.success("Purchase pending!", {
+      toast.success("Purchase successful!", {
         description: "Your order is being processed"
       });
       
       setIsProcessing(false);
+      setIsConfirmDialogOpen(false);
       
       navigate("/dashboard");
     }, 1000);
@@ -305,15 +331,31 @@ const ServiceDetail: React.FC = () => {
                     <label className="text-sm font-medium mb-2 block">
                       Subscription Duration
                     </label>
-                    <Select defaultValue="1" onValueChange={(val) => setQuantity(parseInt(val))}>
+                    <Select 
+                      defaultValue="1" 
+                      onValueChange={(val) => {
+                        setSelectedDuration(val);
+                        setQuantity(parseInt(val));
+                      }}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select duration" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 Month</SelectItem>
-                        <SelectItem value="3">3 Months</SelectItem>
-                        <SelectItem value="6">6 Months</SelectItem>
-                        <SelectItem value="12">12 Months</SelectItem>
+                        {service.availableMonths && service.availableMonths.length > 0 ? (
+                          service.availableMonths.map(month => (
+                            <SelectItem key={month} value={month.toString()}>
+                              {month} Month{month !== 1 ? 's' : ''}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <>
+                            <SelectItem value="1">1 Month</SelectItem>
+                            <SelectItem value="3">3 Months</SelectItem>
+                            <SelectItem value="6">6 Months</SelectItem>
+                            <SelectItem value="12">12 Months</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -455,7 +497,7 @@ const ServiceDetail: React.FC = () => {
                 <Button 
                   variant="outline" 
                   className="w-full" 
-                  onClick={handleBuyNow}
+                  onClick={showPurchaseConfirmation}
                   disabled={isProcessing}
                 >
                   {isProcessing ? "Processing..." : isGameRecharge ? "Proceed to Recharge" : "Buy Now"}
@@ -475,6 +517,89 @@ const ServiceDetail: React.FC = () => {
             </Card>
           </div>
         </div>
+        
+        {/* Purchase Confirmation Dialog */}
+        <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Purchase</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to purchase {service.name}?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Price:</span>
+                <span className="font-bold">${total.toFixed(2)}</span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Service:</span>
+                <span>{service.name}</span>
+              </div>
+              
+              {isSubscription && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Duration:</span>
+                  <span>{selectedDuration} month{parseInt(selectedDuration) !== 1 ? 's' : ''}</span>
+                </div>
+              )}
+              
+              {!isSubscription && !isGameRecharge && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Quantity:</span>
+                  <span>{quantity}</span>
+                </div>
+              )}
+              
+              {isGameRecharge && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Recharge Amount:</span>
+                    <span>{customAmount}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Game Account ID:</span>
+                    <span>{gameAccountId}</span>
+                  </div>
+                </>
+              )}
+              
+              {isGiftCard && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Gift Card Value:</span>
+                  <span>${(service?.value || service?.price)?.toFixed(2)}</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Delivery Time:</span>
+                <span>{service.deliveryTime}</span>
+              </div>
+              
+              <div className="pt-2 mt-2 border-t">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Current Balance:</span>
+                  <span>${userBalance.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-primary">
+                  <span className="font-medium">Balance After Purchase:</span>
+                  <span>${(userBalance - total).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleBuyNow} disabled={isProcessing}>
+                {isProcessing ? "Processing..." : "Confirm Purchase"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </MainLayout>
   );

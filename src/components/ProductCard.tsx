@@ -197,10 +197,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <span className="font-medium">Product:</span>
               <span>{product.name}</span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Category:</span>
               <span>{product.category}</span>
             </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Quantity:</span>
+              <span>1</span>
+            </div>
+            {product.type === 'giftcard' && (
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-medium">Gift Card Value:</span>
+                <span>${product.value?.toFixed(2) || price.toFixed(2)}</span>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
