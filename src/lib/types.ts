@@ -1,3 +1,4 @@
+
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -52,6 +53,12 @@ export interface Order {
   createdAt: string;
   completedAt?: string;
   notes?: string;
+  customerId?: string; // The customer this order is for (for wholesale orders)
+}
+
+export interface WholesaleOrder extends Order {
+  customerId: string; // Required for wholesale orders
+  wholesalerId: string; // ID of the wholesaler who placed the order
 }
 
 export interface SupportTicket {

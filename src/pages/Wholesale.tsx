@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import WholesaleLogin from '@/components/WholesaleLogin';
+import WholesaleOrderForm from '@/components/WholesaleOrderForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductCard from '@/components/ProductCard';
 import CustomerTable from '@/components/CustomerTable';
 import SalesCalculator from '@/components/SalesCalculator';
 import { products } from '@/lib/data';
+import { WholesaleOrder } from '@/lib/types';
 import { 
   HomeIcon, 
   Users, 
@@ -15,6 +17,7 @@ import {
   Package, 
   LogOut, 
   Settings,
+  ShoppingCart,
   Menu as MenuIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,7 +27,12 @@ const Wholesale = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const location = useLocation();
+
+  const handleOrderPlaced = (order: WholesaleOrder) => {
+    setOrders(prev => [order, ...prev]);
+  };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -69,6 +77,13 @@ const Wholesale = () => {
                 label="Products" 
                 active={activeTab === 'products'} 
                 onClick={() => setActiveTab('products')} 
+              />
+              <SidebarLink 
+                href="#" 
+                icon={<ShoppingCart className="h-5 w-5" />} 
+                label="New Order" 
+                active={activeTab === 'new-order'} 
+                onClick={() => setActiveTab('new-order')} 
               />
               <SidebarLink 
                 href="#" 
@@ -145,6 +160,56 @@ const Wholesale = () => {
                     <ProductCard key={product.id} product={product} isWholesale={true} />
                   ))}
                 </div>
+              </motion.div>
+            )}
+            
+            {activeTab === 'new-order' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <h1 className="text-3xl font-bold mb-8">New Wholesale Order</h1>
+                <WholesaleOrderForm products={products} onOrderPlaced={handleOrderPlaced} />
+                
+                {orders.length > 0 && (
+                  <div className="mt-8">
+                    <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
+                    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {orders.map((order) => {
+                            const product = products.find(p => p.id === order.serviceId);
+                            return (
+                              <tr key={order.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.customerId}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product?.name || 'Unknown'}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.quantity}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.totalPrice.toFixed(2)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    {order.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
             
