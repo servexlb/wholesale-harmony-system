@@ -69,7 +69,7 @@ const Header = () => {
             <img 
               src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
               alt="Servexlb Logo" 
-              className="h-10 w-auto brightness-0" // Makes the logo black in light mode
+              className="h-10 w-auto contrast-150 brightness-50" // Darkens most of the logo while keeping some color contrast
             />
           )}
         </Link>
