@@ -148,7 +148,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       </CardContent>
       <CardFooter className="flex flex-col items-center text-center text-sm text-muted-foreground">
         <p>Not a wholesale customer yet?</p>
-        <p>Contact us at <a href="tel:+18001234567" className="text-primary hover:underline">+1 (800) 123-4567</a> to apply for a wholesale account.</p>
+        <p>Contact us at <a href="tel:+96178991908" className="text-primary hover:underline">+961 7 899 1908</a> to apply for a wholesale account.</p>
       </CardFooter>
     </Card>
   );
