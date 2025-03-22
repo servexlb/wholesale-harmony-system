@@ -32,7 +32,7 @@ export interface Service {
   availableMonths?: number[];  // Added availableMonths property
 }
 
-// Add a Product interface that matches the Service interface for consistency
+// Product interface with explicit properties to match the actual data structure
 export interface Product {
   id: string;
   name: string;

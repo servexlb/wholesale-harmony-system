@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
 import { toast } from "@/lib/toast";
+import { Product } from "@/lib/types";
 
 const AdminDashboard = () => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -421,9 +422,9 @@ const ImageManager = () => {
 };
 
 const ProductManager = () => {
-  const [productList, setProductList] = useState(products);
+  const [productList, setProductList] = useState<Product[]>(products as Product[]);
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const availableMonthOptions = [1, 3, 6, 12, 24];
   
@@ -465,7 +466,7 @@ const ProductManager = () => {
     toast.success(`Product ${editingProduct ? "updated" : "added"} successfully`);
   };
   
-  const handleEdit = (product) => {
+  const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setSelectedMonths(product.availableMonths || []);
     form.reset({
@@ -482,7 +483,7 @@ const ProductManager = () => {
     setShowForm(true);
   };
   
-  const toggleMonth = (month) => {
+  const toggleMonth = (month: number) => {
     if (selectedMonths.includes(month)) {
       setSelectedMonths(selectedMonths.filter(m => m !== month));
     } else {
@@ -666,7 +667,7 @@ const ProductManager = () => {
       )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {productList.map((product) => (
+        {productList.map((product: Product) => (
           <Card key={product.id} className="overflow-hidden">
             <div className="aspect-video w-full overflow-hidden relative">
               <img 
