@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check, Calendar } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -157,6 +158,13 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                     </div>
                   </div>
                   
+                  {subscription.durationMonths && (
+                    <div className="text-xs text-muted-foreground flex items-center">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {subscription.durationMonths} month{subscription.durationMonths > 1 ? 's' : ''} subscription
+                    </div>
+                  )}
+                  
                   {subscription.credentials ? (
                     <div className="bg-muted/30 p-3 rounded text-sm space-y-2">
                       <div className="flex items-center justify-between">
@@ -248,6 +256,7 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
               <TableHead>Customer</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Service</TableHead>
+              <TableHead>Duration</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Expiry Date</TableHead>
               <TableHead>Credentials</TableHead>
@@ -256,7 +265,7 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
           <TableBody>
             {filteredSubscriptions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No active subscriptions found
                 </TableCell>
               </TableRow>
@@ -290,6 +299,16 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                       </div>
                     </TableCell>
                     <TableCell>{product?.name || 'Unknown Service'}</TableCell>
+                    <TableCell>
+                      {subscription.durationMonths ? (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{subscription.durationMonths} month{subscription.durationMonths > 1 ? 's' : ''}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge 
                         variant={

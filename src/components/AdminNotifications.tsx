@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, UserCog, CreditCard, KeyRound } from 'lucide-react';
+import { Bell, Check, UserCog, CreditCard, KeyRound, Calendar } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +52,8 @@ const AdminNotifications: React.FC = () => {
         return <CreditCard className="h-4 w-4 text-amber-500" />;
       case 'password_reset':
         return <KeyRound className="h-4 w-4 text-purple-500" />;
+      case 'new_order':
+        return <Calendar className="h-4 w-4 text-green-500" />;
       default:
         return null;
     }
@@ -67,6 +69,8 @@ const AdminNotifications: React.FC = () => {
         return `${customerName} reported a payment issue for ${serviceName}`;
       case 'password_reset':
         return `${customerName} requested password reset for ${serviceName}`;
+      case 'new_order':
+        return `${customerName} purchased ${serviceName}`;
       default:
         return 'Unknown notification';
     }

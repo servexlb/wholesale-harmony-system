@@ -43,6 +43,7 @@ export interface Subscription {
   status: "active" | "expired" | "canceled";
   paymentStatus?: "paid" | "pending" | "failed";
   profileStatus?: "active" | "needs_fixing";
+  durationMonths?: number; // Number of months the subscription is valid for
 }
 
 export interface Order {
@@ -60,6 +61,7 @@ export interface Order {
     email: string;
     password: string;
   };
+  durationMonths?: number; // Duration of subscription in months
 }
 
 export interface WholesaleOrder extends Order {
@@ -100,8 +102,9 @@ export interface SimpleCustomer {
 // Admin notification system
 export interface AdminNotification {
   id: string;
-  type: "profile_fix" | "payment_issue" | "password_reset";
-  subscriptionId: string;
+  type: "profile_fix" | "payment_issue" | "password_reset" | "new_order";
+  subscriptionId?: string;
+  orderId?: string;
   userId: string;
   customerName: string;
   serviceName: string;

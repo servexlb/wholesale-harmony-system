@@ -39,7 +39,8 @@ import {
   Key,
   UserCog,
   CreditCard,
-  KeyRound
+  KeyRound,
+  Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +67,8 @@ const mockSubscriptions: Subscription[] = [
     credentials: {
       email: 'customer1@example.com',
       password: 'password123'
-    }
+    },
+    durationMonths: 1
   },
   {
     id: 'sub-2',
@@ -78,7 +80,8 @@ const mockSubscriptions: Subscription[] = [
     credentials: {
       email: 'service2@example.com',
       password: 'password456'
-    }
+    },
+    durationMonths: 3
   },
   {
     id: 'sub-3',
@@ -90,7 +93,8 @@ const mockSubscriptions: Subscription[] = [
     credentials: {
       email: 'service3@example.com',
       password: 'password789'
-    }
+    },
+    durationMonths: 6
   },
   {
     id: 'sub-4',
@@ -102,7 +106,8 @@ const mockSubscriptions: Subscription[] = [
     credentials: {
       email: 'expired@example.com',
       password: 'password999'
-    }
+    },
+    durationMonths: 1
   }
 ];
 
@@ -300,6 +305,12 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
                         <div className="space-y-1">
                           <p className="font-medium">{product?.name || 'Unknown'}</p>
                           <p>Expires: {new Date(sub.endDate).toLocaleDateString()}</p>
+                          {sub.durationMonths && (
+                            <p className="text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 inline mr-1" />
+                              {sub.durationMonths} month{sub.durationMonths > 1 ? 's' : ''} subscription
+                            </p>
+                          )}
                           {sub.credentials && (
                             <div className="pt-1 border-t">
                               <div className="flex items-center gap-1">
@@ -368,6 +379,12 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
                           <p className="text-sm text-muted-foreground">
                             Expires: {new Date(sub.endDate).toLocaleDateString()}
                           </p>
+                          {sub.durationMonths && (
+                            <p className="text-xs text-muted-foreground flex items-center mt-1">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {sub.durationMonths} month{sub.durationMonths > 1 ? 's' : ''} subscription
+                            </p>
+                          )}
                         </div>
                         <Badge 
                           variant={
