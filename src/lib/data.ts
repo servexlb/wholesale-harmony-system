@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -172,6 +173,16 @@ export const adminNotifications: AdminNotification[] = [
     serviceName: "Minimalist Wall Clock",
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     read: true
+  },
+  {
+    id: "n3",
+    type: "password_reset",
+    subscriptionId: "sub-2",
+    userId: "c1",
+    customerName: "Jane Smith",
+    serviceName: "Artisanal Coffee Mug",
+    createdAt: new Date(Date.now() - 43200000).toISOString(),
+    read: false
   }
 ];
 
@@ -229,6 +240,25 @@ export const reportPaymentIssue = (subscriptionId: string, userId: string, custo
   const newNotification: AdminNotification = {
     id: `n${adminNotifications.length + 1}`,
     type: "payment_issue",
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    createdAt: new Date().toISOString(),
+    read: false
+  };
+  
+  adminNotifications.unshift(newNotification);
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const reportPasswordIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const newNotification: AdminNotification = {
+    id: `n${adminNotifications.length + 1}`,
+    type: "password_reset",
     subscriptionId,
     userId,
     customerName,

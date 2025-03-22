@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX, CreditCard, UserCog } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX, CreditCard, UserCog, KeyRound } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Subscription } from '@/lib/types';
-import { products, fixSubscriptionProfile, reportPaymentIssue, getCustomerById, getProductById } from '@/lib/data';
+import { products, fixSubscriptionProfile, reportPaymentIssue, reportPasswordIssue, getCustomerById, getProductById } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -77,6 +77,24 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
       
       toast.success("Payment issue reported", {
         description: "Our team will contact you shortly to resolve the payment issue."
+      });
+    }
+  };
+
+  const handlePasswordReset = async (subscriptionId: string, serviceId: string) => {
+    const customer = getCustomerById(customerId);
+    const product = getProductById(serviceId);
+    
+    if (customer && product) {
+      await reportPasswordIssue(
+        subscriptionId, 
+        customerId, 
+        customer.name, 
+        product.name
+      );
+      
+      toast.success("Password reset requested", {
+        description: "Our team will reset the password and provide new credentials soon."
       });
     }
   };
@@ -148,7 +166,7 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Button 
                         size="sm" 
                         variant="outline" 
@@ -167,6 +185,17 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                         <CreditCard className="h-3 w-3" />
                         <span>Payment Issue</span>
                       </Button>
+                      {subscription.credentials && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex items-center gap-1"
+                          onClick={() => handlePasswordReset(subscription.id, subscription.serviceId)}
+                        >
+                          <KeyRound className="h-3 w-3" />
+                          <span>Reset Password</span>
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

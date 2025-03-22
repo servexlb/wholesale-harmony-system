@@ -100,7 +100,7 @@ export interface SimpleCustomer {
 // Admin notification system
 export interface AdminNotification {
   id: string;
-  type: "profile_fix" | "payment_issue";
+  type: "profile_fix" | "payment_issue" | "password_reset";
   subscriptionId: string;
   userId: string;
   customerName: string;

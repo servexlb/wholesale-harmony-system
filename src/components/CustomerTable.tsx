@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -23,6 +24,7 @@ import {
   customers, 
   fixSubscriptionProfile, 
   reportPaymentIssue, 
+  reportPasswordIssue,
   getProductById 
 } from '@/lib/data';
 import { Subscription } from '@/lib/types';
@@ -36,7 +38,8 @@ import {
   UserPlus,
   Key,
   UserCog,
-  CreditCard
+  CreditCard,
+  KeyRound
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -226,6 +229,23 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
     }
   };
 
+  const handlePasswordReset = async (subscriptionId: string, serviceId: string) => {
+    const product = getProductById(serviceId);
+    
+    if (product) {
+      await reportPasswordIssue(
+        subscriptionId, 
+        customer.id, 
+        customer.name, 
+        product.name
+      );
+      
+      toast.success("Password reset requested", {
+        description: "Our team will reset the password and provide new credentials soon."
+      });
+    }
+  };
+
   return (
     <>
       <motion.tr
@@ -380,12 +400,15 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
                         </div>
                       )}
 
-                      <div className="mt-3 pt-2 border-t flex gap-2">
+                      <div className="mt-3 pt-2 border-t flex flex-wrap gap-2">
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="flex items-center gap-1 text-xs flex-1" 
-                          onClick={() => handleFixProfile(sub.id, sub.serviceId)}
+                          className="flex items-center gap-1 text-xs" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFixProfile(sub.id, sub.serviceId);
+                          }}
                         >
                           <UserCog className="h-3 w-3" />
                           <span>Fix Profile</span>
@@ -393,12 +416,29 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="flex items-center gap-1 text-xs flex-1"
-                          onClick={() => handleFixPayment(sub.id, sub.serviceId)}
+                          className="flex items-center gap-1 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFixPayment(sub.id, sub.serviceId);
+                          }}
                         >
                           <CreditCard className="h-3 w-3" />
                           <span>Payment Issue</span>
                         </Button>
+                        {sub.credentials && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex items-center gap-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePasswordReset(sub.id, sub.serviceId);
+                            }}
+                          >
+                            <KeyRound className="h-3 w-3" />
+                            <span>Reset Password</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
