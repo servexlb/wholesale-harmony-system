@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { 
@@ -17,6 +17,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import MainLayout from "@/components/MainLayout";
 import { serviceCategories } from "@/lib/mockData";
 import { toast } from "@/lib/toast";
@@ -91,6 +99,8 @@ const testimonials = [
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
 
   // Helper function to render the correct icon based on icon name
   const renderCategoryIcon = (iconName: string) => {
@@ -108,8 +118,17 @@ const Home: React.FC = () => {
     }
   };
 
+  // Show purchase confirmation dialog
+  const showPurchaseConfirmation = (service) => {
+    setSelectedService(service);
+    setIsDialogOpen(true);
+  };
+
   // Handle purchase of featured service
-  const handlePurchaseService = (service) => {
+  const handlePurchaseService = () => {
+    if (!selectedService) return;
+    const service = selectedService;
+    
     console.log("Purchase featured service:", service);
     
     // Get current user balance from localStorage
@@ -149,7 +168,8 @@ const Home: React.FC = () => {
       description: `Your order is being processed. $${service.price.toFixed(2)} has been deducted from your balance.`
     });
     
-    // Redirect to dashboard
+    // Close dialog and redirect to dashboard
+    setIsDialogOpen(false);
     navigate("/dashboard");
   };
 
@@ -319,7 +339,7 @@ const Home: React.FC = () => {
                       </span>
                       <Button 
                         size="sm" 
-                        onClick={() => handlePurchaseService(service)}
+                        onClick={() => showPurchaseConfirmation(service)}
                       >
                         <CreditCard className="h-4 w-4 mr-2" />
                         Order Now
@@ -461,6 +481,44 @@ const Home: React.FC = () => {
             </Card>
           </div>
         </section>
+
+        {/* Purchase Confirmation Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Purchase</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to purchase {selectedService?.name}?
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedService && (
+              <div className="py-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Price:</span>
+                  <span className="font-bold">${selectedService.price.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Service:</span>
+                  <span>{selectedService.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Category:</span>
+                  <span className="capitalize">{selectedService.category}</span>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handlePurchaseService}>
+                Confirm Purchase
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </MainLayout>
   );

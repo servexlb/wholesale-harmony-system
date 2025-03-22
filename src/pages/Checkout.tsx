@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,14 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
@@ -14,6 +23,7 @@ const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState("account-balance");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   
   // Get current user balance from localStorage
   const userBalanceStr = localStorage.getItem('userBalance');
@@ -33,19 +43,22 @@ const Checkout: React.FC = () => {
     }
   }, []);
 
-  const handleCompletePurchase = () => {
-    setIsProcessing(true);
-
+  const showPurchaseConfirmation = () => {
     // Check balance again when attempting purchase
     if (paymentMethod === "account-balance" && userBalance < total) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
-      setIsProcessing(false);
       // Redirect to payment page
       navigate("/payment");
       return;
     }
+    
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleCompletePurchase = () => {
+    setIsProcessing(true);
 
     // Deduct the price from user balance immediately
     if (paymentMethod === "account-balance") {
@@ -86,6 +99,7 @@ const Checkout: React.FC = () => {
     }
     
     setIsProcessing(false);
+    setIsConfirmDialogOpen(false);
     
     // Redirect to a confirmation page
     navigate("/dashboard");
@@ -179,7 +193,7 @@ const Checkout: React.FC = () => {
               <CardFooter>
                 <Button 
                   className="w-full" 
-                  onClick={handleCompletePurchase}
+                  onClick={showPurchaseConfirmation}
                   disabled={isProcessing}
                 >
                   {isProcessing ? "Processing..." : "Complete Purchase"}
@@ -188,6 +202,47 @@ const Checkout: React.FC = () => {
             </Card>
           </div>
         </div>
+
+        {/* Purchase Confirmation Dialog */}
+        <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Purchase</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to complete this purchase?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Total Price:</span>
+                <span className="font-bold">${total.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Payment Method:</span>
+                <span>
+                  {paymentMethod === "account-balance" ? "Account Balance" : 
+                   paymentMethod === "credit-card" ? "Credit Card" : "PayPal"}
+                </span>
+              </div>
+              {paymentMethod === "account-balance" && (
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Remaining Balance After Purchase:</span>
+                  <span>${(userBalance - total).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCompletePurchase} disabled={isProcessing}>
+                {isProcessing ? "Processing..." : "Confirm Purchase"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </MainLayout>
   );
