@@ -4,13 +4,13 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
-import { Copy, Check, AlertCircle, CreditCard } from "lucide-react";
+import { Copy, Check, AlertCircle, CreditCard, ExternalLink } from "lucide-react";
+import { AdminNotification } from "@/lib/types";
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();
@@ -23,8 +23,19 @@ const Payment: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   
   const wishMoneyAccount = "76349522";
+  // Example bank account for direct transfers
+  const bankAccount = {
+    name: "Top-Up Account",
+    number: "1234 5678 9012 3456",
+    routingNumber: "987654321",
+    swift: "YOURSWIFT"
+  };
+  
+  // Binance Pay link - would be replaced with an actual merchant link in production
+  const binancePayUrl = "https://www.binance.com/en/pay";
   
   const handleCopyAccount = () => {
     navigator.clipboard.writeText(wishMoneyAccount);
@@ -49,23 +60,28 @@ const Payment: React.FC = () => {
 
     setIsProcessing(true);
 
-    // Simulate API call to process payment
+    // Create admin notification
+    const adminNotification: Partial<AdminNotification> = {
+      type: "payment_issue", // Using payment_issue as a placeholder for payment notification
+      customerName: "Current User", // In a real app, you'd use the actual username
+      serviceName: `Top-up $${amount} via Wish Money`,
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+
+    // In a real implementation, this would be sent to the server
+    console.log("ADMIN NOTIFICATION: User topped up with Wish Money:", {
+      amount,
+      timestamp: new Date().toISOString(),
+      notes,
+      adminNotification
+    });
+    
     setTimeout(() => {
-      // Send notification to admin (in a real app, this would be done server-side)
-      // In this demo, we'll just log it to console
-      console.log("ADMIN NOTIFICATION: User topped up with Wish Money:", {
-        amount,
-        timestamp: new Date().toISOString(),
-        notes
-      });
-      
-      toast.success(`Successfully added $${amount} to your balance via Wish Money`);
-      toast("Admin notified", {
-        description: "The admin has been notified of your payment"
-      });
+      toast.success(`Your payment of $${amount} has been recorded`);
       
       setIsProcessing(false);
-      navigate("/checkout");
+      setPaymentSuccess(true);
     }, 1500);
   };
   
@@ -76,14 +92,15 @@ const Payment: React.FC = () => {
       return;
     }
 
-    setIsProcessing(true);
-
-    // Simulate API call to process payment
+    toast("Redirecting to bank payment page...");
+    // In a real app, this would redirect to a secure payment provider
+    window.open("https://www.yourbank.com/payments", "_blank");
+    
     setTimeout(() => {
-      toast.success(`Successfully added $${amount} to your balance via Credit Card`);
-      setIsProcessing(false);
-      navigate("/checkout");
-    }, 1500);
+      toast.success(`Your payment request of $${amount} has been initiated`);
+      
+      setPaymentSuccess(true);
+    }, 1000);
   };
   
   const handleBinancePaySubmit = (e: React.FormEvent) => {
@@ -93,15 +110,69 @@ const Payment: React.FC = () => {
       return;
     }
 
-    setIsProcessing(true);
-
-    // Simulate API call to process payment
+    toast("Redirecting to Binance Pay...");
+    // In a real app, this would include order details in the URL
+    window.open(binancePayUrl, "_blank");
+    
     setTimeout(() => {
-      toast.success(`Successfully added $${amount} to your balance via Binance Pay`);
-      setIsProcessing(false);
-      navigate("/checkout");
-    }, 1500);
+      toast.success(`Your Binance Pay transaction of $${amount} has been initiated`);
+      
+      setPaymentSuccess(true);
+    }, 1000);
   };
+  
+  const handleReturnToShopping = () => {
+    navigate("/services");
+  };
+
+  // If the payment was successful, show the success screen
+  if (paymentSuccess) {
+    return (
+      <MainLayout>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="container py-8"
+        >
+          <div className="max-w-xl mx-auto text-center">
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+              <CardHeader>
+                <CardTitle className="text-2xl">Payment Successful</CardTitle>
+                <CardDescription>
+                  Your payment has been processed. Your account will be credited soon.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pb-6">
+                <div className="flex justify-center mb-6">
+                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+                
+                <p className="mb-4">
+                  Thank you for your payment. An administrator has been notified and your account will be credited shortly.
+                </p>
+                
+                <p className="text-sm text-muted-foreground">
+                  Payment method: {activeTab === "wish-money" ? "Wish Money" : activeTab === "credit-card" ? "Credit Card" : "Binance Pay"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Amount: ${amount}
+                </p>
+                
+                <div className="mt-6">
+                  <Button onClick={handleReturnToShopping} className="w-full">
+                    Return to Shopping
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -160,7 +231,7 @@ const Payment: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-2 mb-6 p-3 bg-amber-50 text-amber-800 rounded-md">
+                  <div className="flex items-start gap-2 mb-6 p-3 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 rounded-md">
                     <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                     <div className="text-sm">
                       <p className="font-medium">Important:</p>
@@ -202,6 +273,16 @@ const Payment: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="credit-card" className="space-y-4">
+                  <div className="bg-primary/5 p-4 rounded-md mb-6">
+                    <div className="mb-2">
+                      <p className="font-medium">Bank Account Details:</p>
+                      <p className="text-sm mt-2">Account Name: {bankAccount.name}</p>
+                      <p className="text-sm">Account Number: {bankAccount.number}</p>
+                      <p className="text-sm">Routing Number: {bankAccount.routingNumber}</p>
+                      <p className="text-sm">SWIFT: {bankAccount.swift}</p>
+                    </div>
+                  </div>
+                  
                   <form onSubmit={handleCreditCardSubmit} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="cc-amount">Amount to Add</Label>
@@ -215,58 +296,13 @@ const Payment: React.FC = () => {
                       />
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="cc-number">Card Number</Label>
-                      <Input
-                        id="cc-number"
-                        placeholder="1234 5678 9012 3456"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="cc-name">Cardholder Name</Label>
-                      <Input
-                        id="cc-name"
-                        placeholder="John Doe"
-                        value={cardName}
-                        onChange={(e) => setCardName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cc-expiry">Expiry Date</Label>
-                        <Input
-                          id="cc-expiry"
-                          placeholder="MM/YY"
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cc-cvc">CVC</Label>
-                        <Input
-                          id="cc-cvc"
-                          placeholder="123"
-                          value={cardCVC}
-                          onChange={(e) => setCardCVC(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                    
                     <Button 
                       type="submit" 
                       className="w-full"
-                      disabled={isProcessing}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
-                      {isProcessing ? "Processing..." : "Pay Now"}
+                      Proceed to Bank Payment
+                      <ExternalLink className="h-4 w-4 ml-2" />
                     </Button>
                   </form>
                 </TabsContent>
@@ -294,9 +330,9 @@ const Payment: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="w-full"
-                      disabled={isProcessing}
                     >
-                      {isProcessing ? "Processing..." : "Proceed with Binance Pay"}
+                      Proceed with Binance Pay
+                      <ExternalLink className="h-4 w-4 ml-2" />
                     </Button>
                   </form>
                 </TabsContent>
