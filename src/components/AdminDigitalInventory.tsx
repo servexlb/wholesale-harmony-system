@@ -1,14 +1,26 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Mail, Key, PlusCircle, Trash2, Server } from "lucide-react";
+import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Product } from "@/lib/types";
+import { products } from "@/lib/data";
+import { services } from "@/lib/mockData";
 
 interface DigitalItem {
   id: string;
@@ -63,8 +75,32 @@ const AdminDigitalInventory: React.FC = () => {
   const [selectedService, setSelectedService] = useState(mockServices[0]?.id || "");
   const [newCredentials, setNewCredentials] = useState({ email: "", password: "" });
   const [bulkCredentials, setBulkCredentials] = useState("");
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showProductSelector, setShowProductSelector] = useState(false);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    const servicesAsProducts: Product[] = services.map(service => ({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      wholesalePrice: service.wholesalePrice,
+      image: service.image,
+      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+      featured: service.featured || false,
+      type: service.type,
+      deliveryTime: service.deliveryTime || "",
+      apiUrl: service.apiUrl,
+      availableMonths: service.availableMonths,
+      value: service.value,
+      minQuantity: service.minQuantity,
+    }));
+    
+    setAllProducts([...products, ...servicesAsProducts]);
+  }, []);
 
   const handleAddItem = () => {
     if (!selectedService || !newCredentials.email || !newCredentials.password) {
@@ -114,7 +150,6 @@ const AdminDigitalInventory: React.FC = () => {
     const newItems: DigitalItem[] = [];
     
     lines.forEach(line => {
-      // Assuming format: email:password
       const [email, password] = line.split(':').map(part => part.trim());
       
       if (email && password) {
@@ -153,6 +188,39 @@ const AdminDigitalInventory: React.FC = () => {
     });
   };
 
+  const handleAddToInventory = (productId: string) => {
+    if (selectedProducts.includes(productId)) {
+      setSelectedProducts(selectedProducts.filter(id => id !== productId));
+    } else {
+      setSelectedProducts([...selectedProducts, productId]);
+    }
+  };
+
+  const handleAddSelectedProducts = () => {
+    const productsToAdd = selectedProducts.map(productId => {
+      const product = allProducts.find(p => p.id === productId);
+      return {
+        id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        serviceId: product?.id || "",
+        serviceName: product?.name || "",
+        credentials: {
+          email: "",
+          password: ""
+        },
+        status: "available" as const,
+        addedAt: new Date().toISOString(),
+      };
+    });
+    
+    setInventory([...inventory, ...productsToAdd]);
+    toast({
+      title: "Products Added to Inventory",
+      description: `Added ${productsToAdd.length} products to inventory. You can now add credentials for them.`,
+    });
+    setSelectedProducts([]);
+    setShowProductSelector(false);
+  };
+
   const availableCount = inventory.filter(item => item.status === "available").length;
   const deliveredCount = inventory.filter(item => item.status === "delivered").length;
 
@@ -160,10 +228,80 @@ const AdminDigitalInventory: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Digital Inventory</h2>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add Stock
-        </Button>
+        <div className="flex gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button onClick={() => setShowProductSelector(true)} variant="outline">
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Select Products
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Select Products for Inventory</SheetTitle>
+                <SheetDescription>
+                  Choose which products you want to add to your digital inventory
+                </SheetDescription>
+              </SheetHeader>
+              <div className="my-4">
+                <Input
+                  placeholder="Search products..."
+                  className="mb-4"
+                  onChange={(e) => {
+                    // Search functionality can be added here
+                  }}
+                />
+                <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-4">
+                  {allProducts.map((product) => (
+                    <div key={product.id} className="flex items-center space-x-2 border-b pb-2">
+                      <Checkbox
+                        id={`product-${product.id}`}
+                        checked={selectedProducts.includes(product.id)}
+                        onCheckedChange={() => handleAddToInventory(product.id)}
+                      />
+                      <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded"
+                        />
+                        <div>
+                          <Label
+                            htmlFor={`product-${product.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {product.name}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ${product.price.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowProductSelector(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddSelectedProducts}
+                  disabled={selectedProducts.length === 0}
+                >
+                  Add {selectedProducts.length} Products
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Stock
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -321,11 +459,43 @@ const AdminDigitalInventory: React.FC = () => {
                 inventory.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.serviceName}</TableCell>
-                    <TableCell>{item.credentials.email}</TableCell>
                     <TableCell>
-                      <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                        {item.credentials.password}
-                      </span>
+                      {item.credentials.email || (
+                        <Input 
+                          placeholder="Enter email" 
+                          value={item.credentials.email}
+                          onChange={(e) => {
+                            const updatedInventory = inventory.map(i => 
+                              i.id === item.id 
+                                ? { ...i, credentials: { ...i.credentials, email: e.target.value } } 
+                                : i
+                            );
+                            setInventory(updatedInventory);
+                          }}
+                          className="w-full"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {item.credentials.password ? (
+                        <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
+                          {item.credentials.password}
+                        </span>
+                      ) : (
+                        <Input 
+                          placeholder="Enter password" 
+                          value={item.credentials.password}
+                          onChange={(e) => {
+                            const updatedInventory = inventory.map(i => 
+                              i.id === item.id 
+                                ? { ...i, credentials: { ...i.credentials, password: e.target.value } } 
+                                : i
+                            );
+                            setInventory(updatedInventory);
+                          }}
+                          className="w-full"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={item.status === "available" ? "outline" : "secondary"}>
