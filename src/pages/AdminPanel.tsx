@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -11,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import MainLayout from "@/components/MainLayout";
 import { useForm } from "react-hook-form";
 import AdminSupportTickets from "@/components/AdminSupportTickets";
@@ -22,7 +24,7 @@ import {
   BarChart3, Settings, AlertCircle, PlusCircle,
   Pencil, Image, Upload, Type, LayoutDashboard,
   Save, Trash2, CreditCard, Key, Server, LogOut,
-  RotateCw, Zap, Calendar, List
+  RotateCw, Zap, Calendar, List, Eye, EyeOff
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
 import { toast } from "@/lib/toast";
@@ -63,8 +65,8 @@ const AdminDashboard = () => (
 const AdminCustomers = () => {
   const [activeTab, setActiveTab] = useState("regular");
   const [wholesaleUsers, setWholesaleUsers] = useState([
-    { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading' },
-    { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors' }
+    { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
+    { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
   ]);
   const [newWholesaleUser, setNewWholesaleUser] = useState({
     username: '',
@@ -78,7 +80,8 @@ const AdminCustomers = () => {
     if (newWholesaleUser.username && newWholesaleUser.password) {
       setWholesaleUsers(prev => [...prev, {
         id: `w${prev.length + 1}`,
-        ...newWholesaleUser
+        ...newWholesaleUser,
+        showPassword: false
       }]);
       setNewWholesaleUser({
         username: '',
@@ -93,6 +96,12 @@ const AdminCustomers = () => {
   const handleRemoveWholesaleUser = (id: string) => {
     setWholesaleUsers(prev => prev.filter(user => user.id !== id));
     toast.success('Wholesale user removed successfully');
+  };
+
+  const togglePasswordVisibility = (id: string) => {
+    setWholesaleUsers(prev => prev.map(user => 
+      user.id === id ? { ...user, showPassword: !user.showPassword } : user
+    ));
   };
 
   return (
@@ -188,7 +197,17 @@ const AdminCustomers = () => {
                         {user.username}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        •••••••••••
+                        <div className="flex items-center space-x-2">
+                          <span>{user.showPassword ? user.password : '•••••••••••'}</span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => togglePasswordVisibility(user.id)}
+                          >
+                            {user.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.company || '-'}
