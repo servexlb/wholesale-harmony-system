@@ -15,6 +15,13 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from '@/lib/toast';
 
 interface ProductCardProps {
@@ -29,6 +36,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedDuration, setSelectedDuration] = useState("1");
   const [accountId, setAccountId] = useState("");
   const navigate = useNavigate();
 
@@ -38,16 +46,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
   const userBalanceStr = localStorage.getItem('userBalance');
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
 
+  // Helper to determine if product is a subscription
+  const isSubscription = product.type === 'subscription';
+  
+  // Helper to determine if product is a gift card
+  const isGiftCard = product.type === 'giftcard';
+
+  // Helper to determine if product is a recharge
+  const isRecharge = product.type === 'recharge';
+
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
     // Reset fields when opening dialog
     setAccountId("");
+    setQuantity(1);
+    
+    // Set default duration for subscriptions
+    if (isSubscription) {
+      setSelectedDuration("1");
+    }
+    
     setIsConfirmDialogOpen(true);
   };
 
   const handleBuyNow = () => {
     // Validate account ID for recharge products
-    if (product.type === 'recharge' && !accountId.trim()) {
+    if (isRecharge && !accountId.trim()) {
       toast.error("Account ID required", {
         description: "Please enter your account ID for this recharge"
       });
@@ -57,8 +81,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     console.log("Buy now clicked for product:", product);
     setIsPurchasing(true);
     
+    // Calculate final price based on type
+    const finalPrice = isSubscription 
+      ? price * parseInt(selectedDuration) 
+      : price * quantity;
+    
     // Check if user has sufficient balance
-    if (userBalance < price * quantity) {
+    if (userBalance < finalPrice) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
@@ -69,16 +98,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     }
 
     // Deduct the price from user balance immediately
-    const newBalance = userBalance - (price * quantity);
+    const newBalance = userBalance - finalPrice;
     localStorage.setItem('userBalance', newBalance.toString());
 
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       productId: product.id,
-      quantity: quantity,
-      accountId: product.type === 'recharge' ? accountId : undefined,
-      totalPrice: price * quantity,
+      quantity: isSubscription ? 1 : quantity,
+      durationMonths: isSubscription ? parseInt(selectedDuration) : undefined,
+      accountId: isRecharge ? accountId : undefined,
+      totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
@@ -92,7 +122,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     console.log("Created order:", order);
     
     toast.success("Purchase successful!", {
-      description: `Your order is being processed. $${(price * quantity).toFixed(2)} has been deducted from your balance.`
+      description: `Your order is being processed. $${finalPrice.toFixed(2)} has been deducted from your balance.`
     });
     
     setIsPurchasing(false);
@@ -108,24 +138,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
   const decreaseQuantity = () => {
     setQuantity(prev => prev > 1 ? prev - 1 : 1);
-  };
-
-  // Helper to determine if product is a subscription
-  const isSubscription = product.type === 'subscription';
-  
-  // Helper to determine if product is a gift card
-  const isGiftCard = product.type === 'giftcard';
-
-  // Helper to determine if product is a recharge
-  const isRecharge = product.type === 'recharge';
-
-  // Get appropriate quantity label
-  const getQuantityLabel = () => {
-    if (isSubscription) {
-      return quantity === 1 ? 'Month' : 'Months';
-    } else {
-      return 'Quantity';
-    }
   };
 
   return (
@@ -184,7 +196,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
           <div className="mt-4 flex items-end justify-between">
             <div>
               <p className="text-xl font-semibold text-primary">
-                ${price.toFixed(2)}
+                ${price.toFixed(2)} {isSubscription ? '/month' : ''}
               </p>
               {isWholesale && (
                 <p className="text-xs text-muted-foreground line-through">
@@ -245,6 +257,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <span>{product.category}</span>
             </div>
             
+            {/* Subscription duration for subscription products */}
+            {isSubscription && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Subscription Duration <span className="text-red-500">*</span>
+                </label>
+                <Select 
+                  defaultValue="1"
+                  onValueChange={setSelectedDuration}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 month</SelectItem>
+                    <SelectItem value="3">3 months</SelectItem>
+                    <SelectItem value="6">6 months</SelectItem>
+                    <SelectItem value="12">12 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {/* Account ID for recharge products */}
             {isRecharge && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -259,46 +295,84 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                 <p className="text-xs text-muted-foreground">
                   This ID is required to process your recharge
                 </p>
+                
+                {/* Add quantity controls for recharge products */}
+                <div className="mt-4">
+                  <label className="text-sm font-medium">
+                    Quantity
+                  </label>
+                  <div className="flex items-center mt-1">
+                    <Button 
+                      type="button" 
+                      size="icon"
+                      variant="outline" 
+                      className="h-8 w-8 rounded-r-none"
+                      onClick={decreaseQuantity}
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
+                      {quantity}
+                    </div>
+                    <Button 
+                      type="button" 
+                      size="icon"
+                      variant="outline" 
+                      className="h-8 w-8 rounded-l-none"
+                      onClick={increaseQuantity}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
             
-            <div className="flex justify-between items-center mb-4">
-              <span className="font-medium">{getQuantityLabel()}:</span>
-              <div className="flex items-center">
-                <Button 
-                  type="button" 
-                  size="icon"
-                  variant="outline" 
-                  className="h-8 w-8 rounded-r-none"
-                  onClick={decreaseQuantity}
-                  disabled={quantity <= 1}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
-                  {quantity}
+            {/* Only show quantity controls for non-subscription, non-recharge products */}
+            {!isSubscription && !isRecharge && (
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-medium">Quantity:</span>
+                <div className="flex items-center">
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-r-none"
+                    onClick={decreaseQuantity}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
+                    {quantity}
+                  </div>
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-l-none"
+                    onClick={increaseQuantity}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
                 </div>
-                <Button 
-                  type="button" 
-                  size="icon"
-                  variant="outline" 
-                  className="h-8 w-8 rounded-l-none"
-                  onClick={increaseQuantity}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
               </div>
-            </div>
+            )}
             
             <div className="flex justify-between items-center mb-2 pt-2 border-t">
               <span className="font-medium">Total:</span>
-              <span className="font-bold">${(price * quantity).toFixed(2)}</span>
+              <span className="font-bold">
+                ${(isSubscription 
+                  ? price * parseInt(selectedDuration) 
+                  : price * quantity).toFixed(2)}
+              </span>
             </div>
             
             {isSubscription && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Duration:</span>
-                <span>{quantity} {quantity === 1 ? 'month' : 'months'}</span>
+                <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
               </div>
             )}
             

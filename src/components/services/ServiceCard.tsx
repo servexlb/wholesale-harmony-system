@@ -52,11 +52,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const showPurchaseConfirmation = () => {
     // Reset fields
     setAccountId("");
+    setQuantity(1);
     
     // For subscriptions, set default selected duration
     if (isSubscription && service.availableMonths && service.availableMonths.length > 0) {
       setSelectedDuration(service.availableMonths[0].toString());
+    } else {
+      setSelectedDuration("1");
     }
+    
     setIsConfirmDialogOpen(true);
   };
 
@@ -278,28 +282,40 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {/* Use Select for subscription duration selection instead of quantity controls */}
-            {isSubscription && service.availableMonths && (
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-medium">Duration:</span>
+            {/* Use Select for subscription duration selection */}
+            {isSubscription && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Subscription Duration <span className="text-red-500">*</span>
+                </label>
                 <Select 
-                  defaultValue={service.availableMonths[0]?.toString() || "1"}
+                  defaultValue={service.availableMonths?.[0]?.toString() || "1"}
                   onValueChange={setSelectedDuration}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select months" />
                   </SelectTrigger>
                   <SelectContent>
-                    {service.availableMonths.map(month => (
-                      <SelectItem key={month} value={month.toString()}>
-                        {month} month{month !== 1 ? 's' : ''}
-                      </SelectItem>
-                    ))}
+                    {service.availableMonths && service.availableMonths.length > 0 ? (
+                      service.availableMonths.map(month => (
+                        <SelectItem key={month} value={month.toString()}>
+                          {month} month{month !== 1 ? 's' : ''}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="1">1 month</SelectItem>
+                        <SelectItem value="3">3 months</SelectItem>
+                        <SelectItem value="6">6 months</SelectItem>
+                        <SelectItem value="12">12 months</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
             )}
             
+            {/* Account ID field for recharge services */}
             {isRecharge && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -314,10 +330,41 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                 <p className="text-xs text-muted-foreground">
                   This ID is required to process your recharge
                 </p>
+                
+                {/* Add quantity controls for recharge products */}
+                <div className="mt-4">
+                  <label className="text-sm font-medium">
+                    Quantity
+                  </label>
+                  <div className="flex items-center mt-1">
+                    <Button 
+                      type="button" 
+                      size="icon"
+                      variant="outline" 
+                      className="h-8 w-8 rounded-r-none"
+                      onClick={decreaseQuantity}
+                      disabled={quantity <= 1}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
+                      {quantity}
+                    </div>
+                    <Button 
+                      type="button" 
+                      size="icon"
+                      variant="outline" 
+                      className="h-8 w-8 rounded-l-none"
+                      onClick={increaseQuantity}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
             
-            {/* Only show quantity controls for non-subscription and non-recharge products */}
+            {/* Only show quantity controls for gift cards and other non-subscription, non-recharge products */}
             {!isSubscription && !isRecharge && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Quantity:</span>

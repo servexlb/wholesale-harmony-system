@@ -21,16 +21,21 @@ const ServicesList: React.FC<ServicesListProps> = ({
   selectedCategory,
   setSelectedCategory
 }) => {
+  // Find the selected category name if one is selected
+  const selectedCategoryName = selectedCategory 
+    ? serviceCategories.find(cat => cat.id === selectedCategory)?.name 
+    : null;
+
   return (
     <>
-      {/* Results Count */}
+      {/* Results Count with active filters */}
       <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Showing {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
-        {selectedCategory && (
+        {selectedCategoryName && (
           <>
             {" in "}
             <span className="font-medium">
-              {serviceCategories.find(cat => cat.id === selectedCategory)?.name || "selected category"}
+              {selectedCategoryName}
             </span>
           </>
         )}
