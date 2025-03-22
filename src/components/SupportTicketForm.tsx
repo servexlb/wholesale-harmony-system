@@ -72,7 +72,7 @@ const SupportTicketForm: React.FC = () => {
   };
 
   return (
-    <Card>
+    <Card className="bg-card text-card-foreground">
       <CardHeader>
         <CardTitle>Report an Issue</CardTitle>
         <CardDescription>
@@ -122,6 +122,7 @@ const SupportTicketForm: React.FC = () => {
                     type="button"
                     variant="outline"
                     onClick={() => document.getElementById('screenshot')?.click()}
+                    className="bg-background hover:bg-accent text-foreground"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Choose Image
@@ -156,7 +157,7 @@ const SupportTicketForm: React.FC = () => {
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {isSubmitting ? (
                   "Submitting..."
