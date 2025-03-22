@@ -42,9 +42,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
   const price = isWholesale ? product.wholesalePrice : product.price;
 
-  // Get current user balance from localStorage
-  const userBalanceStr = localStorage.getItem('userBalance');
-  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
+  // Get current user ID
+  const userId = localStorage.getItem('currentUserId') || 'guest';
+  
+  // Get user balance from localStorage
+  const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
+  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
 
   // Helper to determine if product is a subscription
   const isSubscription = product.type === 'subscription';
@@ -54,6 +57,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
   // Helper to determine if product is a recharge
   const isRecharge = product.type === 'recharge';
+  
+  // Helper to determine if product should use months feature
+  const shouldUseMonths = isSubscription || 
+    product.category.toLowerCase().includes('streaming') || 
+    product.category.toLowerCase().includes('vpn') || 
+    product.category.toLowerCase().includes('security');
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
@@ -62,7 +71,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     setQuantity(1);
     
     // Set default duration for subscriptions
-    if (isSubscription) {
+    if (shouldUseMonths) {
       setSelectedDuration("1");
     }
     
@@ -82,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     setIsPurchasing(true);
     
     // Calculate final price based on type
-    const finalPrice = isSubscription 
+    const finalPrice = shouldUseMonths 
       ? price * parseInt(selectedDuration) 
       : price * quantity;
     
@@ -99,14 +108,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
     // Deduct the price from user balance immediately
     const newBalance = userBalance - finalPrice;
-    localStorage.setItem('userBalance', newBalance.toString());
+    localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       productId: product.id,
-      quantity: isSubscription ? 1 : quantity,
-      durationMonths: isSubscription ? parseInt(selectedDuration) : undefined,
+      quantity: shouldUseMonths ? 1 : quantity,
+      durationMonths: shouldUseMonths ? parseInt(selectedDuration) : undefined,
       accountId: isRecharge ? accountId : undefined,
       totalPrice: finalPrice,
       status: "pending",
@@ -114,9 +123,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     };
 
     // Save order to localStorage
-    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    const orderStorageKey = `customerOrders_${userId}`;
+    const customerOrders = JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
     customerOrders.push(order);
-    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    localStorage.setItem(orderStorageKey, JSON.stringify(customerOrders));
 
     // In a real app, you would send this to your backend
     console.log("Created order:", order);
@@ -205,7 +215,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
           <div className="mt-4 flex items-end justify-between">
             <div>
               <p className="text-xl font-semibold text-primary">
-                ${price.toFixed(2)} {isSubscription ? '/month' : ''}
+                ${price.toFixed(2)} {shouldUseMonths ? '/month' : ''}
               </p>
               {isWholesale && (
                 <p className="text-xs text-muted-foreground line-through">
@@ -252,7 +262,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
           
           <div className="py-4 space-y-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Price per {isSubscription ? 'month' : 'unit'}:</span>
+              <span className="font-medium">Price per {shouldUseMonths ? 'month' : 'unit'}:</span>
               <span className="font-bold">${price.toFixed(2)}</span>
             </div>
             
@@ -266,11 +276,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <span>{product.category}</span>
             </div>
             
-            {/* Subscription duration for subscription products */}
-            {isSubscription && (
+            {/* Subscription duration for subscription and streaming/vpn/security products */}
+            {shouldUseMonths && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
-                  Subscription Duration <span className="text-red-500">*</span>
+                  Duration <span className="text-red-500">*</span>
                 </label>
                 <Select 
                   value={selectedDuration}
@@ -305,45 +315,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
                   This ID is required to process your recharge
                 </p>
                 
-                {/* Add quantity controls for recharge products */}
-                <div className="mt-4">
-                  <label className="text-sm font-medium">
-                    Quantity
-                  </label>
-                  <div className="flex items-center mt-1">
-                    <Button 
-                      type="button" 
-                      size="icon"
-                      variant="outline" 
-                      className="h-8 w-8 rounded-r-none"
-                      onClick={decreaseQuantity}
-                      disabled={quantity <= 1}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={quantity.toString()}
-                      onChange={handleQuantityChange}
-                      className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
-                    />
-                    <Button 
-                      type="button" 
-                      size="icon"
-                      variant="outline" 
-                      className="h-8 w-8 rounded-l-none"
-                      onClick={increaseQuantity}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
+                {/* Add quantity controls for recharge products (if not using months) */}
+                {!shouldUseMonths && (
+                  <div className="mt-4">
+                    <label className="text-sm font-medium">
+                      Quantity
+                    </label>
+                    <div className="flex items-center mt-1">
+                      <Button 
+                        type="button" 
+                        size="icon"
+                        variant="outline" 
+                        className="h-8 w-8 rounded-r-none"
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={quantity.toString()}
+                        onChange={handleQuantityChange}
+                        className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
+                      />
+                      <Button 
+                        type="button" 
+                        size="icon"
+                        variant="outline" 
+                        className="h-8 w-8 rounded-l-none"
+                        onClick={increaseQuantity}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
             
-            {/* Only show quantity controls for non-subscription, non-recharge products */}
-            {!isSubscription && !isRecharge && (
+            {/* Show quantity controls for non-monthly products */}
+            {!shouldUseMonths && !isRecharge && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Quantity:</span>
                 <div className="flex items-center">
@@ -380,13 +392,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
             <div className="flex justify-between items-center mb-2 pt-2 border-t">
               <span className="font-medium">Total:</span>
               <span className="font-bold">
-                ${(isSubscription 
+                ${(shouldUseMonths 
                   ? price * parseInt(selectedDuration) 
                   : price * quantity).toFixed(2)}
               </span>
             </div>
             
-            {isSubscription && (
+            {shouldUseMonths && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Duration:</span>
                 <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
