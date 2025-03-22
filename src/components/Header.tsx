@@ -141,8 +141,10 @@ const Header = () => {
               type="search"
               placeholder="Search for services..."
               className="pl-10 pr-4 py-2 w-full relative mb-4"
-              prefix={<Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2" />}
             />
+            <div className="absolute left-7 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
           <nav className="flex flex-col p-4 space-y-2">
             <Link 
