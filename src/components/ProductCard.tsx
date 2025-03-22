@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -21,8 +22,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
   const price = isWholesale ? product.wholesalePrice : product.price;
 
-  // Mock user balance - in a real app, this would come from your auth/user state
-  const userBalance = 120.00;
+  // Get current user balance from localStorage
+  const userBalanceStr = localStorage.getItem('userBalance');
+  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
 
   const handleBuyNow = () => {
     console.log("Buy now clicked for product:", product);
@@ -41,6 +43,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
 
     // Simulate purchase processing
     setTimeout(() => {
+      // Deduct the price from user balance immediately
+      const newBalance = userBalance - price;
+      localStorage.setItem('userBalance', newBalance.toString());
+
       // Create order with pending status
       const order = {
         id: `order-${Date.now()}`,
@@ -51,11 +57,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
         createdAt: new Date().toISOString(),
       };
 
+      // Save order to localStorage
+      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+      customerOrders.push(order);
+      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+
       // In a real app, you would send this to your backend
       console.log("Created order:", order);
       
-      toast.success("Purchase pending!", {
-        description: "Your order is being processed"
+      toast.success("Purchase successful!", {
+        description: `Your order is being processed. $${price.toFixed(2)} has been deducted from your balance.`
       });
       
       setIsPurchasing(false);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,9 @@ const Checkout: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState("account-balance");
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Mock user balance - in a real app, this would come from your auth/user state
-  const userBalance = 10.00; // Lower than the total to trigger insufficient balance scenario
+  // Get current user balance from localStorage
+  const userBalanceStr = localStorage.getItem('userBalance');
+  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 10.00; // Default to 10 to match original
   const total = 12.99;
 
   // Check if user has sufficient balance on component mount
@@ -48,6 +50,12 @@ const Checkout: React.FC = () => {
 
     // Simulate a network request
     setTimeout(() => {
+      // If using account balance, deduct the amount immediately
+      if (paymentMethod === "account-balance") {
+        const newBalance = userBalance - total;
+        localStorage.setItem('userBalance', newBalance.toString());
+      }
+
       // Create order with pending status
       const order = {
         id: `order-${Date.now()}`,
@@ -57,17 +65,29 @@ const Checkout: React.FC = () => {
         totalPrice: total,
         status: "pending",
         createdAt: new Date().toISOString(),
-        paymentStatus: paymentMethod === "account-balance" ? "pending" : "pending"
+        paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending"
       };
+
+      // Save order to localStorage
+      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+      customerOrders.push(order);
+      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
 
       // In a real app, you would send this to your backend
       console.log("Created order:", order);
       
       toast.success(
         paymentMethod === "account-balance"
-          ? "Order placed! Your payment is being processed."
+          ? "Order placed! Your payment has been processed."
           : "Order placed! Payment is pending confirmation."
       );
+
+      if (paymentMethod === "account-balance") {
+        toast.success("Balance updated", {
+          description: `$${total.toFixed(2)} has been deducted from your balance.`
+        });
+      }
+      
       setIsProcessing(false);
       
       // Redirect to a confirmation page

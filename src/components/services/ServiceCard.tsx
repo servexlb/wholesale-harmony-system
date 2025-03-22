@@ -19,8 +19,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  // Mock user balance - in a real app, this would come from your auth/user state
-  const userBalance = 120.00;
+  // Get current user balance from localStorage
+  const userBalanceStr = localStorage.getItem('userBalance');
+  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
   
   // Generate a more specific image URL for each service type
   const getImageUrl = (serviceName: string) => {
@@ -61,6 +62,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
 
     // Simulate purchase processing
     setTimeout(() => {
+      // Deduct the price from user balance immediately
+      const newBalance = userBalance - service.price;
+      localStorage.setItem('userBalance', newBalance.toString());
+
       // Create order with pending status
       const order = {
         id: `order-${Date.now()}`,
@@ -70,11 +75,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
         createdAt: new Date().toISOString(),
       };
 
+      // Save order to localStorage
+      const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+      customerOrders.push(order);
+      localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+
       // In a real app, you would send this to your backend
       console.log("Created order:", order);
       
-      toast.success("Purchase pending!", {
-        description: "Your order is being processed"
+      toast.success("Purchase successful!", {
+        description: `Your order is being processed. $${service.price.toFixed(2)} has been deducted from your balance.`
       });
       
       setIsPurchasing(false);
