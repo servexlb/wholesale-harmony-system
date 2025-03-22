@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search, User, Hash } from "lucide-react";
+import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search, User, Hash, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -85,6 +86,7 @@ const AdminDigitalInventory: React.FC = () => {
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [quantity, setQuantity] = useState(1);
   
   const { toast } = useToast();
 
@@ -168,26 +170,32 @@ const AdminDigitalInventory: React.FC = () => {
 
     const serviceName = mockServices.find(s => s.id === selectedService)?.name || "";
     
-    const newItem: DigitalItem = {
-      id: `di${Date.now()}`,
-      serviceId: selectedService,
-      serviceName,
-      credentials: {
-        email: newCredentials.email,
-        password: newCredentials.password,
-        username: newCredentials.username,
-        pinCode: newCredentials.pinCode
-      },
-      status: "available",
-      addedAt: new Date().toISOString(),
-    };
+    const newItems: DigitalItem[] = [];
+    
+    // Create multiple items based on quantity
+    for (let i = 0; i < quantity; i++) {
+      newItems.push({
+        id: `di${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+        serviceId: selectedService,
+        serviceName,
+        credentials: {
+          email: newCredentials.email,
+          password: newCredentials.password,
+          username: newCredentials.username,
+          pinCode: newCredentials.pinCode
+        },
+        status: "available",
+        addedAt: new Date().toISOString(),
+      });
+    }
 
-    setInventory([...inventory, newItem]);
+    setInventory([...inventory, ...newItems]);
     setNewCredentials({ email: "", password: "", username: "", pinCode: "" });
     toast({
-      title: "Item Added",
-      description: "Digital inventory item has been added successfully",
+      title: "Items Added",
+      description: `${quantity} digital inventory item(s) have been added successfully`,
     });
+    setQuantity(1);
   };
 
   const handleBulkImport = () => {
@@ -210,19 +218,22 @@ const AdminDigitalInventory: React.FC = () => {
       const [email, password, username, pinCode] = parts;
       
       if (email && password) {
-        newItems.push({
-          id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          serviceId: selectedService,
-          serviceName,
-          credentials: { 
-            email, 
-            password,
-            username: username || "",
-            pinCode: pinCode || ""
-          },
-          status: "available",
-          addedAt: new Date().toISOString(),
-        });
+        // Create multiple items for each line based on quantity
+        for (let i = 0; i < quantity; i++) {
+          newItems.push({
+            id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${i}`,
+            serviceId: selectedService,
+            serviceName,
+            credentials: { 
+              email, 
+              password,
+              username: username || "",
+              pinCode: pinCode || ""
+            },
+            status: "available",
+            addedAt: new Date().toISOString(),
+          });
+        }
       }
     });
 
@@ -233,6 +244,7 @@ const AdminDigitalInventory: React.FC = () => {
         title: "Bulk Import Successful",
         description: `Added ${newItems.length} items to inventory`,
       });
+      setQuantity(1);
     } else {
       toast({
         title: "Import Failed",
@@ -240,6 +252,29 @@ const AdminDigitalInventory: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const duplicateItem = (item: DigitalItem) => {
+    const duplicatedItems: DigitalItem[] = [];
+    
+    // Create multiple copies based on quantity
+    for (let i = 0; i < quantity; i++) {
+      duplicatedItems.push({
+        ...item,
+        id: `di${Date.now()}-dup-${i}-${Math.random().toString(36).substr(2, 9)}`,
+        status: "available",
+        addedAt: new Date().toISOString(),
+        deliveredAt: undefined
+      });
+    }
+    
+    setInventory([...inventory, ...duplicatedItems]);
+    
+    toast({
+      title: "Items Duplicated",
+      description: `${quantity} copies of the item have been added to inventory`,
+    });
+    setQuantity(1);
   };
 
   const handleDeleteItem = (id: string) => {
@@ -259,19 +294,25 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const handleAddSelectedProducts = () => {
-    const productsToAdd = selectedProducts.map(productId => {
+    const productsToAdd: DigitalItem[] = [];
+    
+    selectedProducts.forEach(productId => {
       const product = allProducts.find(p => p.id === productId);
-      return {
-        id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        serviceId: product?.id || "",
-        serviceName: product?.name || "",
-        credentials: {
-          email: "",
-          password: ""
-        },
-        status: "available" as const,
-        addedAt: new Date().toISOString(),
-      };
+      
+      // Create multiple items for each selected product based on quantity
+      for (let i = 0; i < quantity; i++) {
+        productsToAdd.push({
+          id: `di${Date.now()}-${productId}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+          serviceId: product?.id || "",
+          serviceName: product?.name || "",
+          credentials: {
+            email: "",
+            password: ""
+          },
+          status: "available" as const,
+          addedAt: new Date().toISOString(),
+        });
+      }
     });
     
     setInventory([...inventory, ...productsToAdd]);
@@ -281,6 +322,7 @@ const AdminDigitalInventory: React.FC = () => {
     });
     setSelectedProducts([]);
     setShowProductSelector(false);
+    setQuantity(1);
   };
 
   const handleSelectAll = () => {
@@ -400,22 +442,35 @@ const AdminDigitalInventory: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowProductSelector(false);
-                    setSearchQuery("");
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAddSelectedProducts}
-                  disabled={selectedProducts.length === 0}
-                >
-                  Add {selectedProducts.length} Products
-                </Button>
+              <div className="flex flex-col gap-3 mt-4">
+                <div className="flex items-center">
+                  <Label htmlFor="quantity" className="w-24">Quantity:</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-24"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowProductSelector(false);
+                      setSearchQuery("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddSelectedProducts}
+                    disabled={selectedProducts.length === 0}
+                  >
+                    Add {selectedProducts.length * quantity} Products
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
@@ -500,6 +555,18 @@ const AdminDigitalInventory: React.FC = () => {
                 </select>
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input 
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full"
+                />
+              </div>
+              
               {!bulkImport ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -543,7 +610,7 @@ const AdminDigitalInventory: React.FC = () => {
                   </div>
                   <Button onClick={handleAddItem} className="w-full">
                     <Key className="h-4 w-4 mr-2" />
-                    Add to Inventory
+                    Add to Inventory ({quantity > 1 ? `${quantity} items` : "1 item"})
                   </Button>
                 </>
               ) : (
@@ -562,7 +629,7 @@ const AdminDigitalInventory: React.FC = () => {
                   </div>
                   <Button onClick={handleBulkImport} className="w-full">
                     <Server className="h-4 w-4 mr-2" />
-                    Import Bulk Credentials
+                    Import Bulk Credentials ({quantity > 1 ? `${quantity} copies each` : "1 copy each"})
                   </Button>
                 </>
               )}
@@ -645,15 +712,28 @@ const AdminDigitalInventory: React.FC = () => {
                         {new Date(item.addedAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        {item.status === "available" && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleDeleteItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
+                        <div className="flex justify-end gap-1">
+                          {item.status === "available" && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => duplicateItem(item)}
+                                title="Duplicate Item"
+                              >
+                                <Copy className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDeleteItem(item.id)}
+                                title="Delete Item"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -662,10 +742,25 @@ const AdminDigitalInventory: React.FC = () => {
             </Table>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="duplicateQuantity">Duplicate Quantity:</Label>
+            <Input
+              id="duplicateQuantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-20"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">
+            Use the <Copy className="h-3 w-3 inline mx-1" /> icon to duplicate an item {quantity > 1 ? `${quantity} times` : ""}
+          </span>
+        </CardFooter>
       </Card>
     </div>
   );
 };
 
 export default AdminDigitalInventory;
-
