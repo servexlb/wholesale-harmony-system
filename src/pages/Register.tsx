@@ -25,6 +25,7 @@ const Register: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -58,6 +59,7 @@ const Register: React.FC = () => {
 
   const onGoogleSignUpSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
+    setOauthError(null);
     // In a real app, you would verify this token on your backend
     // and create a user account linked to the Google credentials
     toast({
@@ -68,7 +70,10 @@ const Register: React.FC = () => {
   };
 
   const onGoogleSignUpError = () => {
-    setError("Google sign-up failed. Please try again.");
+    console.error("Google sign-up failed");
+    setOauthError(
+      "Google sign-up failed. This is likely because your app domain is not authorized in your Google OAuth Client settings."
+    );
   };
 
   return (
@@ -94,6 +99,22 @@ const Register: React.FC = () => {
               </Alert>
             )}
             
+            {oauthError && (
+              <Alert className="mb-4 border-amber-500 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="flex flex-col gap-2">
+                  <p>{oauthError}</p>
+                  <ol className="list-decimal pl-4 text-xs space-y-1">
+                    <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="underline">Google Cloud Console</a></li>
+                    <li>Select your OAuth 2.0 Client ID</li>
+                    <li>Add your app domain to the Authorized JavaScript origins</li>
+                    <li>Add redirect URIs if needed (e.g., https://yourdomain.com/register)</li>
+                    <li>Save changes and wait a few minutes for them to propagate</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="flex justify-center">
               <GoogleLogin
                 onSuccess={onGoogleSignUpSuccess}
@@ -103,7 +124,7 @@ const Register: React.FC = () => {
                 size="large"
                 text="signup_with"
                 shape="rectangular"
-                width="100%"
+                width="300"
               />
             </div>
 

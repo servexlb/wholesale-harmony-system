@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,12 +56,16 @@ const Login: React.FC = () => {
 
   const onGoogleLoginSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
+    setOauthError(null);
     toast.success("Google sign-in successful!");
     navigate("/dashboard");
   };
 
   const onGoogleLoginError = () => {
-    setError("Google sign-in failed. Please try again.");
+    console.error("Google sign-in failed");
+    setOauthError(
+      "Google sign-in failed. This is likely because your app domain is not authorized in your Google OAuth Client settings."
+    );
   };
   
   return (
@@ -82,6 +88,22 @@ const Login: React.FC = () => {
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {oauthError && (
+            <Alert className="mb-6 border-amber-500 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="flex flex-col gap-2">
+                <p>{oauthError}</p>
+                <ol className="list-decimal pl-4 text-xs space-y-1">
+                  <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="underline">Google Cloud Console</a></li>
+                  <li>Select your OAuth 2.0 Client ID</li>
+                  <li>Add your app domain to the Authorized JavaScript origins</li>
+                  <li>Add redirect URIs if needed (e.g., https://yourdomain.com/login)</li>
+                  <li>Save changes and wait a few minutes for them to propagate</li>
+                </ol>
+              </AlertDescription>
             </Alert>
           )}
           
@@ -154,7 +176,7 @@ const Login: React.FC = () => {
                 size="large"
                 text="continue_with"
                 shape="rectangular"
-                width="100%"
+                width="300"
               />
             </div>
           </form>
