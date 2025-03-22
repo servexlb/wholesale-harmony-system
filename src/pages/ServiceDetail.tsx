@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
 import { Check, Clock, ChevronLeft, Minus, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Service } from "@/lib/types";
 import { toast } from "@/lib/toast";
+import { services } from "@/lib/mockData";
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,31 +25,53 @@ const ServiceDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [service, setService] = useState<Service | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // Mock user balance - in a real app, this would come from your auth/user state
   const userBalance = 120.00;
   
-  // In a real app, you would fetch the service details based on the ID
-  // For now, let's use mock data
-  const service = {
-    id: id || "1",
-    name: "Netflix Premium Subscription",
-    description: "Access to all Netflix content in 4K UHD quality with the ability to stream on multiple devices simultaneously.",
-    price: 15.99,
-    wholesalePrice: 12.99,
-    categoryId: "streaming",
-    image: "https://placehold.co/600x400/333/fff?text=Netflix",
-    deliveryTime: "Instant",
-    features: [
-      "4K UHD Streaming",
-      "Watch on up to 4 devices",
-      "Access to all content",
-      "Ad-free experience",
-      "Downloads available"
-    ],
-    featured: true,
-    type: "subscription" // This would come from your data model. For now, hardcoded for demo
-  };
+  // Fetch service details based on ID
+  useEffect(() => {
+    if (id) {
+      setLoading(true);
+      // Simulate API call
+      setTimeout(() => {
+        const foundService = services.find(s => s.id === id);
+        setService(foundService || null);
+        setLoading(false);
+      }, 300);
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="container py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading service details...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!service) {
+    return (
+      <MainLayout>
+        <div className="container py-8">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">Service Not Found</h2>
+            <p className="text-muted-foreground mb-6">The service you're looking for doesn't exist or has been removed.</p>
+            <Button asChild>
+              <Link to="/services">Browse All Services</Link>
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const isSubscription = service.type === "subscription";
   const isGameRecharge = service.type === "recharge" || service.categoryId === "category6"; // Update to check both type and category
@@ -140,6 +163,9 @@ const ServiceDetail: React.FC = () => {
               alt={service.name} 
               className="w-full h-auto rounded-lg shadow-md object-cover" 
               style={{ maxHeight: "400px" }}
+              onError={(e) => {
+                e.currentTarget.src = `https://placehold.co/600x400/333/fff?text=${encodeURIComponent(service.name)}`;
+              }}
             />
             
             <h1 className="text-3xl font-bold mt-6 mb-2">{service.name}</h1>
@@ -159,12 +185,16 @@ const ServiceDetail: React.FC = () => {
               </TabsContent>
               <TabsContent value="features" className="mt-4">
                 <ul className="space-y-2">
-                  {service.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                  {service.features && service.features.length > 0 ? (
+                    service.features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <span>{feature}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li>No additional features available for this service.</li>
+                  )}
                 </ul>
               </TabsContent>
               <TabsContent value="reviews" className="mt-4">
