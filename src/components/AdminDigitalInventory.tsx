@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ interface DigitalItem {
   deliveredAt?: string;
 }
 
-// Mock data for initial demonstration
 const mockServices = [
   { id: "s1", name: "Premium Email Service" },
   { id: "s2", name: "VPN Subscription" },
@@ -83,7 +81,6 @@ const AdminDigitalInventory: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Convert services to Product type objects
     const servicesAsProducts: Product[] = services.map(service => ({
       id: service.id,
       name: service.name,
@@ -98,11 +95,9 @@ const AdminDigitalInventory: React.FC = () => {
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
-      // Only add minQuantity if it exists
       ...(service.type === "subscription" ? { minQuantity: 1 } : {})
     }));
     
-    // Convert products from data.ts to match the Product type from types.ts
     const formattedDataProducts: Product[] = dataProducts.map(product => ({
       id: product.id,
       name: product.name,
@@ -117,11 +112,9 @@ const AdminDigitalInventory: React.FC = () => {
       apiUrl: product.apiUrl,
       availableMonths: product.availableMonths,
       value: product.value,
-      // Access minQuantity safely, it might not exist in the source data
-      minQuantity: product.minQuantity !== undefined ? product.minQuantity : undefined
+      ...(typeof product.minQuantity !== 'undefined' ? { minQuantity: product.minQuantity } : {})
     }));
     
-    // Combine both lists
     setAllProducts([...formattedDataProducts, ...servicesAsProducts]);
   }, []);
 
