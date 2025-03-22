@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,9 +23,12 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   // Filter products based on search query and active tab
   const filteredProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    
     return products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-        product.description.toLowerCase().includes(productSearch.toLowerCase());
+      const matchesSearch = 
+        product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(productSearch.toLowerCase()));
         
       if (activeTab === 'all') return matchesSearch;
       if (activeTab === 'subscription') return matchesSearch && product.type === 'subscription';
@@ -58,17 +61,25 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
     return categorizedProducts;
   }, [filteredProducts, products]);
 
-  const renderProductIcon = (type?: string) => {
+  const renderProductIcon = useCallback((type?: string) => {
     if (type === 'subscription') return <Calendar className="h-4 w-4 text-blue-500" />;
     if (type === 'recharge') return <Zap className="h-4 w-4 text-amber-500" />;
     return <Package className="h-4 w-4 text-green-500" />;
-  };
+  }, []);
+
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setProductSearch(value);
+  }, []);
 
   return (
     <div>
       <label className="text-sm font-medium mb-1 block">Product</label>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full mt-2">
         <TabsList className="grid grid-cols-4 mb-2">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="subscription">Subscriptions</TabsTrigger>
@@ -85,12 +96,17 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
             placeholder="Search products..."
             className="pl-10"
             value={productSearch}
-            onChange={(e) => setProductSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
         
         <Command className="rounded-lg border shadow-md">
-          <CommandInput placeholder="Search products..." value={productSearch} onValueChange={setProductSearch} className="h-9" />
+          <CommandInput 
+            placeholder="Search products..." 
+            value={productSearch} 
+            onValueChange={handleSearchChange} 
+            className="h-9" 
+          />
           <CommandList className="max-h-[300px] overflow-auto">
             <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
             {Object.keys(productsByCategory).length === 0 ? (

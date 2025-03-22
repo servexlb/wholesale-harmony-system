@@ -7,7 +7,7 @@ import { products, customers } from '@/lib/data';
 import { WholesaleOrder, Subscription } from '@/lib/types';
 import { useLocation } from 'react-router-dom';
 
-// Import the new components
+// Import the components
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
 import WholesaleSidebar from '@/components/wholesale/WholesaleSidebar';
 import WholesaleTabContent from '@/components/wholesale/WholesaleTabContent';
@@ -78,10 +78,11 @@ const Wholesale = () => {
   }, [currentWholesaler]);
   
   const filteredSubscriptions = useMemo(() => {
-    return mockSubscriptions.filter(sub => 
+    if (!wholesalerCustomers.length) return [];
+    return subscriptions.filter(sub => 
       wholesalerCustomers.some(customer => customer.id === sub.userId)
     );
-  }, [wholesalerCustomers]);
+  }, [wholesalerCustomers, subscriptions]);
 
   useEffect(() => {
     const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
@@ -94,7 +95,10 @@ const Wholesale = () => {
   }, []);
 
   const handleOrderPlaced = useCallback((order: WholesaleOrder) => {
-    setOrders(prev => [order, ...prev]);
+    setOrders(prev => {
+      const updatedOrders = [order, ...prev];
+      return updatedOrders.slice(0, 100);
+    });
     
     if (order.credentials) {
       const newSubscription: Subscription = {
@@ -102,12 +106,15 @@ const Wholesale = () => {
         userId: order.customerId,
         serviceId: order.serviceId,
         startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 86400000 * 30).toISOString(), // 30 days from now
+        endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
         status: 'active',
         credentials: order.credentials
       };
       
-      setSubscriptions(prev => [...prev, newSubscription]);
+      setSubscriptions(prev => {
+        const updatedSubscriptions = [...prev, newSubscription];
+        return updatedSubscriptions.slice(0, 100);
+      });
     }
   }, []);
 
@@ -157,6 +164,7 @@ const Wholesale = () => {
         <motion.main
           className={`flex-1 p-6 pt-8 transition-all duration-300 ${sidebarOpen ? 'md:ml-[250px]' : ''}`}
           initial={false}
+          layout
         >
           <div className="container mx-auto max-w-6xl">
             <WholesaleTabContent 
@@ -176,4 +184,4 @@ const Wholesale = () => {
   );
 };
 
-export default Wholesale;
+export default React.memo(Wholesale);
