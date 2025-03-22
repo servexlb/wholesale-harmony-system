@@ -1,15 +1,15 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check, Calendar, RefreshCw, CreditCard } from 'lucide-react';
-import { 
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,270 +22,232 @@ import SubscriptionActions from '@/components/customer/SubscriptionActions';
 interface StockSubscriptionsProps {
   subscriptions: Subscription[];
   allowRenewal?: boolean;
+  onRenew?: (subscription: Subscription) => void;
+  renewedSubscriptions?: string[];
 }
 
-const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ 
+const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({
   subscriptions,
-  allowRenewal = false 
+  allowRenewal = false,
+  onRenew,
+  renewedSubscriptions = []
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  
-  // Filter active subscriptions only
-  const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active');
-  
-  // Sort subscriptions by end date (earliest first)
-  const sortedSubscriptions = [...activeSubscriptions].sort((a, b) => {
-    return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+
+  const filteredSubscriptions = subscriptions.filter(subscription => {
+    const customer = customers.find(c => c.id === subscription.userId);
+    const product = products.find(p => p.id === subscription.serviceId);
+
+    if (!customer || !product) return false;
+
+    const searchStr = `${customer.name} ${customer.phone} ${customer.email} ${product.name}`.toLowerCase();
+    return searchStr.includes(searchTerm.toLowerCase());
   });
-  
-  // Filter by search term if present
-  const filteredSubscriptions = sortedSubscriptions.filter(sub => {
-    const customer = customers.find(c => c.id === sub.userId);
-    const product = products.find(p => p.id === sub.serviceId);
-    
-    return (
-      (customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (sub.credentials?.email || '').toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  });
-  
-  const getSubscriptionStatus = (endDate: string) => {
-    const today = new Date();
-    const end = parseISO(endDate);
-    const daysLeft = differenceInDays(end, today);
-    
-    if (daysLeft < 0) return { status: "expired", color: "destructive", icon: <CircleX className="h-4 w-4" /> };
-    if (daysLeft === 0) return { status: "expires today", color: "destructive", icon: <CircleAlert className="h-4 w-4" /> };
-    if (daysLeft <= 3) return { status: `expires in ${daysLeft} days`, color: "orange", icon: <CircleAlert className="h-4 w-4" /> };
-    return { status: `expires in ${daysLeft} days`, color: "green", icon: <Clock className="h-4 w-4" /> };
+
+  const getSubscriptionStatus = (subscription: Subscription): { label: string; variant: "default" | "secondary" | "destructive"; icon: React.ReactNode } => {
+    const expiryDate = parseISO(subscription.endDate);
+    const daysUntilExpiry = differenceInDays(expiryDate, new Date());
+
+    if (subscription.status === "canceled") {
+      return { label: "Canceled", variant: "destructive", icon: <CircleX className="h-3 w-3 mr-1" /> };
+    } else if (daysUntilExpiry <= 0) {
+      return { label: "Expired", variant: "destructive", icon: <CircleX className="h-3 w-3 mr-1" /> };
+    } else if (daysUntilExpiry <= 7) {
+      return { label: "Expiring Soon", variant: "secondary", icon: <CircleAlert className="h-3 w-3 mr-1" /> };
+    } else {
+      return { label: "Active", variant: "default", icon: <Clock className="h-3 w-3 mr-1" /> };
+    }
   };
-  
-  const copyToClipboard = (text: string, id: string, field: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedId(id);
-      setCopiedField(field);
-      toast.success(`Copied ${field} to clipboard!`);
-      
-      // Reset the copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedId(null);
-        setCopiedField(null);
-      }, 2000);
-    });
+
+  const handleCopyToClipboard = (text: string, id: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setCopiedField(field);
+    toast.success(`${field} copied to clipboard!`);
+    setTimeout(() => {
+      setCopiedId(null);
+      setCopiedField(null);
+    }, 2000);
   };
 
   const handleRenewSubscription = (subscription: Subscription) => {
-    const product = products.find(p => p.id === subscription.serviceId);
-    const customer = customers.find(c => c.id === subscription.userId);
-    
-    // In a real app, this would process a renewal
-    toast.success(`Renewal initiated for ${customer?.name}'s ${product?.name} subscription`, {
-      description: "The account will be renewed after payment processing"
-    });
+    if (onRenew) {
+      onRenew(subscription);
+    } else {
+      const product = products.find(p => p.id === subscription.serviceId);
+      const customer = customers.find(c => c.id === subscription.userId);
+
+      // Default behavior if no onRenew handler is provided
+      toast.success(`Renewal initiated for ${customer?.name}'s ${product?.name} subscription`, {
+        description: "The account will be renewed after payment processing"
+      });
+    }
   };
-  
+
+  const getCustomerName = (userId: string): string => {
+    const customer = customers.find(c => c.id === userId);
+    return customer ? customer.name : "Unknown Customer";
+  };
+
+  const getProductName = (serviceId: string): string => {
+    const product = products.find(p => p.id === serviceId);
+    return product ? product.name : "Unknown Service";
+  };
+
+  // Render for mobile screens
   if (isMobile) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3">
-          <h2 className="text-xl font-bold">Stock Management</h2>
-          <div className="relative w-full">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <Input
-              type="search"
-              placeholder="Search subscriptions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      <div className="space-y-6">
+        <div className="sticky top-16 z-10 bg-background pb-4 pt-2">
+          <Input
+            placeholder="Search by name, phone, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+            type="search"
+            icon={<Search className="h-4 w-4 text-muted-foreground" />}
+          />
         </div>
-        
-        <div className="space-y-4">
-          {filteredSubscriptions.length === 0 ? (
-            <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-              No active subscriptions found
-            </div>
-          ) : (
-            filteredSubscriptions.map((subscription) => {
-              const product = products.find(p => p.id === subscription.serviceId);
-              const customer = customers.find(c => c.id === subscription.userId);
-              const statusInfo = getSubscriptionStatus(subscription.endDate);
-              
-              return (
-                <div key={subscription.id} className="bg-white rounded-lg shadow-sm p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{customer?.name || 'Unknown'}</h3>
-                      <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
-                        <Phone className="h-3 w-3" />
-                        <span>{customer?.phone || 'N/A'}</span>
-                        {customer?.phone && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 ml-1" 
-                            onClick={() => copyToClipboard(customer.phone, subscription.id, 'phone')}
-                          >
-                            {copiedId === subscription.id && copiedField === 'phone' ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
+
+        {filteredSubscriptions.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              No subscriptions found matching your search.
+            </CardContent>
+          </Card>
+        ) : (
+          filteredSubscriptions.map((subscription) => {
+            const { label, variant, icon } = getSubscriptionStatus(subscription);
+            const customer = customers.find(c => c.id === subscription.userId);
+            const product = products.find(p => p.id === subscription.serviceId);
+
+            return (
+              <Card key={subscription.id} className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {product?.name}
+                  </CardTitle>
+                  <Badge variant={variant}>
+                    {icon}
+                    {label}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Key className="h-3 w-3" />
+                      <span className="font-bold">{customer?.name}</span>
                     </div>
-                    <Badge 
-                      variant={
-                        statusInfo.color === "green" ? "default" : 
-                        statusInfo.color === "orange" ? "outline" : 
-                        "destructive"
-                      }
-                      className={
-                        statusInfo.color === "orange" 
-                          ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
-                          : ""
-                      }
-                    >
-                      <span className="flex items-center gap-1">
-                        {statusInfo.icon}
-                        {statusInfo.status}
-                      </span>
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Service:</span>
-                      <div>{product?.name || 'Unknown Service'}</div>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Expiry Date:</span>
-                      <div>{new Date(subscription.endDate).toLocaleDateString()}</div>
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {customer?.phone}
                     </div>
                   </div>
-                  
-                  {subscription.durationMonths && (
-                    <div className="text-xs text-muted-foreground flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {subscription.durationMonths} month{subscription.durationMonths > 1 ? 's' : ''} subscription
-                    </div>
-                  )}
-                  
+
                   {subscription.credentials ? (
-                    <div className="bg-muted/30 p-3 rounded text-sm space-y-2">
+                    <div className="rounded-md border p-3 mt-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Email:</span> 
-                        <div className="flex items-center gap-1 max-w-[180px] truncate">
-                          <span className="truncate">{subscription.credentials.email}</span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 flex-shrink-0" 
-                            onClick={() => copyToClipboard(subscription.credentials!.email, subscription.id, 'email')}
-                          >
-                            {copiedId === subscription.id && copiedField === 'email' ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
+                        <div className="flex items-center gap-1">
+                          <Key className="h-3 w-3" />
+                          Email:
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleCopyToClipboard(subscription.credentials!.email, subscription.id, "Email")}
+                        >
+                          {copiedId === subscription.id && copiedField === "Email" ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Password:</span> 
-                        <div className="flex items-center gap-1 max-w-[180px] truncate">
-                          <span className="truncate">{subscription.credentials.password}</span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 flex-shrink-0" 
-                            onClick={() => copyToClipboard(subscription.credentials!.password, subscription.id, 'password')}
-                          >
-                            {copiedId === subscription.id && copiedField === 'password' ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
+                      <div className="text-sm text-muted-foreground">{subscription.credentials.email}</div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-1">
+                          <Key className="h-3 w-3" />
+                          Password:
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleCopyToClipboard(subscription.credentials!.password, subscription.id, "Password")}
+                        >
+                          {copiedId === subscription.id && copiedField === "Password" ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full mt-1 text-xs h-7" 
-                        onClick={() => {
-                          const fullText = `Email: ${subscription.credentials!.email}\nPassword: ${subscription.credentials!.password}`;
-                          copyToClipboard(fullText, subscription.id, 'all-credentials');
-                        }}
-                      >
-                        {copiedId === subscription.id && copiedField === 'all-credentials' ? (
-                          <><Check className="h-3 w-3 mr-1 text-green-500" /> Copied all</>
-                        ) : (
-                          <><Copy className="h-3 w-3 mr-1" /> Copy all credentials</>
-                        )}
-                      </Button>
+                      <div className="text-sm text-muted-foreground">{subscription.credentials.password}</div>
                     </div>
                   ) : (
                     <div className="text-muted-foreground text-sm">No credentials</div>
                   )}
-                  
+
                   {allowRenewal && (
                     <div className="mt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full flex items-center justify-center gap-1 text-primary" 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full flex items-center justify-center gap-1 text-primary"
                         onClick={() => handleRenewSubscription(subscription)}
+                        disabled={renewedSubscriptions.includes(subscription.id)}
                       >
-                        <RefreshCw className="h-3 w-3" />
-                        <span>Renew Account</span>
+                        {renewedSubscriptions.includes(subscription.id) ? (
+                          <>
+                            <Check className="h-3 w-3" />
+                            <span>Renewed</span>
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-3 w-3" />
+                            <span>Renew Account</span>
+                          </>
+                        )}
                       </Button>
                     </div>
                   )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     );
   }
-  
+
+  // Render for desktop screens
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Stock Management</h2>
-        <div className="relative w-64">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Stock Management</CardTitle>
+        <CardDescription>Manage your active subscriptions and their credentials</CardDescription>
+        <div className="mt-4">
           <Input
-            type="search"
-            placeholder="Search subscriptions..."
+            placeholder="Search by name, phone, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="max-w-md"
+            type="search"
+            icon={<Search className="h-4 w-4 text-muted-foreground" />}
           />
         </div>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      </CardHeader>
+      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Phone</TableHead>
               <TableHead>Service</TableHead>
-              <TableHead>Duration</TableHead>
+              <TableHead>Customer</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Expiry Date</TableHead>
               <TableHead>Credentials</TableHead>
@@ -301,133 +263,94 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({
               </TableRow>
             ) : (
               filteredSubscriptions.map((subscription) => {
-                const product = products.find(p => p.id === subscription.serviceId);
+                const { label, variant, icon } = getSubscriptionStatus(subscription);
                 const customer = customers.find(c => c.id === subscription.userId);
-                const statusInfo = getSubscriptionStatus(subscription.endDate);
-                
+                const product = products.find(p => p.id === subscription.serviceId);
+
                 return (
-                  <TableRow key={subscription.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{customer?.name || 'Unknown'}</TableCell>
+                  <TableRow key={subscription.id}>
+                    <TableCell>{product?.name}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        <span>{customer?.phone || 'N/A'}</span>
-                        {customer?.phone && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 ml-1" 
-                            onClick={() => copyToClipboard(customer.phone, subscription.id, 'phone')}
-                          >
-                            {copiedId === subscription.id && copiedField === 'phone' ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        )}
+                      <div className="space-y-1">
+                        <p className="font-semibold">{customer?.name}</p>
+                        <p className="text-muted-foreground text-sm">{customer?.phone}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{product?.name || 'Unknown Service'}</TableCell>
                     <TableCell>
-                      {subscription.durationMonths ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{subscription.durationMonths} month{subscription.durationMonths > 1 ? 's' : ''}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          statusInfo.color === "green" ? "default" : 
-                          statusInfo.color === "orange" ? "outline" : 
-                          "destructive"
-                        }
-                        className={
-                          statusInfo.color === "orange" 
-                            ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
-                            : ""
-                        }
-                      >
-                        <span className="flex items-center gap-1">
-                          {statusInfo.icon}
-                          {statusInfo.status}
-                        </span>
+                      <Badge variant={variant}>
+                        {icon}
+                        {label}
                       </Badge>
                     </TableCell>
                     <TableCell>{new Date(subscription.endDate).toLocaleDateString()}</TableCell>
                     <TableCell>
                       {subscription.credentials ? (
-                        <div className="bg-muted/30 p-2 rounded text-sm space-y-1">
+                        <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium">Email:</span> 
                             <div className="flex items-center gap-1">
-                              {subscription.credentials.email}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6" 
-                                onClick={() => copyToClipboard(subscription.credentials!.email, subscription.id, 'email')}
-                              >
-                                {copiedId === subscription.id && copiedField === 'email' ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
+                              <Key className="h-3 w-3" />
+                              Email:
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyToClipboard(subscription.credentials!.email, subscription.id, "Email")}
+                            >
+                              {copiedId === subscription.id && copiedField === "Email" ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">Password:</span> 
+                          <div className="text-sm text-muted-foreground">{subscription.credentials.email}</div>
+
+                          <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center gap-1">
-                              {subscription.credentials.password}
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6" 
-                                onClick={() => copyToClipboard(subscription.credentials!.password, subscription.id, 'password')}
-                              >
-                                {copiedId === subscription.id && copiedField === 'password' ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
+                              <Key className="h-3 w-3" />
+                              Password:
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyToClipboard(subscription.credentials!.password, subscription.id, "Password")}
+                            >
+                              {copiedId === subscription.id && copiedField === "Password" ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full mt-1 text-xs h-7" 
-                            onClick={() => {
-                              const fullText = `Email: ${subscription.credentials!.email}\nPassword: ${subscription.credentials!.password}`;
-                              copyToClipboard(fullText, subscription.id, 'all-credentials');
-                            }}
-                          >
-                            {copiedId === subscription.id && copiedField === 'all-credentials' ? (
-                              <><Check className="h-3 w-3 mr-1 text-green-500" /> Copied all</>
-                            ) : (
-                              <><Copy className="h-3 w-3 mr-1" /> Copy all credentials</>
-                            )}
-                          </Button>
+                          <div className="text-sm text-muted-foreground">{subscription.credentials.password}</div>
                         </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">No credentials</span>
                       )}
                     </TableCell>
+
                     {allowRenewal && (
                       <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex items-center gap-1 text-primary" 
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 text-primary"
                           onClick={() => handleRenewSubscription(subscription)}
+                          disabled={renewedSubscriptions.includes(subscription.id)}
                         >
-                          <RefreshCw className="h-3 w-3" />
-                          <span>Renew Account</span>
+                          {renewedSubscriptions.includes(subscription.id) ? (
+                            <>
+                              <Check className="h-3 w-3" />
+                              <span>Renewed</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="h-3 w-3" />
+                              <span>Renew Account</span>
+                            </>
+                          )}
                         </Button>
                       </TableCell>
                     )}
@@ -437,8 +360,8 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({
             )}
           </TableBody>
         </Table>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
