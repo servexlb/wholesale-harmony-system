@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Calendar, Clock, Filter } from 'lucide-react';
+import { Search, Calendar, Clock } from 'lucide-react';
 import { Customer, Product, products } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import SalesCalculator from '@/components/SalesCalculator';
@@ -72,19 +72,21 @@ const SalesTab: React.FC<SalesTabProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className="flex flex-col space-y-5"
     >
-      <h1 className="text-3xl font-bold">Sales Overview</h1>
+      <div className="mb-1">
+        <h1 className="text-3xl font-bold">Sales Overview</h1>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Sales Calculator Component */}
-        <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+        <div className="bg-white p-5 rounded-lg shadow-sm">
           <h2 className="text-lg font-medium mb-4">Sales Calculator</h2>
           <SalesCalculator />
         </div>
         
         {/* Sales Summary */}
-        <div className="bg-white p-6 rounded-lg shadow-sm h-full">
+        <div className="bg-white p-5 rounded-lg shadow-sm">
           <h2 className="text-lg font-medium mb-4">Sales Summary</h2>
           
           <div className="grid grid-cols-2 gap-4">
@@ -102,7 +104,7 @@ const SalesTab: React.FC<SalesTabProps> = ({
       </div>
       
       {/* Purchase History Table */}
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border shadow-sm overflow-hidden mt-2">
         <div className="p-4 border-b">
           <h2 className="text-lg font-medium">Purchase History</h2>
         </div>
