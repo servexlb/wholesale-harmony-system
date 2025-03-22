@@ -133,9 +133,9 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       name: data.name,
       email: data.email,
       phone: data.phone,
-      company: data.company,
+      company: data.company || '', // Ensure company is never undefined
       wholesalerId: wholesalerId, // Assign the customer to the current wholesaler
-      balance: 0, // Add the missing balance property
+      balance: 0, // Initialize the balance to zero for new customers
     };
 
     setCustomersList(prev => [...prev, newCustomer]);
