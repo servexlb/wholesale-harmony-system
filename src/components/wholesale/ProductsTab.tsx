@@ -37,6 +37,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
   // Handler for when a product card is clicked
   const handleProductClick = useCallback((product: Product) => {
     console.log("Product clicked:", product.name);
+    // Make sure this function is called and passes the product to the parent
     onOpenPurchaseDialog();
   }, [onOpenPurchaseDialog]);
   
