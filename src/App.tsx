@@ -20,6 +20,8 @@ import AdminAuth from "./components/AdminAuth";
 import NotFound from "./pages/NotFound";
 import Wholesale from "./pages/Wholesale";
 import TransactionHistory from "./pages/TransactionHistory";
+import Support from "./pages/Support";
+import Account from "./pages/Account";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +60,8 @@ const App = () => (
             } />
             <Route path="/wholesale" element={<Wholesale />} />
             <Route path="/dashboard/transaction-history" element={<TransactionHistory />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/account" element={<Account />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>
