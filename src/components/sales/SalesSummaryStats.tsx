@@ -23,23 +23,23 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
         value={`$${totalSales.toFixed(2)}`}
         description="Lifetime sales amount"
         icon={<DollarSign className="h-5 w-5" />}
-        trend="+12.5%"
-        trendUp={true}
+        trend=""
+        trendUp={false}
       />
       <StatsCard
         title="Average Order"
         value={`$${averageOrderValue.toFixed(2)}`}
         description="Per transaction"
         icon={<TrendingUp className="h-5 w-5" />}
-        trend="+3.2%"
-        trendUp={true}
+        trend=""
+        trendUp={false}
       />
       <StatsCard
         title="Products Sold"
         value={totalProducts.toString()}
         description="Unique products"
         icon={<ShoppingBag className="h-5 w-5" />}
-        trend="0%"
+        trend=""
         trendUp={false}
       />
       <StatsCard
@@ -47,8 +47,8 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
         value={totalCustomers.toString()}
         description="Total customers"
         icon={<Users className="h-5 w-5" />}
-        trend="+5.3%"
-        trendUp={true}
+        trend=""
+        trendUp={false}
       />
     </div>
   );
