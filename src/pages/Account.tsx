@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -6,6 +5,8 @@ import MainLayout from "@/components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NotificationPreferences from "@/components/account/NotificationPreferences";
+import SecuritySettings from "@/components/account/SecuritySettings";
 import {
   User,
   Package,
@@ -84,35 +85,8 @@ const Account: React.FC = () => {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    Notification Preferences
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Manage how and when we contact you
-                  </p>
-                  <Button variant="outline">Manage Notifications</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    Security Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Update password and security options
-                  </p>
-                  <Button variant="outline">Security Settings</Button>
-                </CardContent>
-              </Card>
+              <NotificationPreferences />
+              <SecuritySettings />
             </div>
           </TabsContent>
 
