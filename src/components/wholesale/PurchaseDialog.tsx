@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -44,7 +43,14 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setSelectedProduct('');
     }
   }, [open]);
-
+  
+  // Set selected customer when initialSelectedCustomer changes or dialog opens
+  useEffect(() => {
+    if (open && initialSelectedCustomer) {
+      setSelectedCustomer(initialSelectedCustomer);
+    }
+  }, [open, initialSelectedCustomer]);
+  
   const selectedProductData = useMemo(() => 
     products.find(p => p.id === selectedProduct),
     [products, selectedProduct]
@@ -90,7 +96,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     // Add to mock purchase history
     setPurchaseHistory(prev => [newOrder, ...prev]);
     
-    setSelectedCustomer('');
     setSelectedProduct('');
     setQuantity(1);
     onOpenChange(false);

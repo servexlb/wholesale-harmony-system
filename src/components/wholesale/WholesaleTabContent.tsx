@@ -43,7 +43,10 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       {activeTab === 'products' && (
         <ProductsTab 
           products={products} 
-          onOpenPurchaseDialog={() => setIsPurchaseDialogOpen(true)} 
+          onOpenPurchaseDialog={() => {
+            setSelectedCustomer(''); // Reset customer when opening from products tab
+            setIsPurchaseDialogOpen(true);
+          }} 
         />
       )}
       
