@@ -57,10 +57,13 @@ const Header = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link 
           to="/" 
-          className="text-2xl font-medium tracking-tight transition-opacity hover:opacity-80"
+          className="flex items-center transition-opacity hover:opacity-80"
         >
-          <span className="font-light">Servexlb</span>
-          <span className="font-semibold text-primary">.com</span>
+          <img 
+            src="/lovable-uploads/2de39295-5e87-45c2-b1b5-0222b993cf72.png" 
+            alt="Servexlb Logo" 
+            className="h-10 w-auto"
+          />
         </Link>
 
         <div className="hidden md:flex relative mx-4 flex-1 max-w-md">
