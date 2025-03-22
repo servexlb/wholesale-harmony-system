@@ -291,38 +291,36 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {/* Use Select for subscription duration selection */}
-            {isSubscription && (
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium">
-                  Subscription Duration <span className="text-red-500">*</span>
-                </label>
-                <Select 
-                  value={selectedDuration}
-                  onValueChange={(value) => setSelectedDuration(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {service.availableMonths && service.availableMonths.length > 0 ? (
-                      service.availableMonths.map(month => (
-                        <SelectItem key={month} value={month.toString()}>
-                          {month} month{month !== 1 ? 's' : ''}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <>
-                        <SelectItem value="1">1 month</SelectItem>
-                        <SelectItem value="3">3 months</SelectItem>
-                        <SelectItem value="6">6 months</SelectItem>
-                        <SelectItem value="12">12 months</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Subscription duration selection - always show for all service types */}
+            <div className="space-y-2 mb-4">
+              <label className="text-sm font-medium">
+                Subscription Duration <span className="text-red-500">*</span>
+              </label>
+              <Select 
+                value={selectedDuration}
+                onValueChange={(value) => setSelectedDuration(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select months" />
+                </SelectTrigger>
+                <SelectContent>
+                  {service.availableMonths && service.availableMonths.length > 0 ? (
+                    service.availableMonths.map(month => (
+                      <SelectItem key={month} value={month.toString()}>
+                        {month} month{month !== 1 ? 's' : ''}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="1">1 month</SelectItem>
+                      <SelectItem value="3">3 months</SelectItem>
+                      <SelectItem value="6">6 months</SelectItem>
+                      <SelectItem value="12">12 months</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
             
             {/* Account ID field for recharge services */}
             {isRecharge && (
@@ -342,78 +340,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {/* Always show quantity controls for recharge products */}
-            {isRecharge && (
-              <div className="mt-4">
-                <label className="text-sm font-medium">
-                  Quantity
-                </label>
-                <div className="flex items-center mt-1">
-                  <Button 
-                    type="button" 
-                    size="icon"
-                    variant="outline" 
-                    className="h-8 w-8 rounded-r-none"
-                    onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    value={quantity.toString()}
-                    onChange={handleQuantityChange}
-                    className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon"
-                    variant="outline" 
-                    className="h-8 w-8 rounded-l-none"
-                    onClick={increaseQuantity}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {/* Only show quantity controls for gift cards and other non-subscription, non-recharge products */}
-            {!isSubscription && !isRecharge && (
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-medium">Quantity:</span>
-                <div className="flex items-center">
-                  <Button 
-                    type="button" 
-                    size="icon"
-                    variant="outline" 
-                    className="h-8 w-8 rounded-r-none"
-                    onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    value={quantity.toString()}
-                    onChange={handleQuantityChange}
-                    className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon"
-                    variant="outline" 
-                    className="h-8 w-8 rounded-l-none"
-                    onClick={increaseQuantity}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            
             <div className="flex justify-between items-center pt-2 border-t mb-2">
               <span className="font-medium">Total Price:</span>
               <span className="font-bold">
@@ -424,12 +350,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             </div>
             
             {/* Additional details based on service type */}
-            {isSubscription && (
-              <div className="flex justify-between items-center mt-2">
-                <span className="font-medium">Subscription Duration:</span>
-                <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
-              </div>
-            )}
+            <div className="flex justify-between items-center mt-2">
+              <span className="font-medium">Subscription Duration:</span>
+              <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
+            </div>
             
             {isGiftCard && (
               <div className="flex justify-between items-center mt-2">
