@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -15,8 +15,14 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
 
   const price = isWholesale ? product.wholesalePrice : product.price;
+
+  const handleBuyNow = () => {
+    console.log("Buy now clicked for product:", product);
+    navigate(`/checkout`);
+  };
 
   return (
     <motion.div
@@ -83,6 +89,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
             <Button 
               size="sm" 
               className="subtle-focus-ring"
+              onClick={handleBuyNow}
             >
               <CreditCard className="h-4 w-4" />
               Buy Now

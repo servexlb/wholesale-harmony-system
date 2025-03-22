@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,8 @@ interface ServiceCardProps {
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
+  const navigate = useNavigate();
+  
   // Generate a more specific image URL for each service type
   const getImageUrl = (serviceName: string) => {
     const name = serviceName.toLowerCase();
@@ -33,6 +35,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     
     // Default image with service name
     return `https://placehold.co/600x400/3949ab/ffffff?text=${encodeURIComponent(serviceName)}`;
+  };
+
+  const handleBuyNow = () => {
+    console.log("Buy now clicked for service:", service);
+    navigate(`/services/${service.id}`);
   };
 
   return (
@@ -98,7 +105,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             View Details
           </Button>
         </Link>
-        <Button size="sm">
+        <Button size="sm" onClick={handleBuyNow}>
           <CreditCard className="h-4 w-4 mr-2" />
           Buy Now
         </Button>
