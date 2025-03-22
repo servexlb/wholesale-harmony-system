@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { Key, Clock, CircleAlert, CircleX, Search, Phone, Copy, Check } from 'lucide-react';
@@ -16,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Subscription } from '@/lib/types';
 import { products, customers } from '@/lib/data';
 import { toast } from '@/lib/toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface StockSubscriptionsProps {
   subscriptions: Subscription[];
@@ -25,6 +25,7 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   
   // Filter active subscriptions only
   const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active');
@@ -71,6 +72,156 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
       }, 2000);
     });
   };
+  
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">Stock Management</h2>
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Input
+              type="search"
+              placeholder="Search subscriptions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          {filteredSubscriptions.length === 0 ? (
+            <div className="text-center p-8 bg-white rounded-lg shadow-sm">
+              No active subscriptions found
+            </div>
+          ) : (
+            filteredSubscriptions.map((subscription) => {
+              const product = products.find(p => p.id === subscription.serviceId);
+              const customer = customers.find(c => c.id === subscription.userId);
+              const statusInfo = getSubscriptionStatus(subscription.endDate);
+              
+              return (
+                <div key={subscription.id} className="bg-white rounded-lg shadow-sm p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">{customer?.name || 'Unknown'}</h3>
+                      <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
+                        <Phone className="h-3 w-3" />
+                        <span>{customer?.phone || 'N/A'}</span>
+                        {customer?.phone && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 ml-1" 
+                            onClick={() => copyToClipboard(customer.phone, subscription.id, 'phone')}
+                          >
+                            {copiedId === subscription.id && copiedField === 'phone' ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <Badge 
+                      variant={
+                        statusInfo.color === "green" ? "default" : 
+                        statusInfo.color === "orange" ? "outline" : 
+                        "destructive"
+                      }
+                      className={
+                        statusInfo.color === "orange" 
+                          ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
+                          : ""
+                      }
+                    >
+                      <span className="flex items-center gap-1">
+                        {statusInfo.icon}
+                        {statusInfo.status}
+                      </span>
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Service:</span>
+                      <div>{product?.name || 'Unknown Service'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Expiry Date:</span>
+                      <div>{new Date(subscription.endDate).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                  
+                  {subscription.credentials ? (
+                    <div className="bg-muted/30 p-3 rounded text-sm space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Email:</span> 
+                        <div className="flex items-center gap-1 max-w-[180px] truncate">
+                          <span className="truncate">{subscription.credentials.email}</span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 flex-shrink-0" 
+                            onClick={() => copyToClipboard(subscription.credentials!.email, subscription.id, 'email')}
+                          >
+                            {copiedId === subscription.id && copiedField === 'email' ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Password:</span> 
+                        <div className="flex items-center gap-1 max-w-[180px] truncate">
+                          <span className="truncate">{subscription.credentials.password}</span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 flex-shrink-0" 
+                            onClick={() => copyToClipboard(subscription.credentials!.password, subscription.id, 'password')}
+                          >
+                            {copiedId === subscription.id && copiedField === 'password' ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mt-1 text-xs h-7" 
+                        onClick={() => {
+                          const fullText = `Email: ${subscription.credentials!.email}\nPassword: ${subscription.credentials!.password}`;
+                          copyToClipboard(fullText, subscription.id, 'all-credentials');
+                        }}
+                      >
+                        {copiedId === subscription.id && copiedField === 'all-credentials' ? (
+                          <><Check className="h-3 w-3 mr-1 text-green-500" /> Copied all</>
+                        ) : (
+                          <><Copy className="h-3 w-3 mr-1" /> Copy all credentials</>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">No credentials</div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-4">
