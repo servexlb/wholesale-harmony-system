@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -58,7 +57,7 @@ const Checkout: React.FC = () => {
         totalPrice: total,
         status: "pending",
         createdAt: new Date().toISOString(),
-        paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending"
+        paymentStatus: paymentMethod === "account-balance" ? "pending" : "pending"
       };
 
       // In a real app, you would send this to your backend
@@ -66,7 +65,7 @@ const Checkout: React.FC = () => {
       
       toast.success(
         paymentMethod === "account-balance"
-          ? "Purchase complete! You'll receive your credentials shortly."
+          ? "Order placed! Your payment is being processed."
           : "Order placed! Payment is pending confirmation."
       );
       setIsProcessing(false);

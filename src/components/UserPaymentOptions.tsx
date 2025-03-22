@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CreditCard, Repeat, AlertCircle, Copy, Check } from "lucide-react";
+import { CreditCard, Repeat, AlertCircle, Copy, Check, Clock } from "lucide-react";
 
 const UserPaymentOptions = () => {
   const [activeTab, setActiveTab] = useState("wish-money");
@@ -28,7 +28,7 @@ const UserPaymentOptions = () => {
   const handleCreditCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would connect to a payment processor
-    toast.success(`Added $${amount?.toFixed(2)} to your balance via Credit Card`);
+    toast.success(`Payment of $${amount?.toFixed(2)} is being processed. Your balance will be updated after verification.`);
     resetForm();
   };
   

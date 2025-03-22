@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
-import { Copy, Check, AlertCircle, CreditCard, ExternalLink } from "lucide-react";
+import { Copy, Check, AlertCircle, CreditCard, ExternalLink, Clock } from "lucide-react";
 import { AdminNotification } from "@/lib/types";
 
 const Payment: React.FC = () => {
@@ -23,10 +22,9 @@ const Payment: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"pending" | "success" | null>(null);
   
   const wishMoneyAccount = "76349522";
-  // Example bank account for direct transfers
   const bankAccount = {
     name: "Top-Up Account",
     number: "1234 5678 9012 3456",
@@ -34,7 +32,6 @@ const Payment: React.FC = () => {
     swift: "YOURSWIFT"
   };
   
-  // Binance Pay link - would be replaced with an actual merchant link in production
   const binancePayUrl = "https://www.binance.com/en/pay";
   
   const handleCopyAccount = () => {
@@ -44,7 +41,6 @@ const Payment: React.FC = () => {
   };
   
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow valid currency input (numbers and one decimal point)
     const value = e.target.value;
     if (value === "" || /^\d+(\.\d{0,2})?$/.test(value)) {
       setAmount(value);
@@ -60,16 +56,14 @@ const Payment: React.FC = () => {
 
     setIsProcessing(true);
 
-    // Create admin notification
     const adminNotification: Partial<AdminNotification> = {
-      type: "payment_issue", // Using payment_issue as a placeholder for payment notification
-      customerName: "Current User", // In a real app, you'd use the actual username
+      type: "payment_issue",
+      customerName: "Current User",
       serviceName: `Top-up $${amount} via Wish Money`,
       read: false,
       createdAt: new Date().toISOString()
     };
 
-    // In a real implementation, this would be sent to the server
     console.log("ADMIN NOTIFICATION: User topped up with Wish Money:", {
       amount,
       timestamp: new Date().toISOString(),
@@ -81,7 +75,7 @@ const Payment: React.FC = () => {
       toast.success(`Your payment of $${amount} has been recorded`);
       
       setIsProcessing(false);
-      setPaymentSuccess(true);
+      setPaymentStatus("pending");
     }, 1500);
   };
   
@@ -93,13 +87,12 @@ const Payment: React.FC = () => {
     }
 
     toast("Redirecting to bank payment page...");
-    // In a real app, this would redirect to a secure payment provider
     window.open("https://www.yourbank.com/payments", "_blank");
     
     setTimeout(() => {
       toast.success(`Your payment request of $${amount} has been initiated`);
       
-      setPaymentSuccess(true);
+      setPaymentStatus("pending");
     }, 1000);
   };
   
@@ -111,13 +104,12 @@ const Payment: React.FC = () => {
     }
 
     toast("Redirecting to Binance Pay...");
-    // In a real app, this would include order details in the URL
     window.open(binancePayUrl, "_blank");
     
     setTimeout(() => {
       toast.success(`Your Binance Pay transaction of $${amount} has been initiated`);
       
-      setPaymentSuccess(true);
+      setPaymentStatus("pending");
     }, 1000);
   };
   
@@ -125,8 +117,7 @@ const Payment: React.FC = () => {
     navigate("/services");
   };
 
-  // If the payment was successful, show the success screen
-  if (paymentSuccess) {
+  if (paymentStatus === "pending") {
     return (
       <MainLayout>
         <motion.div
@@ -136,22 +127,22 @@ const Payment: React.FC = () => {
           className="container py-8"
         >
           <div className="max-w-xl mx-auto text-center">
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20">
               <CardHeader>
-                <CardTitle className="text-2xl">Payment Successful</CardTitle>
+                <CardTitle className="text-2xl">Payment Pending</CardTitle>
                 <CardDescription>
-                  Your payment has been processed. Your account will be credited soon.
+                  Your payment is being processed. Please allow some time for it to be verified.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-6">
                 <div className="flex justify-center mb-6">
-                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  <div className="h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Clock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
                   </div>
                 </div>
                 
                 <p className="mb-4">
-                  Thank you for your payment. An administrator has been notified and your account will be credited shortly.
+                  Thank you for your payment. An administrator has been notified and your account will be credited after verification.
                 </p>
                 
                 <p className="text-sm text-muted-foreground">
