@@ -62,7 +62,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
   const shouldUseMonths = isSubscription || 
     product.category.toLowerCase().includes('streaming') || 
     product.category.toLowerCase().includes('vpn') || 
-    product.category.toLowerCase().includes('security');
+    product.category.toLowerCase().includes('security') ||
+    product.category.toLowerCase().includes('productivity');
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {

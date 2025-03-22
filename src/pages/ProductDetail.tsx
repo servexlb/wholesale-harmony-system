@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -134,9 +135,16 @@ const ProductDetail = () => {
   const isSubscription = product.type === 'subscription';
   const isGiftCard = product.type === 'giftcard';
   const isRecharge = product.type === 'recharge';
+  
+  // Helper to determine if product should use months feature
+  const shouldUseMonths = isSubscription || 
+    product.category.toLowerCase().includes('streaming') || 
+    product.category.toLowerCase().includes('vpn') || 
+    product.category.toLowerCase().includes('security') ||
+    product.category.toLowerCase().includes('productivity');
 
   const getQuantityLabel = () => {
-    if (isSubscription) {
+    if (shouldUseMonths) {
       return 'Duration';
     } else {
       return 'Quantity';

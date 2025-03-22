@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
@@ -60,7 +59,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const shouldUseMonths = isSubscription || 
     (category?.name.toLowerCase().includes('streaming') || 
     category?.name.toLowerCase().includes('vpn') || 
-    category?.name.toLowerCase().includes('security'));
+    category?.name.toLowerCase().includes('security') ||
+    category?.name.toLowerCase().includes('productivity'));
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
