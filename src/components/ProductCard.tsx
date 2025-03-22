@@ -1,13 +1,11 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { CreditCard, Eye, ImageIcon } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface ProductCardProps {
   product: Product;
@@ -79,7 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
       <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-50 relative">
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <Loader2 className="h-10 w-10 text-gray-300 animate-spin" />
+            <div className="h-10 w-10 text-gray-300 animate-spin border-4 border-t-primary rounded-full"></div>
           </div>
         )}
         
@@ -139,7 +137,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               asChild
             >
               <Link to={`/products/${product.id}`}>
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 mr-1" />
+                View
               </Link>
             </Button>
             <Button 
@@ -148,7 +147,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               onClick={handleBuyNow}
               disabled={isPurchasing}
             >
-              <CreditCard className="h-4 w-4" />
+              <CreditCard className="h-4 w-4 mr-1" />
               {isPurchasing ? "Processing..." : "Buy Now"}
             </Button>
           </div>
