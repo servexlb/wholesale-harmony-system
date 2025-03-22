@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import ProductSearch from './ProductSearch';
 import PurchaseHistoryList from './PurchaseHistoryList';
+import { useNavigate } from 'react-router-dom';
 
 interface PurchaseDialogProps {
   open: boolean;
@@ -31,6 +33,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   currentWholesaler,
   onOrderPlaced
 }) => {
+  const navigate = useNavigate();
   const [selectedCustomer, setSelectedCustomer] = useState<string>(initialSelectedCustomer);
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
@@ -59,6 +62,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     [customers, selectedCustomer]
   );
 
+  // Get wholesaler balance from localStorage
+  const getUserBalance = useCallback(() => {
+    const userBalanceStr = localStorage.getItem(`userBalance_${currentWholesaler}`);
+    return userBalanceStr ? parseFloat(userBalanceStr) : 0;
+  }, [currentWholesaler]);
+
   const handleProductSelect = useCallback((productId: string) => {
     setSelectedProduct(productId);
   }, []);
@@ -75,6 +84,26 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       toast.error("Product not found");
       return;
     }
+
+    // Calculate total price
+    const totalPrice = product.wholesalePrice * quantity;
+    
+    // Check if user has sufficient balance
+    const currentBalance = getUserBalance();
+    if (currentBalance < totalPrice) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to place this order"
+      });
+      
+      // Close dialog and redirect to payment page
+      onOpenChange(false);
+      navigate("/payment");
+      return;
+    }
+    
+    // Deduct the price from user balance
+    const newBalance = currentBalance - totalPrice;
+    localStorage.setItem(`userBalance_${currentWholesaler}`, newBalance.toString());
     
     const newOrder: WholesaleOrder = {
       id: `order-${Date.now()}`,
@@ -83,7 +112,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       serviceId: selectedProduct,
       customerId: selectedCustomer,
       quantity: quantity,
-      totalPrice: product.wholesalePrice * quantity,
+      totalPrice: totalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
@@ -96,7 +125,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     setSelectedProduct('');
     setQuantity(1);
     onOpenChange(false);
-  }, [selectedCustomer, selectedProduct, quantity, products, customers, currentWholesaler, onOrderPlaced, onOpenChange]);
+  }, [selectedCustomer, selectedProduct, quantity, products, customers, currentWholesaler, onOrderPlaced, onOpenChange, getUserBalance, navigate]);
 
   const loadPurchaseHistory = useCallback((customerId: string) => {
     setShowPurchaseHistory(true);
@@ -108,6 +137,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     return <Package className="h-4 w-4 text-green-500" />;
   }, []);
 
+  // Show current balance
+  const currentBalance = getUserBalance();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] md:max-w-[900px] w-[95vw] max-h-[90vh] overflow-y-auto">
@@ -116,6 +148,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="text-sm">
+              Your Balance: <span className="font-semibold">${currentBalance.toFixed(2)}</span>
+            </div>
+            {currentBalance < 100 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate("/payment");
+                }}
+              >
+                Add Funds
+              </Button>
+            )}
+          </div>
+
           <div>
             <label className="text-sm font-medium mb-1 block">Customer</label>
             <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
@@ -209,6 +259,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   ${(selectedProductData.wholesalePrice * quantity).toFixed(2)}
                 </span>
               </div>
+
+              {currentBalance < (selectedProductData.wholesalePrice * quantity) && (
+                <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                  Warning: Your balance is insufficient for this purchase. Please add funds before proceeding.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -217,7 +273,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handlePurchaseSubmit}>
+          <Button 
+            onClick={handlePurchaseSubmit}
+            disabled={!selectedProduct || !selectedCustomer || (selectedProductData && currentBalance < (selectedProductData.wholesalePrice * quantity))}
+          >
             Place Order
           </Button>
         </DialogFooter>
