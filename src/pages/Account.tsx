@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NotificationPreferences from "@/components/account/NotificationPreferences";
 import SecuritySettings from "@/components/account/SecuritySettings";
+import ProfileEditForm from "@/components/account/ProfileEditForm";
 import {
   User,
   Package,
@@ -19,6 +20,25 @@ import {
 } from "lucide-react";
 
 const Account: React.FC = () => {
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: "John Doe",
+    email: "john.doe@example.com",
+    phone: "+1 (555) 123-4567"
+  });
+
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      try {
+        const parsedProfile = JSON.parse(savedProfile);
+        setProfileData(parsedProfile);
+      } catch (error) {
+        console.error("Error parsing saved profile:", error);
+      }
+    }
+  }, []);
+
   return (
     <MainLayout>
       <motion.div
@@ -62,22 +82,26 @@ const Account: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                    <p>John Doe</p>
+                    <p>{profileData.name}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Email Address</label>
-                    <p>john.doe@example.com</p>
+                    <p>{profileData.email}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                    <p>+1 (555) 123-4567</p>
+                    <p>{profileData.phone}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                     <p>January 15, 2023</p>
                   </div>
                 </div>
-                <Button variant="outline" className="mt-4">
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setIsEditProfileOpen(true)}
+                >
                   <User className="mr-2 h-4 w-4" />
                   Edit Profile
                 </Button>
@@ -88,6 +112,12 @@ const Account: React.FC = () => {
               <NotificationPreferences />
               <SecuritySettings />
             </div>
+            
+            <ProfileEditForm 
+              isOpen={isEditProfileOpen}
+              onClose={() => setIsEditProfileOpen(false)}
+              initialData={profileData}
+            />
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-6">
