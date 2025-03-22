@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -61,14 +60,34 @@ const CustomerOrders: React.FC = () => {
   };
   
   const handleCompleteOrder = (id: string) => {
+    // Find the order to complete
+    const orderToComplete = orders.find(order => order.id === id);
+    
+    if (!orderToComplete) {
+      toast.error("Order not found");
+      return;
+    }
+    
+    // Get current user balance from localStorage
+    const userBalanceStr = localStorage.getItem('userBalance');
+    let userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
+    
+    // Update order status
     const updatedOrders = orders.map(order => 
       order.id === id ? { ...order, status: 'completed' as const } : order
     );
-    setOrders(updatedOrders);
+    
+    // Deduct the order amount from user balance
+    const newBalance = userBalance - orderToComplete.totalPrice;
+    
+    // Save new balance and updated orders
+    localStorage.setItem('userBalance', newBalance.toString());
     localStorage.setItem('customerOrders', JSON.stringify(updatedOrders));
     
+    setOrders(updatedOrders);
+    
     toast.success("Order completed", {
-      description: "The customer order has been marked as completed"
+      description: `The customer order has been marked as completed and $${orderToComplete.totalPrice.toFixed(2)} has been deducted from the customer balance`
     });
     
     setIsDialogOpen(false);
