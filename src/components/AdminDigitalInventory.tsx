@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -367,7 +366,7 @@ const AdminDigitalInventory: React.FC = () => {
         <div className="flex gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button onClick={() => setShowProductSelector(true)} variant="outline">
+              <Button variant="outline">
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 Select Products
               </Button>
