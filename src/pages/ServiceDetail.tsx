@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import { Service } from "@/lib/types";
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>("");
   
@@ -67,6 +68,17 @@ const ServiceDetail: React.FC = () => {
   const total = isGameRecharge && customAmount 
     ? parseFloat(customAmount) 
     : service.wholesalePrice * quantity;
+    
+  const handleAddToCart = () => {
+    // Add to cart functionality would go here
+    console.log("Add to cart:", { service, quantity, total });
+  };
+  
+  const handleBuyNow = () => {
+    console.log("Buy now:", { service, quantity, total });
+    // Navigate to checkout page
+    navigate("/checkout");
+  };
 
   return (
     <MainLayout>
@@ -205,8 +217,8 @@ const ServiceDetail: React.FC = () => {
                   </div>
                 </div>
 
-                <Button className="w-full mb-4">Add to Cart</Button>
-                <Button variant="outline" className="w-full">Buy Now</Button>
+                <Button className="w-full mb-4" onClick={handleAddToCart}>Add to Cart</Button>
+                <Button variant="outline" className="w-full" onClick={handleBuyNow}>Buy Now</Button>
                 
                 <div className="mt-6 text-sm text-gray-500">
                   <div className="flex items-center justify-between py-1">
