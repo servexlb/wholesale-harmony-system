@@ -1,118 +1,118 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, Home, Package, LifeBuoy, LogIn } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ShoppingCart, User, Home, Package, LifeBuoy, LogIn, Settings, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/lib/toast";
+import { Toaster } from "@/components/ui/toaster";
+import Header from "@/components/Header";
+import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  showFooter?: boolean;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const location = useLocation();
-  
-  // Mock authentication state (in real app, use a proper auth system)
-  const isLoggedIn = false;
-  
+const MainLayout: React.FC<MainLayoutProps> = ({ children, showFooter = true }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+      {/* Toast container for notifications */}
+      <Toaster />
+      
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-primary">Servexlb</span>
-            </Link>
-            
-            <div className="hidden md:flex items-center space-x-6">
-              <Link to="/" className={`text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary ${
-                location.pathname === "/" ? "text-primary dark:text-primary font-medium" : ""
-              }`}>
-                Home
-              </Link>
-              <Link to="/services" className={`text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary ${
-                location.pathname.includes("/services") ? "text-primary dark:text-primary font-medium" : ""
-              }`}>
-                Services
-              </Link>
-              <Link to="/dashboard" className={`text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary ${
-                location.pathname.includes("/dashboard") ? "text-primary dark:text-primary font-medium" : ""
-              }`}>
-                Dashboard
-              </Link>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {isLoggedIn ? (
-                <Link to="/dashboard">
-                  <Button variant="outline" size="sm">
-                    <User className="mr-2 h-4 w-4" />
-                    Account
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/login">
-                  <Button variant="outline" size="sm">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login
-                  </Button>
-                </Link>
-              )}
-              
-              <Link to="/checkout">
-                <Button variant="default" size="sm">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Cart
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
+      
+      {/* Main Content with top padding for header */}
+      <main className="flex-grow pt-20">
+        {children}
+      </main>
       
       {/* Mobile Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-top z-50">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background shadow-top z-40 border-t border-border">
         <div className="flex justify-around py-2">
           <Link to="/" className="flex flex-col items-center p-2">
-            <Home className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            <span className="text-xs mt-1 text-gray-600 dark:text-gray-300">Home</span>
+            <Home className="h-5 w-5 text-muted-foreground" />
+            <span className="text-xs mt-1 text-muted-foreground">Home</span>
           </Link>
           <Link to="/services" className="flex flex-col items-center p-2">
-            <Package className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            <span className="text-xs mt-1 text-gray-600 dark:text-gray-300">Services</span>
+            <Package className="h-5 w-5 text-muted-foreground" />
+            <span className="text-xs mt-1 text-muted-foreground">Services</span>
           </Link>
           <Link to="/dashboard" className="flex flex-col items-center p-2">
-            <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            <span className="text-xs mt-1 text-gray-600 dark:text-gray-300">Account</span>
+            <User className="h-5 w-5 text-muted-foreground" />
+            <span className="text-xs mt-1 text-muted-foreground">Account</span>
           </Link>
           <Link to="/support" className="flex flex-col items-center p-2">
-            <LifeBuoy className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            <span className="text-xs mt-1 text-gray-600 dark:text-gray-300">Support</span>
+            <HelpCircle className="h-5 w-5 text-muted-foreground" />
+            <span className="text-xs mt-1 text-muted-foreground">Support</span>
           </Link>
         </div>
       </div>
       
-      {/* Main Content */}
-      <main className="flex-grow container mx-auto px-4 py-6 pb-20 md:pb-6">
-        {children}
-      </main>
-      
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 shadow-inner py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <p className="text-gray-600 dark:text-gray-300">© 2023 Servexlb. All rights reserved.</p>
+      {showFooter && (
+        <footer className="bg-background border-t border-border py-8 mt-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Servexlb.com</h3>
+                <p className="text-muted-foreground">Your one-stop shop for digital services with instant delivery and amazing support.</p>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Services</h3>
+                <ul className="space-y-2">
+                  <li><Link to="/services?category=streaming" className="text-muted-foreground hover:text-primary transition-colors">Streaming Services</Link></li>
+                  <li><Link to="/services?category=gaming" className="text-muted-foreground hover:text-primary transition-colors">Gaming Services</Link></li>
+                  <li><Link to="/services?category=social" className="text-muted-foreground hover:text-primary transition-colors">Social Media</Link></li>
+                  <li><Link to="/services?category=utilities" className="text-muted-foreground hover:text-primary transition-colors">Digital Utilities</Link></li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Company</h3>
+                <ul className="space-y-2">
+                  <li><Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">About Us</Link></li>
+                  <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
+                  <li><Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service</Link></li>
+                  <li><Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</Link></li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Support</h3>
+                <ul className="space-y-2">
+                  <li><Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors">FAQ</Link></li>
+                  <li><Link to="/support" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
+                  <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Report an Issue</Link></li>
+                </ul>
+              </div>
             </div>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary">Terms</a>
-              <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary">Privacy</a>
-              <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary">Contact</a>
+            
+            <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+              <p className="text-muted-foreground text-sm">© 2023 Servexlb.com. All rights reserved.</p>
+              <div className="flex space-x-4 mt-4 md:mt-0">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                  </svg>
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                  </svg>
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                  </svg>
+                </a>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };
