@@ -34,10 +34,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
   // Combine products and services
   const allItems = [...products, ...servicesAsProducts];
   
-  // Handler for when a product card is clicked
-  const handleProductClick = useCallback((product: Product) => {
-    console.log("Product clicked:", product.name);
-    // Make sure this function is called and passes the product to the parent
+  // Handler for when a product card is clicked - making this more direct
+  const handleProductClick = useCallback(() => {
+    console.log("Opening purchase dialog");
     onOpenPurchaseDialog();
   }, [onOpenPurchaseDialog]);
   
@@ -56,12 +55,13 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {allItems.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            product={product} 
-            isWholesale={true} 
-            onClick={handleProductClick}
-          />
+          <div key={product.id} className="cursor-pointer" onClick={handleProductClick}>
+            <ProductCard 
+              product={product} 
+              isWholesale={true}
+              onClick={handleProductClick}
+            />
+          </div>
         ))}
       </div>
     </motion.div>

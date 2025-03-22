@@ -15,7 +15,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
   return (
     <Card 
       key={product.id} 
-      className="overflow-hidden cursor-pointer transition-all hover:shadow-md"
+      className="overflow-hidden transition-all hover:shadow-md"
       onClick={() => onClick(product)}
     >
       <div className="aspect-video w-full overflow-hidden relative">
@@ -47,7 +47,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
         <p className="text-sm line-clamp-2">{product.description}</p>
       </CardContent>
       <CardFooter className="pt-0">
-        <Button variant="outline" size="sm" className="w-full">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(product);
+          }}
+        >
           <Edit className="h-4 w-4 mr-2" />
           Edit Product
         </Button>
