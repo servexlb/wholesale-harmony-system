@@ -37,14 +37,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
   
-  // Reset when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedProduct('');
     }
   }, [open]);
   
-  // Set selected customer when initialSelectedCustomer changes or dialog opens
   useEffect(() => {
     if (open && initialSelectedCustomer) {
       setSelectedCustomer(initialSelectedCustomer);
@@ -93,7 +91,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     onOrderPlaced(newOrder);
     toast.success(`Order placed for ${customers.find(c => c.id === selectedCustomer)?.name}`);
     
-    // Add to mock purchase history
     setPurchaseHistory(prev => [newOrder, ...prev]);
     
     setSelectedProduct('');
@@ -101,7 +98,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     onOpenChange(false);
   }, [selectedCustomer, selectedProduct, quantity, products, customers, currentWholesaler, onOrderPlaced, onOpenChange]);
 
-  // Mock function to load purchase history
   const loadPurchaseHistory = useCallback((customerId: string) => {
     setShowPurchaseHistory(true);
   }, []);
@@ -111,10 +107,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     if (type === 'recharge') return <Zap className="h-4 w-4 text-amber-500" />;
     return <Package className="h-4 w-4 text-green-500" />;
   }, []);
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[800px] md:max-w-[900px] w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Purchase for Customer</DialogTitle>
         </DialogHeader>
