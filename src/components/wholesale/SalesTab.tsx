@@ -72,18 +72,19 @@ const SalesTab: React.FC<SalesTabProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
+      className="space-y-8"
     >
       <h1 className="text-3xl font-bold mb-8">Sales Overview</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Sales Calculator Component */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white p-6 rounded-lg shadow-sm h-full">
           <h2 className="text-lg font-medium mb-4">Sales Calculator</h2>
           <SalesCalculator />
         </div>
         
         {/* Sales Summary */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white p-6 rounded-lg shadow-sm h-full">
           <h2 className="text-lg font-medium mb-4">Sales Summary</h2>
           
           <div className="grid grid-cols-2 gap-4">
@@ -101,7 +102,7 @@ const SalesTab: React.FC<SalesTabProps> = ({
       </div>
       
       {/* Purchase History Table */}
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border shadow-sm overflow-hidden mt-8">
         <div className="p-4 border-b">
           <h2 className="text-lg font-medium">Purchase History</h2>
         </div>
