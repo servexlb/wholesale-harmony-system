@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,7 +10,7 @@ import MainLayout from "@/components/MainLayout";
 import { loginUser } from "@/lib/mockData";
 import { toast } from "@/lib/toast";
 import { Separator } from "@/components/ui/separator";
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -32,14 +31,11 @@ const Login: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // In a real app, this would call an API endpoint
       const user = loginUser(email, password);
       
       if (user) {
-        // Mock successful login
         toast.success("Login successful!");
         
-        // In a real app, you would store auth token and redirect based on user role
         if (user.role === "admin") {
           navigate("/admin");
         } else {
@@ -58,8 +54,6 @@ const Login: React.FC = () => {
 
   const onGoogleLoginSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
-    // In a real app, you would verify this token on your backend
-    // and create a session for the user
     toast.success("Google sign-in successful!");
     navigate("/dashboard");
   };
@@ -152,18 +146,16 @@ const Login: React.FC = () => {
             </div>
 
             <div className="flex justify-center">
-              <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
-                <GoogleLogin
-                  onSuccess={onGoogleLoginSuccess}
-                  onError={onGoogleLoginError}
-                  useOneTap
-                  theme="outline"
-                  size="large"
-                  text="continue_with"
-                  shape="rectangular"
-                  width="100%"
-                />
-              </GoogleOAuthProvider>
+              <GoogleLogin
+                onSuccess={onGoogleLoginSuccess}
+                onError={onGoogleLoginError}
+                useOneTap
+                theme="outline"
+                size="large"
+                text="continue_with"
+                shape="rectangular"
+                width="100%"
+              />
             </div>
           </form>
           

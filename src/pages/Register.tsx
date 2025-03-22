@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import MainLayout from "@/components/MainLayout";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -96,18 +95,16 @@ const Register: React.FC = () => {
             )}
             
             <div className="flex justify-center">
-              <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
-                <GoogleLogin
-                  onSuccess={onGoogleSignUpSuccess}
-                  onError={onGoogleSignUpError}
-                  useOneTap
-                  theme="outline"
-                  size="large"
-                  text="signup_with"
-                  shape="rectangular"
-                  width="100%"
-                />
-              </GoogleOAuthProvider>
+              <GoogleLogin
+                onSuccess={onGoogleSignUpSuccess}
+                onError={onGoogleSignUpError}
+                useOneTap
+                theme="outline"
+                size="large"
+                text="signup_with"
+                shape="rectangular"
+                width="100%"
+              />
             </div>
 
             <div className="relative">
