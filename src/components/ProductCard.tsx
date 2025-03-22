@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye } from 'lucide-react';
+import { CreditCard, Eye, Image as ImageIcon } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
 interface ProductCardProps {
@@ -15,6 +15,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const navigate = useNavigate();
@@ -74,21 +75,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-50">
-        <div className={cn(
-          "absolute inset-0 bg-gray-100 animate-pulse",
-          imageLoaded ? "opacity-0" : "opacity-100"
-        )} />
-        <img
-          src={product.image}
-          alt={product.name}
-          className={cn(
-            "h-full w-full object-cover object-center transition-all duration-700",
-            imageLoaded ? "opacity-100" : "opacity-0",
-            isHovered ? "scale-105" : "scale-100"
-          )}
-          onLoad={() => setImageLoaded(true)}
-        />
+      <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-50 relative">
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+            <ImageIcon className="h-10 w-10 text-gray-300" />
+          </div>
+        )}
+        
+        {!imageError ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className={cn(
+              "h-full w-full object-cover object-center transition-all duration-700",
+              imageLoaded ? "opacity-100" : "opacity-0",
+              isHovered ? "scale-105" : "scale-100"
+            )}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
+            <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
+            <span className="text-sm text-gray-500">Image unavailable</span>
+          </div>
+        )}
       </div>
 
       <div className="p-5">

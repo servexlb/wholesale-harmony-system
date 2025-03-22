@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -16,6 +16,8 @@ interface ServiceCardProps {
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const navigate = useNavigate();
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // Mock user balance - in a real app, this would come from your auth/user state
   const userBalance = 120.00;
@@ -85,11 +87,27 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   return (
     <Card key={service.id} className="overflow-hidden transition-all hover:shadow-md">
       <div className="aspect-video relative">
-        <img 
-          src={getImageUrl(service.name)} 
-          alt={service.name}
-          className="w-full h-full object-cover"
-        />
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+            <ImageIcon className="h-10 w-10 text-gray-300" />
+          </div>
+        )}
+        
+        {!imageError ? (
+          <img 
+            src={getImageUrl(service.name)} 
+            alt={service.name}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
+            <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
+            <span className="text-sm text-gray-500">{service.name}</span>
+          </div>
+        )}
+        
         {service.featured && (
           <Badge
             variant="default" 
