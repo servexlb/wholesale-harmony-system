@@ -488,6 +488,11 @@ export const getServiceById = (id: string): Service | undefined => {
   return services.find((service) => service.id === id);
 };
 
+// Mock function to get category by ID
+export const getCategoryById = (id: string): ServiceCategory | undefined => {
+  return serviceCategories.find((category) => category.id === id);
+};
+
 // Mock function to get services by category
 export const getServicesByCategory = (categoryId: string): Service[] => {
   return services.filter(service => service.categoryId === categoryId);
