@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Service } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { services } from "@/lib/mockData";
@@ -24,6 +25,7 @@ const ServiceDetail: React.FC = () => {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>("");
+  const [gameAccountId, setGameAccountId] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,10 @@ const ServiceDetail: React.FC = () => {
     }
   };
 
+  const handleGameAccountIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGameAccountId(e.target.value);
+  };
+
   // Fixed total price calculation for recharge products
   const calculateTotal = () => {
     if (isGameRecharge && customAmount) {
@@ -102,28 +108,62 @@ const ServiceDetail: React.FC = () => {
   const total = calculateTotal();
 
   const handleAddToCart = () => {
-    console.log("Add to cart:", { service, quantity, total });
+    console.log("Add to cart:", { service, quantity, gameAccountId, total });
   };
   
   const handleBuyNow = () => {
-    console.log("Buy now:", { service, quantity, total });
-    setIsProcessing(true);
+    // For game recharges, validate required fields first
+    if (isGameRecharge) {
+      if (!customAmount || parseInt(customAmount) <= 0) {
+        toast.error("Invalid amount", {
+          description: "Please enter a valid recharge amount"
+        });
+        return;
+      }
+      
+      if (!gameAccountId) {
+        toast.error("Account ID required", {
+          description: "Please enter your game account ID"
+        });
+        return;
+      }
+    }
+    
+    console.log("Buy now:", { service, quantity, gameAccountId, customAmount, total });
     
     if (userBalance < total) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
-      setIsProcessing(false);
       navigate("/payment");
       return;
     }
-
+    
+    // For recharge services, redirect to a confirmation page
+    if (isGameRecharge) {
+      // Store the recharge details in sessionStorage to retrieve in the confirmation page
+      sessionStorage.setItem('rechargeDetails', JSON.stringify({
+        serviceId: service.id,
+        serviceName: service.name,
+        amount: customAmount,
+        gameAccountId: gameAccountId,
+        total: total
+      }));
+      
+      navigate(`/service/${service.id}/recharge-confirm`);
+      return;
+    }
+    
+    // Non-recharge services follow the original flow
+    setIsProcessing(true);
+    
     setTimeout(() => {
       const order = {
         id: `order-${Date.now()}`,
         serviceId: service.id,
         quantity: quantity,
         customAmount: customAmount,
+        gameAccountId: gameAccountId,
         totalPrice: total,
         status: "pending",
         createdAt: new Date().toISOString(),
@@ -265,20 +305,41 @@ const ServiceDetail: React.FC = () => {
                 )}
 
                 {isGameRecharge && (
-                  <div className="mb-4">
-                    <label className="text-sm font-medium mb-2 block">
-                      Recharge Amount
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Enter amount"
-                      value={customAmount}
-                      onChange={handleCustomAmountChange}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enter the amount of in-game currency you wish to purchase
-                    </p>
-                  </div>
+                  <>
+                    <div className="mb-4">
+                      <label className="text-sm font-medium mb-2 block">
+                        Recharge Amount <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Enter amount"
+                        value={customAmount}
+                        onChange={handleCustomAmountChange}
+                        className="mb-1"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the amount of in-game currency you wish to purchase
+                      </p>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label className="text-sm font-medium mb-2 block">
+                        Game Account ID <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Enter your game ID"
+                        value={gameAccountId}
+                        onChange={handleGameAccountIdChange}
+                        className="mb-1"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Your in-game ID where the recharge will be applied
+                      </p>
+                    </div>
+                  </>
                 )}
                 
                 <div className="mt-4 mb-6 pt-4 border-t">
@@ -295,7 +356,7 @@ const ServiceDetail: React.FC = () => {
                   onClick={handleBuyNow}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? "Processing..." : "Buy Now"}
+                  {isProcessing ? "Processing..." : isGameRecharge ? "Proceed to Recharge" : "Buy Now"}
                 </Button>
                 
                 <div className="mt-6 text-sm text-gray-500">
