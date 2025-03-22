@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -27,9 +26,10 @@ import { toast } from '@/lib/toast';
 interface ProductCardProps {
   product: Product;
   isWholesale?: boolean;
+  onClick?: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false, onClick }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -160,6 +160,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     }
   };
 
+  // Handle card click event if onClick prop is provided
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick(product);
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -169,6 +176,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
         transition={{ duration: 0.5 }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={onClick ? handleCardClick : undefined}
       >
         <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg bg-gray-50 relative">
           {!imageLoaded && !imageError && (
@@ -240,7 +248,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <Button 
                 size="sm" 
                 className="subtle-focus-ring"
-                onClick={showPurchaseConfirmation}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the card click
+                  showPurchaseConfirmation();
+                }}
                 disabled={isPurchasing}
               >
                 <CreditCard className="h-4 w-4 mr-1" />

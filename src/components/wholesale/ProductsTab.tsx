@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,12 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
   // Combine products and services
   const allItems = [...products, ...servicesAsProducts];
   
+  // Handler for when a product card is clicked
+  const handleProductClick = useCallback((product: Product) => {
+    console.log("Product clicked:", product.name);
+    onOpenPurchaseDialog();
+  }, [onOpenPurchaseDialog]);
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -49,11 +55,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {allItems.map((product) => (
-          <ProductCard key={product.id} product={product} isWholesale={true} />
+          <ProductCard 
+            key={product.id} 
+            product={product} 
+            isWholesale={true} 
+            onClick={handleProductClick}
+          />
         ))}
       </div>
     </motion.div>
   );
 };
 
-export default ProductsTab;
+export default React.memo(ProductsTab);
