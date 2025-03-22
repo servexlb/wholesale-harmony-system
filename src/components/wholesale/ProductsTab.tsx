@@ -5,6 +5,8 @@ import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/lib/data';
+import { Service } from '@/lib/types';
+import { services } from '@/lib/mockData';
 
 interface ProductsTabProps {
   products: Product[];
@@ -12,6 +14,26 @@ interface ProductsTabProps {
 }
 
 const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialog }) => {
+  // Convert services to the Product format expected by ProductCard
+  const servicesAsProducts: Product[] = services.map(service => ({
+    id: service.id,
+    name: service.name,
+    description: service.description,
+    price: service.price,
+    wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
+    image: service.image,
+    category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+    featured: service.featured || false,
+    type: service.type || 'service',
+    deliveryTime: service.deliveryTime || "",
+    apiUrl: service.apiUrl,
+    availableMonths: service.availableMonths,
+    value: service.value,
+  }));
+  
+  // Combine products and services
+  const allItems = [...products, ...servicesAsProducts];
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -26,7 +48,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
         </Button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
+        {allItems.map((product) => (
           <ProductCard key={product.id} product={product} isWholesale={true} />
         ))}
       </div>

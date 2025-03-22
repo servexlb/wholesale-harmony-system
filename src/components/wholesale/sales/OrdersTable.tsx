@@ -12,6 +12,7 @@ import {
 import { Customer, Product, products } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { services } from '@/lib/mockData';
 
 interface OrdersTableProps {
   filteredOrders: WholesaleOrder[];
@@ -20,6 +21,23 @@ interface OrdersTableProps {
 
 const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) => {
   const isMobile = useIsMobile();
+  
+  // Helper function to find the product or service by id
+  const findProductOrService = (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (product) return product;
+    
+    const service = services.find(s => s.id === id);
+    if (service) {
+      return {
+        id: service.id,
+        name: service.name,
+        type: service.type || 'service'
+      };
+    }
+    
+    return null;
+  };
   
   if (isMobile) {
     return (
@@ -31,14 +49,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
         ) : (
           <div className="space-y-4">
             {filteredOrders.slice(0, 20).map((order) => {
-              const product = products.find(p => p.id === order.serviceId);
+              const item = findProductOrService(order.serviceId);
               const customer = customers.find(c => c.id === order.customerId);
               
               return (
                 <div key={order.id} className="border rounded-md p-3 shadow-sm">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-medium">{product?.name || "Unknown Product"}</h3>
+                      <h3 className="font-medium">{item?.name || "Unknown Product"}</h3>
                       <p className="text-sm text-muted-foreground">{customer?.name || "Unknown"}</p>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs ${
@@ -99,7 +117,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
             </TableRow>
           ) : (
             filteredOrders.slice(0, 20).map((order) => {
-              const product = products.find(p => p.id === order.serviceId);
+              const item = findProductOrService(order.serviceId);
               const customer = customers.find(c => c.id === order.customerId);
               
               return (
@@ -108,8 +126,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
                   <TableCell>{customer?.name || "Unknown"}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {product?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
-                      {product?.name || "Unknown Product"}
+                      {item?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
+                      {item?.name || "Unknown Product"}
                     </div>
                   </TableCell>
                   <TableCell>{order.quantity}</TableCell>
