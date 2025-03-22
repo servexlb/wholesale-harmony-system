@@ -46,7 +46,7 @@ const Services: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="space-y-8"
+        className="space-y-8 pb-16" // Added pb-16 for bottom padding
       >
         {/* Header */}
         <div className="flex flex-col space-y-4">
