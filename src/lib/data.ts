@@ -153,7 +153,7 @@ export const sales: Sale[] = [
 ];
 
 // Authentication simulation
-const WHOLESALE_PASSWORD = "wholesale123";
+const WHOLESALE_PASSWORD = "0000";
 
 export const checkWholesalePassword = (password: string): boolean => {
   return password === WHOLESALE_PASSWORD;
