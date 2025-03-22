@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductCard from '@/components/ProductCard';
 import CustomerTable from '@/components/CustomerTable';
 import SalesCalculator from '@/components/SalesCalculator';
+import StockSubscriptions from '@/components/StockSubscriptions';
 import { products, customers } from '@/lib/data';
 import { WholesaleOrder, Subscription } from '@/lib/types';
 import { 
@@ -18,7 +19,8 @@ import {
   LogOut, 
   Settings,
   ShoppingCart,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
@@ -162,6 +164,13 @@ const Wholesale = () => {
               />
               <SidebarLink 
                 href="#" 
+                icon={<Layers className="h-5 w-5" />} 
+                label="Stock" 
+                active={activeTab === 'stock'} 
+                onClick={() => setActiveTab('stock')} 
+              />
+              <SidebarLink 
+                href="#" 
                 icon={<LineChart className="h-5 w-5" />} 
                 label="Sales" 
                 active={activeTab === 'sales'} 
@@ -301,7 +310,17 @@ const Wholesale = () => {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl font-bold mb-8">Manage Customers</h1>
-                <CustomerTable />
+                <CustomerTable subscriptions={subscriptions} />
+              </motion.div>
+            )}
+            
+            {activeTab === 'stock' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <StockSubscriptions subscriptions={subscriptions} />
               </motion.div>
             )}
             
