@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -15,6 +16,13 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +33,7 @@ const ProductDetail = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [accountId, setAccountId] = useState('');
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState("1");
   
   useEffect(() => {
     if (id) {
@@ -67,7 +76,7 @@ const ProductDetail = () => {
     // Simulate purchase processing
     setTimeout(() => {
       toast.success(`Purchase successful!`, {
-        description: `${quantity} × ${product?.name} has been purchased`,
+        description: `${isSubscription ? selectedDuration + ' months of' : quantity + ' ×'} ${product?.name} has been purchased`,
       });
       setIsPurchasing(false);
       setIsConfirmDialogOpen(false);
@@ -80,6 +89,15 @@ const ProductDetail = () => {
   
   const decreaseQuantity = () => {
     setQuantity(q => Math.max(1, q - 1));
+  };
+  
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      setQuantity(value);
+    } else if (e.target.value === '') {
+      setQuantity(1); // Reset to 1 if input is cleared
+    }
   };
   
   if (loading) {
@@ -120,7 +138,7 @@ const ProductDetail = () => {
 
   const getQuantityLabel = () => {
     if (isSubscription) {
-      return quantity === 1 ? 'Month' : 'Months';
+      return 'Duration';
     } else {
       return 'Quantity';
     }
@@ -180,29 +198,57 @@ const ProductDetail = () => {
             </div>
             
             <div className="mt-auto space-y-6">
-              <div className="flex items-center">
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  disabled={quantity <= 1}
-                  onClick={decreaseQuantity}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="mx-4 text-lg font-medium w-8 text-center">{quantity}</span>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={increaseQuantity}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <span className="ml-2 text-sm text-muted-foreground">{getQuantityLabel()}</span>
-              </div>
+              {isSubscription ? (
+                <div className="mb-4">
+                  <label className="text-sm font-medium mb-2 block">
+                    Subscription Duration
+                  </label>
+                  <Select 
+                    defaultValue="1" 
+                    onValueChange={setSelectedDuration}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Month</SelectItem>
+                      <SelectItem value="3">3 Months</SelectItem>
+                      <SelectItem value="6">6 Months</SelectItem>
+                      <SelectItem value="12">12 Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    disabled={quantity <= 1}
+                    onClick={decreaseQuantity}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    className="mx-2 w-16 text-center"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={increaseQuantity}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <span className="ml-2 text-sm text-muted-foreground">{getQuantityLabel()}</span>
+                </div>
+              )}
               
               {isSubscription && (
                 <div className="text-sm text-muted-foreground">
-                  Duration: {quantity} {quantity === 1 ? 'month' : 'months'}
+                  Duration: {selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}
                 </div>
               )}
               
@@ -326,9 +372,24 @@ const ProductDetail = () => {
             </div>
             
             {isSubscription ? (
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Duration:</span>
-                <span>{quantity} {quantity === 1 ? 'month' : 'months'}</span>
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Subscription Duration <span className="text-red-500">*</span>
+                </label>
+                <Select 
+                  defaultValue="1"
+                  onValueChange={setSelectedDuration}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 month</SelectItem>
+                    <SelectItem value="3">3 months</SelectItem>
+                    <SelectItem value="6">6 months</SelectItem>
+                    <SelectItem value="12">12 months</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             ) : (
               <div className="flex justify-between items-center mb-2">
@@ -344,9 +405,13 @@ const ProductDetail = () => {
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
-                    {quantity}
-                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
+                  />
                   <Button 
                     type="button" 
                     size="icon"
@@ -386,7 +451,9 @@ const ProductDetail = () => {
             
             <div className="flex justify-between items-center pt-2 border-t">
               <span className="font-medium">Total:</span>
-              <span className="font-bold">${(product?.price! * quantity).toFixed(2)}</span>
+              <span className="font-bold">
+                ${(isSubscription ? product?.price! * parseInt(selectedDuration) : product?.price! * quantity).toFixed(2)}
+              </span>
             </div>
             
             {product?.deliveryTime && (

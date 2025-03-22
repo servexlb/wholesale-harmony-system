@@ -135,6 +135,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     setQuantity(prev => prev > 1 ? prev - 1 : 1);
   };
 
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      setQuantity(value);
+    } else if (e.target.value === '') {
+      setQuantity(1); // Reset to 1 if input is cleared
+    }
+  };
+
   const imageUrl = getImageUrl(service.name);
 
   // Generate a more specific image URL for each service type
@@ -347,9 +356,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
-                    <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
-                      {quantity}
-                    </div>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={handleQuantityChange}
+                      className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
+                    />
                     <Button 
                       type="button" 
                       size="icon"
@@ -379,9 +392,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
-                    {quantity}
-                  </div>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                    className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
+                  />
                   <Button 
                     type="button" 
                     size="icon"
