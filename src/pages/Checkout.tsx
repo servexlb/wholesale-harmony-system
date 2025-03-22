@@ -123,7 +123,7 @@ const Checkout: React.FC = () => {
                     <AlertCircle className="h-5 w-5 mr-2 mt-0.5 shrink-0" />
                     <div>
                       <p className="font-medium">Insufficient balance</p>
-                      <p className="text-sm">Your current balance (${userBalance.toFixed(2)}) is less than the total (${total.toFixed(2)}). You'll be redirected to add funds.</p>
+                      <p className="text-sm">Your current balance (${userBalance.toFixed(2)}) is less than the total (${total.toFixed(2)}). Please <Button variant="link" className="p-0 h-auto text-sm text-red-800 underline" onClick={() => navigate("/payment")}>add funds</Button> to continue.</p>
                     </div>
                   </div>
                 )}

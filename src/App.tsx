@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Services from "./pages/Services";
 import ServiceDetail from "./pages/ServiceDetail";
 import Checkout from "./pages/Checkout";
+import Payment from "./pages/Payment";
 import AdminPanel from "./pages/AdminPanel";
 import AdminAuth from "./components/AdminAuth";
 import NotFound from "./pages/NotFound";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/services" element={<Services />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment" element={<Payment />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/admin/*" element={
               <AdminRoute>
