@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { Product, getProductById, products } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, ArrowLeft, Plus, Minus, Check } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Plus, Minus, Check, CreditCard } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
 const ProductDetail = () => {
@@ -148,15 +148,15 @@ const ProductDetail = () => {
                   size="lg"
                   onClick={handleAddToCart}
                 >
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  Add to Cart
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  Buy Now
                 </Button>
                 <Button 
                   variant="secondary" 
                   className="flex-1" 
                   size="lg"
                 >
-                  Buy Now
+                  Buy Later
                 </Button>
               </div>
               

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Clock, Tag, ShoppingCart, RotateCw, Zap, Calendar } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -99,8 +99,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
           </Button>
         </Link>
         <Button size="sm">
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Add to Cart
+          <CreditCard className="h-4 w-4 mr-2" />
+          Buy Now
         </Button>
       </CardFooter>
     </Card>

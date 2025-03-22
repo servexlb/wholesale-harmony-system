@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Eye } from 'lucide-react';
+import { CreditCard, Eye } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -84,7 +84,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               size="sm" 
               className="subtle-focus-ring"
             >
-              <ShoppingCart className="h-4 w-4" />
+              <CreditCard className="h-4 w-4" />
+              Buy Now
             </Button>
           </div>
         </div>

@@ -84,8 +84,8 @@ const ProductsView = () => (
               <div className="text-lg font-semibold">${service.price.toFixed(2)}</div>
               <Button asChild>
                 <Link to={`/services/${service.id}`}>
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Purchase
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Buy Now
                 </Link>
               </Button>
             </div>
