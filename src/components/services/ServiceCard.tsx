@@ -17,7 +17,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     <Card key={service.id} className="overflow-hidden transition-all hover:shadow-md">
       <div className="aspect-video relative">
         <img 
-          src={service.image} 
+          src="https://placehold.co/600x400/333/fff?text=Service+Image" 
           alt={service.name}
           className="w-full h-full object-cover"
         />
