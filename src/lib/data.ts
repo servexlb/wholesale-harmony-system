@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -152,14 +151,22 @@ export const sales: Sale[] = [
   },
 ];
 
-// Authentication simulation
-const WHOLESALE_PASSWORD = "0000";
+// Wholesale credentials
+const wholesaleUsers = [
+  { username: 'wholesaler1', password: 'password123' },
+  { username: 'admin', password: 'admin123' }
+];
 
 export const checkWholesalePassword = (password: string): boolean => {
-  return password === WHOLESALE_PASSWORD;
+  return password === 'wholesale2023';
 };
 
-// Wholesale utils
+export const checkWholesaleCredentials = (username: string, password: string): boolean => {
+  return wholesaleUsers.some(
+    user => user.username === username && user.password === password
+  );
+};
+
 export const calculateTotalSales = (): number => {
   return sales.reduce((total, sale) => total + (sale.paid ? sale.total : 0), 0);
 };
