@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX, Search } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX, Search, Phone } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -37,6 +37,7 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
     
     return (
       (customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer?.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (sub.credentials?.email || '').toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -76,6 +77,7 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>Service</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Expiry Date</TableHead>
@@ -85,7 +87,7 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
           <TableBody>
             {filteredSubscriptions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No active subscriptions found
                 </TableCell>
               </TableRow>
@@ -98,6 +100,12 @@ const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({ subscriptions }
                 return (
                   <TableRow key={subscription.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{customer?.name || 'Unknown'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        {customer?.phone || 'N/A'}
+                      </div>
+                    </TableCell>
                     <TableCell>{product?.name || 'Unknown Service'}</TableCell>
                     <TableCell>
                       <Badge 
