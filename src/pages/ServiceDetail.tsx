@@ -1,16 +1,28 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
-import { Check, Clock, ChevronLeft } from "lucide-react";
+import { Check, Clock, ChevronLeft, Minus, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Service } from "@/lib/types";
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [quantity, setQuantity] = useState(1);
+  const [customAmount, setCustomAmount] = useState<string>("");
+  
   // In a real app, you would fetch the service details based on the ID
   // For now, let's use mock data
   const service = {
@@ -29,8 +41,32 @@ const ServiceDetail: React.FC = () => {
       "Ad-free experience",
       "Downloads available"
     ],
-    featured: true
+    featured: true,
+    type: "subscription" // This would come from your data model. For now, hardcoded for demo
   };
+
+  const isSubscription = service.type === "subscription";
+  const isGameRecharge = service.categoryId === "gaming" || service.categoryId === "game-credits";
+
+  const increaseQuantity = () => {
+    setQuantity(prev => prev + 1);
+  };
+
+  const decreaseQuantity = () => {
+    setQuantity(prev => prev > 1 ? prev - 1 : 1);
+  };
+
+  const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numbers
+    if (value === "" || /^\d+$/.test(value)) {
+      setCustomAmount(value);
+    }
+  };
+
+  const total = isGameRecharge && customAmount 
+    ? parseFloat(customAmount) 
+    : service.wholesalePrice * quantity;
 
   return (
     <MainLayout>
@@ -98,6 +134,77 @@ const ServiceDetail: React.FC = () => {
                   <p className="text-sm text-gray-500">Wholesale Price</p>
                 </div>
                 
+                {isSubscription && (
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">
+                      Subscription Duration
+                    </label>
+                    <Select defaultValue="1" onValueChange={(val) => setQuantity(parseInt(val))}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Month</SelectItem>
+                        <SelectItem value="3">3 Months</SelectItem>
+                        <SelectItem value="6">6 Months</SelectItem>
+                        <SelectItem value="12">12 Months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {!isSubscription && !isGameRecharge && (
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">
+                      Quantity
+                    </label>
+                    <div className="flex items-center">
+                      <Button 
+                        type="button" 
+                        size="icon"
+                        variant="outline" 
+                        className="h-10 w-10 rounded-r-none"
+                        onClick={decreaseQuantity}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <div className="h-10 border-y px-4 flex items-center justify-center min-w-[4rem]">
+                        {quantity}
+                      </div>
+                      <Button 
+                        type="button" 
+                        size="icon"
+                        variant="outline" 
+                        className="h-10 w-10 rounded-l-none"
+                        onClick={increaseQuantity}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {isGameRecharge && (
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">
+                      Custom Amount
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Enter amount"
+                      value={customAmount}
+                      onChange={handleCustomAmountChange}
+                    />
+                  </div>
+                )}
+                
+                <div className="mt-4 mb-6 pt-4 border-t">
+                  <div className="flex justify-between items-center font-medium">
+                    <span>Total Price:</span>
+                    <span className="text-xl text-primary">${total.toFixed(2)}</span>
+                  </div>
+                </div>
+
                 <Button className="w-full mb-4">Add to Cart</Button>
                 <Button variant="outline" className="w-full">Buy Now</Button>
                 
