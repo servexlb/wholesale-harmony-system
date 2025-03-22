@@ -26,6 +26,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
   const [isHovered, setIsHovered] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
   const price = isWholesale ? product.wholesalePrice : product.price;
@@ -44,7 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     setIsPurchasing(true);
     
     // Check if user has sufficient balance
-    if (userBalance < price) {
+    if (userBalance < price * quantity) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
@@ -55,15 +56,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     }
 
     // Deduct the price from user balance immediately
-    const newBalance = userBalance - price;
+    const newBalance = userBalance - (price * quantity);
     localStorage.setItem('userBalance', newBalance.toString());
 
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       productId: product.id,
-      quantity: 1,
-      totalPrice: price,
+      quantity: quantity,
+      totalPrice: price * quantity,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
@@ -77,7 +78,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     console.log("Created order:", order);
     
     toast.success("Purchase successful!", {
-      description: `Your order is being processed. $${price.toFixed(2)} has been deducted from your balance.`
+      description: `Your order is being processed. $${(price * quantity).toFixed(2)} has been deducted from your balance.`
     });
     
     setIsPurchasing(false);
@@ -85,6 +86,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
     
     // Redirect to dashboard
     navigate("/dashboard");
+  };
+
+  const increaseQuantity = () => {
+    setQuantity(prev => prev + 1);
+  };
+
+  const decreaseQuantity = () => {
+    setQuantity(prev => prev > 1 ? prev - 1 : 1);
   };
 
   return (
@@ -190,25 +199,63 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
           
           <div className="py-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Price:</span>
+              <span className="font-medium">Price per unit:</span>
               <span className="font-bold">${price.toFixed(2)}</span>
             </div>
+            
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Product:</span>
               <span>{product.name}</span>
             </div>
+            
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Category:</span>
               <span>{product.category}</span>
             </div>
-            <div className="flex justify-between items-center mb-2">
+            
+            <div className="flex justify-between items-center mb-4">
               <span className="font-medium">Quantity:</span>
-              <span>1</span>
+              <div className="flex items-center">
+                <Button 
+                  type="button" 
+                  size="icon"
+                  variant="outline" 
+                  className="h-8 w-8 rounded-r-none"
+                  onClick={decreaseQuantity}
+                >
+                  <span>-</span>
+                </Button>
+                <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
+                  {quantity}
+                </div>
+                <Button 
+                  type="button" 
+                  size="icon"
+                  variant="outline" 
+                  className="h-8 w-8 rounded-l-none"
+                  onClick={increaseQuantity}
+                >
+                  <span>+</span>
+                </Button>
+              </div>
             </div>
+            
+            <div className="flex justify-between items-center mb-2 pt-2 border-t">
+              <span className="font-medium">Total:</span>
+              <span className="font-bold">${(price * quantity).toFixed(2)}</span>
+            </div>
+            
             {product.type === 'giftcard' && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Gift Card Value:</span>
                 <span>${product.value?.toFixed(2) || price.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {product.deliveryTime && (
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-medium">Estimated Delivery:</span>
+                <span>{product.deliveryTime}</span>
               </div>
             )}
           </div>

@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2 } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -12,6 +13,13 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Service, ServiceCategory } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,10 +35,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedDuration, setSelectedDuration] = useState<string>("1");
   
   // Get current user balance from localStorage
   const userBalanceStr = localStorage.getItem('userBalance');
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
+  
+  const isSubscription = service.type === "subscription";
   
   // Generate a more specific image URL for each service type
   const getImageUrl = (serviceName: string) => {
@@ -56,6 +68,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
+    // For subscriptions, set default selected duration
+    if (isSubscription && service.availableMonths && service.availableMonths.length > 0) {
+      setSelectedDuration(service.availableMonths[0].toString());
+    }
     setIsConfirmDialogOpen(true);
   };
 
@@ -63,8 +79,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     console.log("Buy now clicked for service:", service);
     setIsPurchasing(true);
     
+    // Calculate final price based on subscription duration or quantity
+    const finalPrice = isSubscription 
+      ? service.price * parseInt(selectedDuration)
+      : service.price * quantity;
+    
     // Check if user has sufficient balance
-    if (userBalance < service.price) {
+    if (userBalance < finalPrice) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
@@ -75,14 +96,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     }
 
     // Deduct the price from user balance immediately
-    const newBalance = userBalance - service.price;
+    const newBalance = userBalance - finalPrice;
     localStorage.setItem('userBalance', newBalance.toString());
 
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       serviceId: service.id,
-      totalPrice: service.price,
+      quantity: isSubscription ? 1 : quantity,
+      durationMonths: isSubscription ? parseInt(selectedDuration) : undefined,
+      totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
     };
@@ -96,7 +119,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     console.log("Created order:", order);
     
     toast.success("Purchase successful!", {
-      description: `Your order is being processed. $${service.price.toFixed(2)} has been deducted from your balance.`
+      description: `Your order is being processed. $${finalPrice.toFixed(2)} has been deducted from your balance.`
     });
     
     setIsPurchasing(false);
@@ -104,6 +127,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     
     // Redirect to dashboard
     navigate("/dashboard");
+  };
+
+  const increaseQuantity = () => {
+    setQuantity(prev => prev + 1);
+  };
+
+  const decreaseQuantity = () => {
+    setQuantity(prev => prev > 1 ? prev - 1 : 1);
   };
 
   const imageUrl = getImageUrl(service.name);
@@ -214,7 +245,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
           
           <div className="py-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Price:</span>
+              <span className="font-medium">Base Price:</span>
               <span className="font-bold">${service.price.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
@@ -228,17 +259,64 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {service.type === "subscription" && service.availableMonths && (
-              <div className="flex justify-between items-center mb-2">
+            {isSubscription && service.availableMonths && (
+              <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Duration:</span>
-                <span>
-                  {service.availableMonths.length > 0 
-                    ? `${service.availableMonths[0]} month${service.availableMonths[0] !== 1 ? 's' : ''}` 
-                    : "1 month"
-                  }
-                </span>
+                <Select 
+                  defaultValue={service.availableMonths[0]?.toString() || "1"}
+                  onValueChange={setSelectedDuration}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {service.availableMonths.map(month => (
+                      <SelectItem key={month} value={month.toString()}>
+                        {month} month{month !== 1 ? 's' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
+            
+            {!isSubscription && (
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-medium">Quantity:</span>
+                <div className="flex items-center">
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-r-none"
+                    onClick={decreaseQuantity}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <div className="h-8 border-y px-4 flex items-center justify-center min-w-[3rem]">
+                    {quantity}
+                  </div>
+                  <Button 
+                    type="button" 
+                    size="icon"
+                    variant="outline" 
+                    className="h-8 w-8 rounded-l-none"
+                    onClick={increaseQuantity}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center pt-2 border-t mb-2">
+              <span className="font-medium">Total Price:</span>
+              <span className="font-bold">
+                ${(isSubscription 
+                  ? service.price * parseInt(selectedDuration)
+                  : service.price * quantity).toFixed(2)}
+              </span>
+            </div>
             
             {service.type === "recharge" && (
               <div className="flex justify-between items-center mb-2">
