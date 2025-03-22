@@ -15,11 +15,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { checkWholesaleCredentials } from '@/lib/data';
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must contain at least 3 characters"),
   password: z.string().min(6, "Password must contain at least 6 characters"),
+  rememberMe: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -36,6 +38,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
     defaultValues: {
       username: '',
       password: '',
+      rememberMe: false,
     },
   });
 
@@ -54,6 +57,16 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
         
         // Store the wholesaler information in localStorage
         localStorage.setItem('wholesalerUsername', values.username);
+        
+        // If remember me is checked, save login details
+        if (values.rememberMe) {
+          localStorage.setItem('wholesaleRememberMe', 'true');
+          localStorage.setItem('wholesaleUsername', values.username);
+        } else {
+          // Clean up any previously saved login details
+          localStorage.removeItem('wholesaleRememberMe');
+          localStorage.removeItem('wholesaleUsername');
+        }
         
         toast.success("Login successful", {
           description: "Welcome to the wholesale portal"
@@ -108,6 +121,25 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="rememberMe"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-1">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Remember me
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Log in"}
             </Button>
@@ -116,7 +148,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       </CardContent>
       <CardFooter className="flex flex-col items-center text-center text-sm text-muted-foreground">
         <p>Not a wholesale customer yet?</p>
-        <p>Contact us to apply for a wholesale account.</p>
+        <p>Contact us at <a href="tel:+18001234567" className="text-primary hover:underline">+1 (800) 123-4567</a> to apply for a wholesale account.</p>
       </CardFooter>
     </Card>
   );
