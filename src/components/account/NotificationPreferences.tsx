@@ -1,25 +1,26 @@
 
 import React, { useState, useEffect } from "react";
+import { Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell, Save } from "lucide-react";
 import { toast } from "@/lib/toast";
 
-const NotificationPreferences: React.FC = () => {
+interface NotificationPreferencesProps {
+  userId: string;
+}
+
+const NotificationPreferences: React.FC<NotificationPreferencesProps> = ({ userId }) => {
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
-    promotions: false,
-    orderUpdates: true,
-    serviceAnnouncements: true,
+    pushNotifications: false,
+    smsNotifications: true,
+    marketingEmails: false
   });
-  
-  const [hasChanges, setHasChanges] = useState(false);
 
-  // Load saved preferences on mount
   useEffect(() => {
-    const savedPreferences = localStorage.getItem('notificationPreferences');
+    // Load user-specific notification preferences from localStorage
+    const savedPreferences = localStorage.getItem(`notificationPreferences_${userId}`);
     if (savedPreferences) {
       try {
         const parsedPreferences = JSON.parse(savedPreferences);
@@ -28,105 +29,76 @@ const NotificationPreferences: React.FC = () => {
         console.error("Error parsing saved preferences:", error);
       }
     }
-  }, []);
+  }, [userId]);
 
-  const handlePreferenceChange = (key: keyof typeof preferences) => {
-    setPreferences((prev) => {
-      const newPreferences = {
-        ...prev,
-        [key]: !prev[key],
-      };
-      setHasChanges(true);
+  const handleToggleChange = (key: keyof typeof preferences) => {
+    setPreferences(prev => {
+      const newPreferences = { ...prev, [key]: !prev[key] };
+      
+      // Save to localStorage with user-specific key
+      localStorage.setItem(`notificationPreferences_${userId}`, JSON.stringify(newPreferences));
+      
+      // Show success message
+      toast.success("Notification preferences updated");
+      
       return newPreferences;
     });
   };
 
-  const handleSavePreferences = () => {
-    // Save to localStorage for demo purposes
-    localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
-    toast.success("Notification preferences saved successfully");
-    setHasChanges(false);
-  };
-
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-primary" />
-          Notification Preferences
-        </CardTitle>
+      <CardHeader className="flex flex-row items-center gap-2">
+        <Bell className="h-5 w-5 text-primary" />
+        <CardTitle>Notification Preferences</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground mb-4">
-          Manage how and when we contact you
-        </p>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Receive order confirmations and updates via email
-              </p>
-            </div>
-            <Switch
-              id="email-notifications"
-              checked={preferences.emailNotifications}
-              onCheckedChange={() => handlePreferenceChange('emailNotifications')}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="promotions">Promotional Emails</Label>
-              <p className="text-sm text-muted-foreground">
-                Receive special offers and promotions
-              </p>
-            </div>
-            <Switch
-              id="promotions"
-              checked={preferences.promotions}
-              onCheckedChange={() => handlePreferenceChange('promotions')}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="order-updates">Order Updates</Label>
-              <p className="text-sm text-muted-foreground">
-                Notifications about your orders and subscriptions
-              </p>
-            </div>
-            <Switch
-              id="order-updates"
-              checked={preferences.orderUpdates}
-              onCheckedChange={() => handlePreferenceChange('orderUpdates')}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="service-announcements">Service Announcements</Label>
-              <p className="text-sm text-muted-foreground">
-                Important updates about our services
-              </p>
-            </div>
-            <Switch
-              id="service-announcements"
-              checked={preferences.serviceAnnouncements}
-              onCheckedChange={() => handlePreferenceChange('serviceAnnouncements')}
-            />
-          </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="emailNotifications" className="flex flex-col">
+            <span>Email Notifications</span>
+            <span className="text-xs text-muted-foreground">Receive notifications via email</span>
+          </Label>
+          <Switch
+            id="emailNotifications"
+            checked={preferences.emailNotifications}
+            onCheckedChange={() => handleToggleChange('emailNotifications')}
+          />
         </div>
         
-        <Button 
-          onClick={handleSavePreferences} 
-          className="w-full mt-4"
-          disabled={!hasChanges}
-        >
-          <Save className="h-4 w-4 mr-2" />
-          Save Notification Preferences
-        </Button>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="pushNotifications" className="flex flex-col">
+            <span>Push Notifications</span>
+            <span className="text-xs text-muted-foreground">Receive notifications on your device</span>
+          </Label>
+          <Switch
+            id="pushNotifications"
+            checked={preferences.pushNotifications}
+            onCheckedChange={() => handleToggleChange('pushNotifications')}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <Label htmlFor="smsNotifications" className="flex flex-col">
+            <span>SMS Notifications</span>
+            <span className="text-xs text-muted-foreground">Receive notifications via text message</span>
+          </Label>
+          <Switch
+            id="smsNotifications"
+            checked={preferences.smsNotifications}
+            onCheckedChange={() => handleToggleChange('smsNotifications')}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <Label htmlFor="marketingEmails" className="flex flex-col">
+            <span>Marketing Emails</span>
+            <span className="text-xs text-muted-foreground">Receive promotional emails</span>
+          </Label>
+          <Switch
+            id="marketingEmails"
+            checked={preferences.marketingEmails}
+            onCheckedChange={() => handleToggleChange('marketingEmails')}
+          />
+        </div>
       </CardContent>
     </Card>
   );
