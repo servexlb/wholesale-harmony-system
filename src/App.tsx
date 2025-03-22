@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Pages
@@ -15,10 +15,22 @@ import Services from "./pages/Services";
 import ServiceDetail from "./pages/ServiceDetail";
 import Checkout from "./pages/Checkout";
 import AdminPanel from "./pages/AdminPanel";
+import AdminAuth from "./components/AdminAuth";
 import NotFound from "./pages/NotFound";
 import Wholesale from "./pages/Wholesale";
 
 const queryClient = new QueryClient();
+
+// Admin authentication check
+const AdminRoute = ({ children }) => {
+  const isAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/admin-auth" replace />;
+  }
+  
+  return children;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -35,7 +47,12 @@ const App = () => (
             <Route path="/services" element={<Services />} />
             <Route path="/services/:id" element={<ServiceDetail />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/admin/*" element={<AdminPanel />} />
+            <Route path="/admin-auth" element={<AdminAuth />} />
+            <Route path="/admin/*" element={
+              <AdminRoute>
+                <AdminPanel />
+              </AdminRoute>
+            } />
             <Route path="/wholesale" element={<Wholesale />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

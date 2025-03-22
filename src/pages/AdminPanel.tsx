@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -19,9 +18,10 @@ import {
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
   Pencil, Image, Upload, Type, LayoutDashboard,
-  Save, Trash2, CreditCard, Key, Server
+  Save, Trash2, CreditCard, Key, Server, LogOut
 } from "lucide-react";
 import { products, customers } from "@/lib/data";
+import { toast } from "@/lib/toast";
 
 const AdminDashboard = () => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -473,6 +473,12 @@ const ProductManager = () => {
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("adminAuthenticated");
+    toast.success("You have been logged out of the admin panel");
+    navigate("/");
+  };
+
   return (
     <MainLayout>
       <motion.div
@@ -481,7 +487,13 @@ const AdminPanel: React.FC = () => {
         exit={{ opacity: 0, y: 20 }}
         className="container py-8"
       >
-        <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Admin Panel</h1>
+          <Button variant="destructive" size="sm" onClick={handleLogout} className="flex gap-2">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="md:col-span-1">

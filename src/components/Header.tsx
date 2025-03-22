@@ -11,6 +11,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const location = useLocation();
+  const isAdminAuthenticated = sessionStorage.getItem("adminAuthenticated") === "true";
 
   useEffect(() => {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -88,12 +89,14 @@ const Header = () => {
             </Button>
           </Link>
           
-          <Link to="/admin">
-            <Button variant="outline" size="sm" className="flex gap-2 items-center">
-              <Settings className="h-4 w-4" />
-              <span>Admin</span>
-            </Button>
-          </Link>
+          {isAdminAuthenticated ? (
+            <Link to="/admin">
+              <Button variant="outline" size="sm" className="flex gap-2 items-center">
+                <Settings className="h-4 w-4" />
+                <span>Admin</span>
+              </Button>
+            </Link>
+          ) : null}
           
           <Link to="/login">
             <Button variant="outline" size="sm" className="flex gap-2 items-center">
@@ -184,16 +187,18 @@ const Header = () => {
             >
               Wholesale
             </Link>
-            <Link 
-              to="/admin" 
-              className={cn(
-                "px-3 py-2 rounded-md text-base font-medium transition-colors",
-                isActive('/admin') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Admin
-            </Link>
+            {isAdminAuthenticated ? (
+              <Link 
+                to="/admin" 
+                className={cn(
+                  "px-3 py-2 rounded-md text-base font-medium transition-colors",
+                  isActive('/admin') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Admin
+              </Link>
+            ) : null}
             <Link 
               to="/login" 
               className={cn(
