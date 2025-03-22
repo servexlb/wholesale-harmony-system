@@ -38,15 +38,25 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   // Group products by category
   const productsByCategory = useMemo(() => {
-    return filteredProducts.reduce((acc, product) => {
+    const categorizedProducts = {} as Record<string, Product[]>;
+    
+    // First pass: collect all unique categories
+    filteredProducts.forEach(product => {
       const category = product.category || 'Uncategorized';
-      if (!acc[category]) {
-        acc[category] = [];
+      if (!categorizedProducts[category]) {
+        categorizedProducts[category] = [];
       }
-      acc[category].push(product);
-      return acc;
-    }, {} as Record<string, Product[]>);
-  }, [filteredProducts]);
+      categorizedProducts[category].push(product);
+    });
+    
+    // Make sure we have at least one product in each category
+    if (Object.keys(categorizedProducts).length === 0 && products.length > 0) {
+      // If filtering resulted in no products, show all products under 'All Products' category
+      return { 'All Products': products };
+    }
+    
+    return categorizedProducts;
+  }, [filteredProducts, products]);
 
   const renderProductIcon = (type?: string) => {
     if (type === 'subscription') return <Calendar className="h-4 w-4 text-blue-500" />;
@@ -81,25 +91,31 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         
         <Command className="rounded-lg border shadow-md">
           <CommandInput placeholder="Search products..." value={productSearch} onValueChange={setProductSearch} className="h-9" />
-          <CommandList className="max-h-[200px] overflow-auto">
-            <CommandEmpty>No products found.</CommandEmpty>
-            {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
-              <CommandGroup key={category} heading={category}>
-                {categoryProducts.map((product) => (
-                  <CommandItem
-                    key={product.id}
-                    onSelect={() => onProductSelect(product.id)}
-                    className={`flex items-center gap-2 cursor-pointer ${selectedProductId === product.id ? 'bg-accent text-accent-foreground' : ''}`}
-                  >
-                    {renderProductIcon(product.type)}
-                    <div className="flex flex-col">
-                      <span className="font-medium">{product.name}</span>
-                      <span className="text-xs text-muted-foreground">${product.wholesalePrice.toFixed(2)}</span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ))}
+          <CommandList className="max-h-[300px] overflow-auto">
+            <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
+            {Object.keys(productsByCategory).length === 0 ? (
+              <div className="py-6 text-center text-sm">
+                No products found. Try a different category or search term.
+              </div>
+            ) : (
+              Object.entries(productsByCategory).map(([category, categoryProducts]) => (
+                <CommandGroup key={category} heading={category} className="py-2">
+                  {categoryProducts.map((product) => (
+                    <CommandItem
+                      key={product.id}
+                      onSelect={() => onProductSelect(product.id)}
+                      className={`flex items-center gap-2 cursor-pointer ${selectedProductId === product.id ? 'bg-accent text-accent-foreground' : ''}`}
+                    >
+                      {renderProductIcon(product.type)}
+                      <div className="flex flex-col">
+                        <span className="font-medium">{product.name}</span>
+                        <span className="text-xs text-muted-foreground">${product.wholesalePrice.toFixed(2)}</span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))
+            )}
           </CommandList>
         </Command>
       </div>
