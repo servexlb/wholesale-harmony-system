@@ -72,7 +72,7 @@ const SupportTicketForm: React.FC = () => {
   };
 
   return (
-    <Card className="bg-card text-card-foreground">
+    <Card className="bg-card text-card-foreground shadow-sm">
       <CardHeader>
         <CardTitle>Report an Issue</CardTitle>
         <CardDescription>

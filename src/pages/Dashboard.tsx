@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, Routes, Route } from "react-router-dom";
+import { useNavigate, Routes, Route, Link, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import MainLayout from "@/components/MainLayout";
@@ -23,38 +23,34 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { services } from "@/lib/mockData";
-import { Link } from "react-router-dom";
 
 interface SidebarItemProps {
   icon: React.ElementType;
   label: string;
-  href: string;
+  to: string;
   active?: boolean;
-  onClick?: () => void;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ 
   icon: Icon, 
   label, 
-  href, 
-  active = false,
-  onClick
+  to, 
+  active = false
 }) => {
   return (
     <li>
-      <a 
-        href={href} 
+      <Link 
+        to={to} 
         className={cn(
           "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
           active 
             ? "bg-primary text-primary-foreground" 
             : "text-muted-foreground hover:text-foreground hover:bg-accent"
         )}
-        onClick={onClick}
       >
         <Icon className="h-4 w-4" />
         <span>{label}</span>
-      </a>
+      </Link>
     </li>
   );
 };
@@ -240,11 +236,16 @@ const DashboardHome = () => (
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentTab, setCurrentTab] = useState('products');
-
+  const location = useLocation();
+  const currentPath = location.pathname.split('/').pop() || '';
+  const currentTab = currentPath === 'dashboard' || currentPath === '' ? 'products' : currentPath;
+  
   const handleTabChange = (value: string) => {
-    setCurrentTab(value);
-    navigate(`/dashboard${value !== 'products' ? `/${value}` : ''}`);
+    if (value === 'products') {
+      navigate(`/dashboard`);
+    } else {
+      navigate(`/dashboard/${value}`);
+    }
   };
 
   return (
@@ -266,51 +267,44 @@ const Dashboard: React.FC = () => {
                   <SidebarItem 
                     icon={Package} 
                     label="Products" 
-                    href="/dashboard"
-                    active={currentTab === 'products'} 
-                    onClick={() => handleTabChange('products')}
+                    to="/dashboard"
+                    active={currentTab === 'products' || currentTab === ''} 
                   />
                   <SidebarItem 
                     icon={HomeIcon} 
                     label="Overview" 
-                    href="/dashboard/overview"
+                    to="/dashboard/overview"
                     active={currentTab === 'overview'} 
-                    onClick={() => handleTabChange('overview')}
                   />
                   <SidebarItem 
                     icon={List} 
                     label="My Orders" 
-                    href="/dashboard/orders"
+                    to="/dashboard/orders"
                     active={currentTab === 'orders'} 
-                    onClick={() => handleTabChange('orders')}
                   />
                   <SidebarItem 
                     icon={Calendar} 
                     label="Subscriptions" 
-                    href="/dashboard/subscriptions"
+                    to="/dashboard/subscriptions"
                     active={currentTab === 'subscriptions'} 
-                    onClick={() => handleTabChange('subscriptions')}
                   />
                   <SidebarItem 
                     icon={CreditCardIcon} 
                     label="Balance & Payments" 
-                    href="/dashboard/payments"
+                    to="/dashboard/payments"
                     active={currentTab === 'payments'} 
-                    onClick={() => handleTabChange('payments')}
                   />
                   <SidebarItem 
                     icon={HelpCircle} 
                     label="Report an Issue" 
-                    href="/dashboard/support"
+                    to="/dashboard/support"
                     active={currentTab === 'support'} 
-                    onClick={() => handleTabChange('support')}
                   />
                   <SidebarItem 
                     icon={User} 
                     label="Profile Settings" 
-                    href="/dashboard/settings"
+                    to="/dashboard/settings"
                     active={currentTab === 'settings'} 
-                    onClick={() => handleTabChange('settings')}
                   />
                 </ul>
               </nav>
@@ -320,7 +314,7 @@ const Dashboard: React.FC = () => {
           <main className="flex-1">
             <div className="md:hidden mb-6">
               <Tabs 
-                defaultValue={currentTab} 
+                value={currentTab} 
                 className="w-full"
                 onValueChange={handleTabChange}
               >
