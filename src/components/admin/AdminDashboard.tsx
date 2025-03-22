@@ -11,29 +11,37 @@ const AdminDashboard = () => {
   const [revenue, setRevenue] = useState(0);
 
   useEffect(() => {
-    // Get real user data from customers array in data.ts
-    setTotalUsers(customers.length);
+    // Check for real customers - only count if there are actual customers
+    if (customers && customers.length > 0) {
+      setTotalUsers(customers.length);
+    }
     
-    // Get real orders data
-    // First check for orders in localStorage
-    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
-    setActiveOrders(customerOrders.length);
-    
-    // Calculate real revenue from sales in data.ts
-    const totalRevenue = sales.reduce((acc, sale) => {
-      if (sale.paid) {
-        return acc + sale.total;
+    // Check for real orders in localStorage - only count if there are actual orders
+    const customerOrdersStr = localStorage.getItem('customerOrders');
+    if (customerOrdersStr) {
+      try {
+        const customerOrders = JSON.parse(customerOrdersStr);
+        if (Array.isArray(customerOrders) && customerOrders.length > 0) {
+          setActiveOrders(customerOrders.length);
+        }
+      } catch (err) {
+        console.error("Error parsing customer orders:", err);
       }
-      return acc;
-    }, 0);
-    setRevenue(totalRevenue);
+    }
+    
+    // Calculate real revenue from paid sales in data.ts - only count if there are actual paid sales
+    const paidSales = sales.filter(sale => sale.paid);
+    if (paidSales.length > 0) {
+      const totalRevenue = paidSales.reduce((acc, sale) => acc + sale.total, 0);
+      setRevenue(totalRevenue);
+    }
   }, []);
   
   // Calculate percentage changes based on previous period
   // For a real app, you would compare with data from previous time period
-  const userPercentChange = "+5.2%";
-  const orderPercentChange = "-12%";
-  const revenuePercentChange = "+18.2%";
+  const userPercentChange = totalUsers > 0 ? "+5.2%" : "0%";
+  const orderPercentChange = activeOrders > 0 ? "-12%" : "0%";
+  const revenuePercentChange = revenue > 0 ? "+18.2%" : "0%";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
