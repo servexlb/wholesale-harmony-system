@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
-import { Product, getProductById } from '@/lib/data';
+import { Product, getProductById, products } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, ArrowLeft, Plus, Minus, Check } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
