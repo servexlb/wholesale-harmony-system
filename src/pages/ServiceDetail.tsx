@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
@@ -52,7 +51,7 @@ const ServiceDetail: React.FC = () => {
   };
 
   const isSubscription = service.type === "subscription";
-  const isGameRecharge = service.categoryId === "gaming" || service.categoryId === "game-credits";
+  const isGameRecharge = service.type === "recharge" || service.categoryId === "category6"; // Update to check both type and category
 
   const increaseQuantity = () => {
     setQuantity(prev => prev + 1);
@@ -240,7 +239,7 @@ const ServiceDetail: React.FC = () => {
                 {isGameRecharge && (
                   <div className="mb-4">
                     <label className="text-sm font-medium mb-2 block">
-                      Custom Amount
+                      Recharge Amount
                     </label>
                     <Input
                       type="text"
@@ -248,6 +247,9 @@ const ServiceDetail: React.FC = () => {
                       value={customAmount}
                       onChange={handleCustomAmountChange}
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the amount of in-game currency you wish to purchase
+                    </p>
                   </div>
                 )}
                 
