@@ -1,16 +1,14 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CreditCard, Repeat, AlertCircle, Copy, Check } from "lucide-react";
 
 const UserPaymentOptions = () => {
-  const [activeTab, setActiveTab] = useState("credit-card");
+  const [activeTab, setActiveTab] = useState("wish-money");
   const [amount, setAmount] = useState<number | null>(null);
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
@@ -81,10 +79,71 @@ const UserPaymentOptions = () => {
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-3 mb-6">
-            <TabsTrigger value="credit-card">Credit Card</TabsTrigger>
             <TabsTrigger value="wish-money">Wish Money</TabsTrigger>
+            <TabsTrigger value="credit-card">Credit Card</TabsTrigger>
             <TabsTrigger value="binance">Binance Pay</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="wish-money" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pay with Wish Money</CardTitle>
+                <CardDescription>
+                  Send your payment to our Wish Money account and we'll credit your balance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-primary/5 p-4 rounded-md mb-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">Wish Money Account Number:</p>
+                      <p className="text-xl font-bold">{wishMoneyAccount}</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleCopyAccount}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Copy className="h-4 w-4 mr-2" />
+                      )}
+                      {copied ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-2 mb-6 p-3 bg-amber-50 text-amber-800 rounded-md">
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium">Important:</p>
+                    <p>Include your registered username in the payment notes so we can identify your payment.</p>
+                  </div>
+                </div>
+                
+                <form onSubmit={handleWishMoneySubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="wm-amount">Amount You Sent</Label>
+                    <Input
+                      id="wm-amount"
+                      type="number"
+                      placeholder="Enter amount"
+                      min="10"
+                      step="0.01"
+                      value={amount || ''}
+                      onChange={(e) => setAmount(parseFloat(e.target.value) || null)}
+                      required
+                    />
+                  </div>
+                  
+                  <Button type="submit" className="w-full">
+                    Confirm Payment
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
           
           <TabsContent value="credit-card" className="space-y-4">
             <Card>
@@ -156,81 +215,6 @@ const UserPaymentOptions = () => {
                   <Button type="submit" className="w-full">
                     <CreditCard className="h-4 w-4 mr-2" />
                     Pay Now
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="wish-money" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pay with Wish Money</CardTitle>
-                <CardDescription>
-                  Send your payment to our Wish Money account and we'll credit your balance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-primary/5 p-4 rounded-md mb-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Wish Money Account Number:</p>
-                      <p className="text-xl font-bold">{wishMoneyAccount}</p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleCopyAccount}
-                    >
-                      {copied ? (
-                        <Check className="h-4 w-4 mr-2" />
-                      ) : (
-                        <Copy className="h-4 w-4 mr-2" />
-                      )}
-                      {copied ? "Copied" : "Copy"}
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-2 mb-6 p-3 bg-amber-50 text-amber-800 rounded-md">
-                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium">Important:</p>
-                    <p>Include your registered username in the payment notes so we can identify your payment.</p>
-                  </div>
-                </div>
-                
-                <form onSubmit={handleWishMoneySubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="wm-amount">Amount You Sent</Label>
-                    <Input
-                      id="wm-amount"
-                      type="number"
-                      placeholder="Enter amount"
-                      min="10"
-                      step="0.01"
-                      value={amount || ''}
-                      onChange={(e) => setAmount(parseFloat(e.target.value) || null)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="wm-notes">
-                      Transaction Details (Include date, time, and transaction ID if available)
-                    </Label>
-                    <Textarea
-                      id="wm-notes"
-                      placeholder="I sent $50 on June 15, 2023 at 3:45 PM. Transaction ID: WM12345"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="min-h-[100px]"
-                      required
-                    />
-                  </div>
-                  
-                  <Button type="submit" className="w-full">
-                    Confirm Payment
                   </Button>
                 </form>
               </CardContent>
