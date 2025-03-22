@@ -4,6 +4,7 @@ import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import SalesFilters from './SalesFilters';
 import OrdersTable from './OrdersTable';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PurchaseHistoryProps {
   filteredOrders: WholesaleOrder[];
@@ -26,10 +27,12 @@ const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({
   filterPeriod,
   setFilterPeriod
 }) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden mt-2">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-medium">Purchase History</h2>
+      <div className="p-3 sm:p-4 border-b">
+        <h2 className="text-base sm:text-lg font-medium">Purchase History</h2>
       </div>
       
       <SalesFilters
@@ -40,6 +43,7 @@ const PurchaseHistory: React.FC<PurchaseHistoryProps> = ({
         filterPeriod={filterPeriod}
         setFilterPeriod={setFilterPeriod}
         customers={customers}
+        isMobile={isMobile}
       />
       
       <OrdersTable 

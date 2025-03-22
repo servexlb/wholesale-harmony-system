@@ -13,6 +13,7 @@ interface SalesFiltersProps {
   filterPeriod: string;
   setFilterPeriod: (value: string) => void;
   customers: Customer[];
+  isMobile?: boolean;
 }
 
 const SalesFilters: React.FC<SalesFiltersProps> = ({
@@ -22,10 +23,11 @@ const SalesFilters: React.FC<SalesFiltersProps> = ({
   setFilterCustomer,
   filterPeriod,
   setFilterPeriod,
-  customers
+  customers,
+  isMobile = false
 }) => {
   return (
-    <div className="p-4 border-b grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    <div className={`p-3 sm:p-4 border-b grid grid-cols-1 ${isMobile ? 'gap-3' : 'sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4'}`}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input

@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { MenuIcon } from 'lucide-react';
+import { MenuIcon, X } from 'lucide-react';
 import { products, customers } from '@/lib/data';
 import { WholesaleOrder, Subscription } from '@/lib/types';
 import { useLocation } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import the components
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
@@ -71,6 +73,7 @@ const Wholesale = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
   const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const wholesalerCustomers = useMemo(() => {
     if (!currentWholesaler) return [];
@@ -92,7 +95,25 @@ const Wholesale = () => {
       setIsAuthenticated(true);
       setCurrentWholesaler(wholesalerId);
     }
-  }, []);
+    
+    // Close sidebar on mobile by default
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+    
+    // Event listener for closing sidebar from child components
+    const handleCloseSidebar = () => {
+      if (isMobile) {
+        setSidebarOpen(false);
+      }
+    };
+    
+    window.addEventListener('closeSidebar', handleCloseSidebar);
+    
+    return () => {
+      window.removeEventListener('closeSidebar', handleCloseSidebar);
+    };
+  }, [isMobile]);
 
   const handleOrderPlaced = useCallback((order: WholesaleOrder) => {
     setOrders(prev => {
@@ -157,12 +178,12 @@ const Wholesale = () => {
             className="h-12 w-12 rounded-full shadow-md"
             onClick={toggleSidebar}
           >
-            <MenuIcon className="h-6 w-6" />
+            {sidebarOpen ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
           </Button>
         </div>
 
         <motion.main
-          className={`flex-1 p-6 pt-8 transition-all duration-300 ${sidebarOpen ? 'md:ml-[250px]' : ''}`}
+          className={`flex-1 p-4 sm:p-6 pt-6 sm:pt-8 transition-all duration-300 ${sidebarOpen && !isMobile ? 'md:ml-[250px]' : ''}`}
           initial={false}
           layout
         >

@@ -33,8 +33,8 @@ const StatsCard: React.FC<StatsCardProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="flex items-center space-x-2">
+        <div className="text-xl sm:text-2xl font-bold">{value}</div>
+        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
           <p className="text-xs text-muted-foreground">
             {description}
           </p>
