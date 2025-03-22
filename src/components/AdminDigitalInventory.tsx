@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart } from "lucide-react";
+import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -77,6 +77,8 @@ const AdminDigitalInventory: React.FC = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showProductSelector, setShowProductSelector] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   
   const { toast } = useToast();
 
@@ -127,11 +129,26 @@ const AdminDigitalInventory: React.FC = () => {
     
     const combinedProducts = [...formattedDataProducts, ...servicesAsProducts];
     setAllProducts(combinedProducts);
+    setFilteredProducts(combinedProducts);
     
     console.log("Total products loaded:", combinedProducts.length);
     console.log("Data products:", formattedDataProducts.length);
     console.log("Service products:", servicesAsProducts.length);
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredProducts(allProducts);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = allProducts.filter(product => 
+        product.name.toLowerCase().includes(query) || 
+        product.description.toLowerCase().includes(query) ||
+        product.category.toLowerCase().includes(query)
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchQuery, allProducts]);
 
   const handleAddItem = () => {
     if (!selectedService || !newCredentials.email || !newCredentials.password) {
@@ -252,6 +269,14 @@ const AdminDigitalInventory: React.FC = () => {
     setShowProductSelector(false);
   };
 
+  const handleSelectAll = () => {
+    if (selectedProducts.length === filteredProducts.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(filteredProducts.map(product => product.id));
+    }
+  };
+
   const availableCount = inventory.filter(item => item.status === "available").length;
   const deliveredCount = inventory.filter(item => item.status === "delivered").length;
 
@@ -275,47 +300,75 @@ const AdminDigitalInventory: React.FC = () => {
                 </SheetDescription>
               </SheetHeader>
               <div className="my-4">
-                <Input
-                  placeholder="Search products..."
-                  className="mb-4"
-                  onChange={(e) => {
-                    // Search functionality can be added here
-                  }}
-                />
+                <div className="relative mb-4">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredProducts.length} of {allProducts.length} products
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSelectAll}
+                  >
+                    {selectedProducts.length === filteredProducts.length ? "Deselect All" : "Select All"}
+                  </Button>
+                </div>
+                
                 <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-4">
-                  {allProducts.map((product) => (
-                    <div key={product.id} className="flex items-center space-x-2 border-b pb-2">
-                      <Checkbox
-                        id={`product-${product.id}`}
-                        checked={selectedProducts.includes(product.id)}
-                        onCheckedChange={() => handleAddToInventory(product.id)}
-                      />
-                      <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
-                        <img 
-                          src={product.image} 
-                          alt={product.name}
-                          className="w-10 h-10 object-cover rounded"
+                  {filteredProducts.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No products found matching your search.
+                    </div>
+                  ) : (
+                    filteredProducts.map((product) => (
+                      <div key={product.id} className="flex items-center space-x-2 border-b pb-2">
+                        <Checkbox
+                          id={`product-${product.id}`}
+                          checked={selectedProducts.includes(product.id)}
+                          onCheckedChange={() => handleAddToInventory(product.id)}
                         />
-                        <div>
-                          <Label
-                            htmlFor={`product-${product.id}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {product.name}
-                          </Label>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ${product.price.toFixed(2)}
-                          </p>
+                        <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
+                          <img 
+                            src={product.image || "https://placehold.co/40x40/gray/white?text=No+Image"} 
+                            alt={product.name}
+                            className="w-10 h-10 object-cover rounded"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "https://placehold.co/40x40/gray/white?text=Error";
+                            }}
+                          />
+                          <div>
+                            <Label
+                              htmlFor={`product-${product.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {product.name}
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ${product.price.toFixed(2)} - {product.category}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <Button
                   variant="outline"
-                  onClick={() => setShowProductSelector(false)}
+                  onClick={() => {
+                    setShowProductSelector(false);
+                    setSearchQuery("");
+                  }}
                 >
                   Cancel
                 </Button>
