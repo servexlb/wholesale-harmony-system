@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, AlertCircle, LogIn } from "lucide-react";
+import { Mail, Lock, AlertCircle, LogIn, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [googleInfo, setGoogleInfo] = useState<string | null>(null);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,13 +57,8 @@ const Login: React.FC = () => {
   };
 
   const handleGoogleSignIn = () => {
-    setIsLoading(true);
-    // In a real app, this would trigger Google OAuth
-    setTimeout(() => {
-      toast.success("Google sign-in successful!");
-      navigate("/dashboard");
-      setIsLoading(false);
-    }, 1000);
+    setGoogleInfo("In a real application, this would open Google OAuth. This is currently a mock implementation.");
+    // Don't automatically sign in
   };
   
   return (
@@ -85,6 +81,13 @@ const Login: React.FC = () => {
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {googleInfo && (
+            <Alert className="mb-6">
+              <Info className="h-4 w-4" />
+              <AlertDescription>{googleInfo}</AlertDescription>
             </Alert>
           )}
           

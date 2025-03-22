@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Check, User, Mail, Phone, Lock } from "lucide-react";
+import { Eye, EyeOff, Check, User, Mail, Phone, Lock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "@/hooks/use-toast";
 import MainLayout from "@/components/MainLayout";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Register: React.FC = () => {
     confirmPassword: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [googleInfo, setGoogleInfo] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -55,16 +57,8 @@ const Register: React.FC = () => {
   };
 
   const handleGoogleSignUp = () => {
-    setIsSubmitting(true);
-    // In a real app, this would trigger Google OAuth
-    setTimeout(() => {
-      toast({
-        title: "Success!",
-        description: "Your Google account has been connected.",
-      });
-      navigate("/dashboard");
-      setIsSubmitting(false);
-    }, 1000);
+    setGoogleInfo("In a real application, this would open Google OAuth. This is currently a mock implementation.");
+    // Don't automatically sign in
   };
 
   return (
@@ -83,6 +77,13 @@ const Register: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {googleInfo && (
+              <Alert className="mb-2">
+                <Info className="h-4 w-4" />
+                <AlertDescription>{googleInfo}</AlertDescription>
+              </Alert>
+            )}
+            
             <Button 
               variant="outline" 
               className="w-full" 
