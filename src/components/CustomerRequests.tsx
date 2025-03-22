@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -36,6 +35,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toast } from "@/lib/toast";
+import ExportData from "@/components/wholesale/ExportData";
 
 interface CustomerRequest {
   id: string;
@@ -58,7 +58,6 @@ const CustomerRequests: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   useEffect(() => {
-    // Load customer requests from localStorage
     const loadedRequests = JSON.parse(localStorage.getItem('customerRequests') || '[]');
     setRequests(loadedRequests);
   }, []);
@@ -109,13 +108,34 @@ const CustomerRequests: React.FC = () => {
     }
   };
 
+  const exportData = requests.map(req => ({
+    ID: req.id,
+    Date: format(new Date(req.timestamp), 'PPP'),
+    Customer: req.customerName,
+    Email: req.customerEmail,
+    Phone: req.customerPhone || 'N/A',
+    Service: req.serviceName,
+    Amount: `$${req.total.toFixed(2)}`,
+    Status: req.status,
+    GameAccountID: req.gameAccountId || 'N/A',
+    RechargeAmount: req.amount || 'N/A',
+    AdditionalInfo: req.additionalInfo || 'N/A'
+  }));
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Customer Requests</CardTitle>
-        <CardDescription>
-          Manage and process customer information and service requests
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Customer Requests</CardTitle>
+          <CardDescription>
+            Manage and process customer information and service requests
+          </CardDescription>
+        </div>
+        <ExportData 
+          data={exportData} 
+          filename="customer-requests" 
+          disabled={requests.length === 0}
+        />
       </CardHeader>
       <CardContent>
         {requests.length === 0 ? (
@@ -160,7 +180,6 @@ const CustomerRequests: React.FC = () => {
           </Table>
         )}
         
-        {/* Details Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           {selectedRequest && (
             <DialogContent className="max-w-md">

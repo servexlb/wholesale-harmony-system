@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
+import ExportData from "@/components/wholesale/ExportData";
 
 interface WholesaleUser {
   id: string;
@@ -58,14 +59,28 @@ const WholesaleUserManagement = () => {
     ));
   };
 
+  // Prepare data for export (without passwords)
+  const exportData = wholesaleUsers.map(user => ({
+    ID: user.id,
+    Username: user.username,
+    Company: user.company || 'N/A'
+  }));
+
   return (
     <>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">Wholesale User Management</h3>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add Wholesale User
-        </Button>
+        <div className="flex gap-2">
+          <ExportData 
+            data={exportData} 
+            filename="wholesale-users" 
+            disabled={wholesaleUsers.length === 0}
+          />
+          <Button onClick={() => setShowAddForm(!showAddForm)}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Wholesale User
+          </Button>
+        </div>
       </div>
       
       {showAddForm && (

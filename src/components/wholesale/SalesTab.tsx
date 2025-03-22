@@ -7,6 +7,7 @@ import SalesCalculator from '@/components/SalesCalculator';
 import SalesHeader from './sales/SalesHeader';
 import SalesSummary from './sales/SalesSummary';
 import PurchaseHistory from './sales/PurchaseHistory';
+import ExportData from './ExportData';
 
 interface SalesTabProps {
   orders?: WholesaleOrder[];
@@ -58,6 +59,24 @@ const SalesTab: React.FC<SalesTabProps> = ({
   const totalSales = useMemo(() => {
     return filteredOrders.reduce((total, order) => total + order.totalPrice, 0);
   }, [filteredOrders]);
+
+  // Prepare export data with more readable format
+  const exportData = useMemo(() => {
+    return filteredOrders.map(order => {
+      const product = products.find(p => p.id === order.serviceId);
+      const customer = customers.find(c => c.id === order.customerId);
+      
+      return {
+        OrderID: order.id,
+        Date: new Date(order.createdAt).toLocaleString(),
+        Customer: customer?.name || 'Unknown',
+        Product: product?.name || 'Unknown',
+        Quantity: order.quantity || 1,
+        Price: `$${order.totalPrice.toFixed(2)}`,
+        Status: order.status || 'Completed'
+      };
+    });
+  }, [filteredOrders, customers]);
   
   return (
     <motion.div
@@ -66,7 +85,10 @@ const SalesTab: React.FC<SalesTabProps> = ({
       transition={{ duration: 0.5 }}
       className="flex flex-col space-y-5"
     >
-      <SalesHeader />
+      <div className="flex justify-between items-center">
+        <SalesHeader />
+        <ExportData data={exportData} filename="wholesale-sales" />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Sales Calculator Component */}
