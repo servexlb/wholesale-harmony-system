@@ -7,6 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Shield, KeyRound, EyeOff, Eye } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const SecuritySettings: React.FC = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -57,6 +68,16 @@ const SecuritySettings: React.FC = () => {
     toast.success(twoFactorEnabled 
       ? "Two-factor authentication disabled" 
       : "Two-factor authentication enabled");
+  };
+
+  const handleDeleteAccount = () => {
+    // In a real app, this would call an API to delete the account
+    toast.success("Account deleted successfully");
+    
+    // In a real app, this would redirect to the home page after a short delay
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 2000);
   };
 
   return (
@@ -152,7 +173,7 @@ const SecuritySettings: React.FC = () => {
           </div>
           
           <Button type="submit" className="w-full">
-            <KeyRound className="mr-2 h-4 w-4" />
+            <KeyRound className="h-4 w-4" />
             Update Password
           </Button>
         </form>
@@ -171,6 +192,41 @@ const SecuritySettings: React.FC = () => {
           >
             {twoFactorEnabled ? "Disable" : "Enable"} Two-Factor Authentication
           </Button>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-lg font-medium">Delete Account</h3>
+          <Alert className="bg-destructive/10 text-destructive border-destructive/20">
+            <AlertDescription>
+              This action is irreversible. All your data will be permanently deleted.
+            </AlertDescription>
+          </Alert>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="w-full">
+                Delete Account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your account
+                  and remove all your data from our servers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete Account
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

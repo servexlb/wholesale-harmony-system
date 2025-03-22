@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell } from "lucide-react";
+import { Bell, Save } from "lucide-react";
 import { toast } from "@/lib/toast";
 
 const NotificationPreferences: React.FC = () => {
@@ -14,18 +14,38 @@ const NotificationPreferences: React.FC = () => {
     orderUpdates: true,
     serviceAnnouncements: true,
   });
+  
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('notificationPreferences');
+    if (savedPreferences) {
+      try {
+        const parsedPreferences = JSON.parse(savedPreferences);
+        setPreferences(parsedPreferences);
+      } catch (error) {
+        console.error("Error parsing saved preferences:", error);
+      }
+    }
+  }, []);
 
   const handlePreferenceChange = (key: keyof typeof preferences) => {
-    setPreferences((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setPreferences((prev) => {
+      const newPreferences = {
+        ...prev,
+        [key]: !prev[key],
+      };
+      setHasChanges(true);
+      return newPreferences;
+    });
   };
 
   const handleSavePreferences = () => {
     // Save to localStorage for demo purposes
     localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
     toast.success("Notification preferences saved successfully");
+    setHasChanges(false);
   };
 
   return (
@@ -99,7 +119,12 @@ const NotificationPreferences: React.FC = () => {
           </div>
         </div>
         
-        <Button onClick={handleSavePreferences} className="w-full mt-4">
+        <Button 
+          onClick={handleSavePreferences} 
+          className="w-full mt-4"
+          disabled={!hasChanges}
+        >
+          <Save className="h-4 w-4 mr-2" />
           Save Notification Preferences
         </Button>
       </CardContent>
