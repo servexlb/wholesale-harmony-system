@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductCard from '@/components/ProductCard';
 import CustomerTable from '@/components/CustomerTable';
 import SalesCalculator from '@/components/SalesCalculator';
-import { products } from '@/lib/data';
-import { WholesaleOrder } from '@/lib/types';
+import { products, customers } from '@/lib/data';
+import { WholesaleOrder, Subscription } from '@/lib/types';
 import { 
   HomeIcon, 
   Users, 
@@ -23,15 +23,83 @@ import {
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 
+// Mock data for subscriptions
+const mockSubscriptions: Subscription[] = [
+  {
+    id: 'sub-1',
+    userId: customers[0].id,
+    serviceId: products[0].id,
+    startDate: '2023-08-01T00:00:00Z',
+    endDate: new Date(Date.now() + 86400000 * 10).toISOString(), // 10 days from now
+    status: 'active',
+    credentials: {
+      email: 'customer1@example.com',
+      password: 'password123'
+    }
+  },
+  {
+    id: 'sub-2',
+    userId: customers[0].id,
+    serviceId: products[1].id,
+    startDate: '2023-09-15T00:00:00Z',
+    endDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 days from now
+    status: 'active',
+    credentials: {
+      email: 'service2@example.com',
+      password: 'password456'
+    }
+  },
+  {
+    id: 'sub-3',
+    userId: customers[1].id,
+    serviceId: products[2].id,
+    startDate: '2023-10-10T00:00:00Z',
+    endDate: new Date().toISOString(), // Today
+    status: 'active',
+    credentials: {
+      email: 'service3@example.com',
+      password: 'password789'
+    }
+  },
+  {
+    id: 'sub-4',
+    userId: customers[2].id,
+    serviceId: products[0].id,
+    startDate: '2023-07-20T00:00:00Z',
+    endDate: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
+    status: 'expired',
+    credentials: {
+      email: 'expired@example.com',
+      password: 'password999'
+    }
+  }
+];
+
 const Wholesale = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
   const location = useLocation();
 
   const handleOrderPlaced = (order: WholesaleOrder) => {
     setOrders(prev => [order, ...prev]);
+    
+    // If order includes credentials, create a new subscription
+    if (order.credentials) {
+      const newSubscription: Subscription = {
+        id: `sub-${Date.now()}`,
+        userId: order.customerId,
+        serviceId: order.serviceId,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 86400000 * 30).toISOString(), // 30 days from now
+        status: 'active',
+        credentials: order.credentials
+      };
+      
+      setSubscriptions(prev => [...prev, newSubscription]);
+    }
   };
 
   const handleLogout = () => {
@@ -170,7 +238,11 @@ const Wholesale = () => {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl font-bold mb-8">New Wholesale Order</h1>
-                <WholesaleOrderForm products={products} onOrderPlaced={handleOrderPlaced} />
+                <WholesaleOrderForm 
+                  products={products} 
+                  onOrderPlaced={handleOrderPlaced}
+                  subscriptions={subscriptions}
+                />
                 
                 {orders.length > 0 && (
                   <div className="mt-8">
@@ -185,15 +257,17 @@ const Wholesale = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credentials</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {orders.map((order) => {
                             const product = products.find(p => p.id === order.serviceId);
+                            const customer = customers.find(c => c.id === order.customerId);
                             return (
                               <tr key={order.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.customerId}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer?.name || 'Unknown'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product?.name || 'Unknown'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.quantity}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.totalPrice.toFixed(2)}</td>
@@ -201,6 +275,13 @@ const Wholesale = () => {
                                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                     {order.status}
                                   </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {order.credentials ? (
+                                    <span className="text-green-600">✓ Provided</span>
+                                  ) : (
+                                    <span className="text-gray-400">None</span>
+                                  )}
                                 </td>
                               </tr>
                             );

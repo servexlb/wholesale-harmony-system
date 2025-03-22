@@ -32,13 +32,18 @@ import {
 } from '@/components/ui/form';
 import { WholesaleOrder } from '@/lib/types';
 import { Product, Customer, customers } from '@/lib/data';
-import { Plus } from 'lucide-react';
+import { Plus, User, ChevronDown } from 'lucide-react';
+import CustomerSubscriptions from './CustomerSubscriptions';
 
 // Form validation schema
 const formSchema = z.object({
   productId: z.string({ required_error: "Please select a product" }),
   customerId: z.string({ required_error: "Please select a customer" }),
   quantity: z.number().min(1, "Quantity must be at least 1"),
+  credentials: z.object({
+    email: z.string().email("Please enter a valid email").optional(),
+    password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  }).optional(),
 });
 
 // New customer form schema
@@ -55,14 +60,19 @@ type NewCustomerFormValues = z.infer<typeof newCustomerSchema>;
 interface WholesaleOrderFormProps {
   products: Product[];
   onOrderPlaced: (order: WholesaleOrder) => void;
+  subscriptions?: any[]; // Mock subscriptions for demo
 }
 
 const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
   products,
   onOrderPlaced,
+  subscriptions = []
 }) => {
   const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   const [customersList, setCustomersList] = useState<Customer[]>(customers);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [includeCredentials, setIncludeCredentials] = useState(false);
 
   // Main form
   const form = useForm<FormValues>({
@@ -98,8 +108,17 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       createdAt: new Date().toISOString(),
     };
 
+    // Add credentials if provided
+    if (includeCredentials && values.credentials) {
+      newOrder.credentials = {
+        email: values.credentials.email || '',
+        password: values.credentials.password || '',
+      };
+    }
+
     onOrderPlaced(newOrder);
     form.reset();
+    setIncludeCredentials(false);
     toast.success(`Order placed for ${customersList.find(c => c.id === values.customerId)?.name}`);
   };
 
@@ -115,13 +134,28 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
 
     setCustomersList(prev => [...prev, newCustomer]);
     form.setValue('customerId', newCustomer.id);
+    setSelectedCustomerId(newCustomer.id);
     setIsNewCustomerDialogOpen(false);
     newCustomerForm.reset();
     toast.success(`New customer ${data.name} added`);
   };
 
+  const handleCustomerChange = (customerId: string) => {
+    form.setValue('customerId', customerId);
+    setSelectedCustomerId(customerId);
+    setShowSubscriptions(false); // Reset subscriptions view when customer changes
+  };
+
+  const toggleSubscriptions = () => {
+    setShowSubscriptions(!showSubscriptions);
+  };
+
   const selectedProduct = form.watch('productId') 
     ? products.find(p => p.id === form.watch('productId')) 
+    : null;
+
+  const selectedCustomer = selectedCustomerId
+    ? customersList.find(c => c.id === selectedCustomerId)
     : null;
 
   return (
@@ -132,41 +166,16 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="productId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} - ${product.wholesalePrice.toFixed(2)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="customerId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Customer</FormLabel>
                 <div className="flex gap-2">
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleCustomerChange(value);
+                    }}
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -177,7 +186,11 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
                     <SelectContent>
                       {customersList.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} - {customer.company || "Individual"}
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span>{customer.name}</span>
+                            <span className="text-xs text-muted-foreground">{customer.company || ""}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -270,6 +283,67 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
             )}
           />
 
+          {selectedCustomer && (
+            <div className="bg-muted/40 p-3 rounded-md mb-4">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2 items-center">
+                  <User className="h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="font-medium">{selectedCustomer.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+                  </div>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={toggleSubscriptions}
+                  className="flex items-center gap-1"
+                >
+                  <span>Subscriptions</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showSubscriptions ? 'transform rotate-180' : ''}`} />
+                </Button>
+              </div>
+
+              {showSubscriptions && (
+                <div className="mt-4">
+                  <CustomerSubscriptions 
+                    subscriptions={subscriptions} 
+                    customerId={selectedCustomerId || ''}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <FormField
+            control={form.control}
+            name="productId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Product</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a product" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {products.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} - ${product.wholesalePrice.toFixed(2)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="quantity"
@@ -288,6 +362,53 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
               </FormItem>
             )}
           />
+
+          <div className="flex items-center space-x-2 my-4">
+            <input
+              type="checkbox"
+              id="includeCredentials"
+              checked={includeCredentials}
+              onChange={() => setIncludeCredentials(!includeCredentials)}
+              className="rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor="includeCredentials" className="text-sm font-medium">
+              Include credentials for this order
+            </label>
+          </div>
+
+          {includeCredentials && (
+            <div className="p-4 border rounded-md border-muted space-y-4">
+              <h3 className="text-sm font-medium">Service Credentials</h3>
+              
+              <FormField
+                control={form.control}
+                name="credentials.email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email/Username</FormLabel>
+                    <FormControl>
+                      <Input placeholder="service@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="credentials.password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
 
           {selectedProduct && (
             <div className="mt-4 p-4 bg-muted/40 rounded-md">
