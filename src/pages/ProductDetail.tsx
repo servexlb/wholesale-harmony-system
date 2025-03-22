@@ -68,6 +68,17 @@ const ProductDetail = () => {
     );
   }
   
+  const isSubscription = product.type === 'subscription';
+  const isGiftCard = product.type === 'giftcard';
+
+  const getQuantityLabel = () => {
+    if (isSubscription) {
+      return quantity === 1 ? 'Month' : 'Months';
+    } else {
+      return 'Quantity';
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -83,7 +94,6 @@ const ProductDetail = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 bg-white p-8 rounded-lg shadow-sm">
-          {/* Product Image */}
           <motion.div 
             className="relative overflow-hidden rounded-lg bg-muted aspect-square"
             initial={{ opacity: 0, x: -20 }}
@@ -99,7 +109,6 @@ const ProductDetail = () => {
             />
           </motion.div>
           
-          {/* Product Details */}
           <motion.div
             className="flex flex-col"
             initial={{ opacity: 0, x: 20 }}
@@ -116,6 +125,7 @@ const ProductDetail = () => {
             
             <div className="mt-2 mb-6">
               <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
+              {isSubscription && <span className="text-sm text-muted-foreground ml-1">/month</span>}
             </div>
             
             <div className="prose prose-sm mb-8 text-muted-foreground">
@@ -140,7 +150,14 @@ const ProductDetail = () => {
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
+                <span className="ml-2 text-sm text-muted-foreground">{getQuantityLabel()}</span>
               </div>
+              
+              {isSubscription && (
+                <div className="text-sm text-muted-foreground">
+                  Duration: {quantity} {quantity === 1 ? 'month' : 'months'}
+                </div>
+              )}
               
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
@@ -168,11 +185,9 @@ const ProductDetail = () => {
           </motion.div>
         </div>
         
-        {/* Related Products */}
         <section className="my-20">
           <h2 className="text-2xl font-semibold mb-6">You May Also Like</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {/* We would show related products here, just showing the first 3 for now */}
             {products.filter(p => p.id !== product.id).slice(0, 3).map(relatedProduct => (
               <div key={relatedProduct.id} className="group relative overflow-hidden rounded-lg bg-white shadow-sm hover-lift">
                 <Link to={`/products/${relatedProduct.id}`}>
@@ -197,7 +212,6 @@ const ProductDetail = () => {
         </section>
       </main>
       
-      {/* Footer */}
       <footer className="bg-white border-t">
         <div className="container mx-auto max-w-7xl px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

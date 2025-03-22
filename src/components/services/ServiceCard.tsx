@@ -44,6 +44,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   
   const isSubscription = service.type === "subscription";
   
+  // Get appropriate quantity label
+  const getQuantityLabel = () => {
+    if (isSubscription) {
+      return "Months";
+    } else {
+      return "Quantity";
+    }
+  };
+  
   // Generate a more specific image URL for each service type
   const getImageUrl = (serviceName: string) => {
     const name = serviceName.toLowerCase();
@@ -206,7 +215,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             </div>
             <div className="flex items-center">
               <Tag className="h-4 w-4 mr-1" />
-              ${service.price.toFixed(2)}
+              ${service.price.toFixed(2)} {isSubscription ? '/month' : ''}
             </div>
             {service.type === "subscription" && service.availableMonths && service.availableMonths.length > 0 && (
               <div className="flex items-center">
@@ -246,7 +255,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
           <div className="py-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Base Price:</span>
-              <span className="font-bold">${service.price.toFixed(2)}</span>
+              <span className="font-bold">${service.price.toFixed(2)} {isSubscription ? '/month' : ''}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Service:</span>
@@ -282,7 +291,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             
             {!isSubscription && (
               <div className="flex justify-between items-center mb-4">
-                <span className="font-medium">Quantity:</span>
+                <span className="font-medium">{getQuantityLabel()}:</span>
                 <div className="flex items-center">
                   <Button 
                     type="button" 
@@ -322,6 +331,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Recharge Type:</span>
                 <span>Standard Amount</span>
+              </div>
+            )}
+            
+            {isSubscription && (
+              <div className="flex justify-between items-center mt-2">
+                <span className="font-medium">Subscription Duration:</span>
+                <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
               </div>
             )}
             
