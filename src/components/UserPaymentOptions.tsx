@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,17 +21,27 @@ const UserPaymentOptions = () => {
   const [notes, setNotes] = useState("");
   const [copied, setCopied] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
   
-  const userId = localStorage.getItem('wholesalerUsername') || 'guest';
+  // Get current user ID (check for both customer and wholesaler)
+  const customerId = localStorage.getItem('currentUserId');
+  const wholesalerId = localStorage.getItem('wholesalerId');
+  const userId = wholesalerId || customerId || 'guest';
   
   useEffect(() => {
-    const customer = getCustomerById(userId);
-    if (customer) {
-      setUserBalance(customer.balance);
-    } else {
-      setUserBalance(0);
+    // Load user balance from localStorage
+    let balance = 0;
+    
+    if (wholesalerId) {
+      const balanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
+      balance = balanceStr ? parseFloat(balanceStr) : 0;
+    } else if (customerId) {
+      const customer = getCustomerById(customerId);
+      balance = customer?.balance || 0;
     }
-  }, [userId]);
+    
+    setUserBalance(balance);
+  }, [customerId, wholesalerId]);
   
   const wishMoneyAccount = "76349522";
   
@@ -40,44 +51,96 @@ const UserPaymentOptions = () => {
     setTimeout(() => setCopied(false), 2000);
   };
   
+  const updateUserBalance = (newAmount: number) => {
+    const newBalance = userBalance + newAmount;
+    
+    // Update balance in localStorage
+    if (wholesalerId) {
+      localStorage.setItem(`userBalance_${wholesalerId}`, newBalance.toString());
+    } else if (customerId) {
+      // For regular customers, update through the data function
+      addCustomerBalance(customerId, newAmount);
+    }
+    
+    setUserBalance(newBalance);
+  };
+  
   const handleCreditCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
     
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount");
+      setIsProcessing(false);
       return;
     }
     
-    addCustomerBalance(userId, amount);
-    
-    setUserBalance(prev => prev + amount);
-    
-    toast.success(`Payment of $${amount.toFixed(2)} is being processed. Your balance will be updated after verification.`);
-    resetForm();
+    // Simulate processing time
+    setTimeout(() => {
+      updateUserBalance(amount);
+      
+      toast.success(`Payment of $${amount.toFixed(2)} processed successfully!`, {
+        description: "Your balance has been updated."
+      });
+      
+      resetForm();
+      setIsProcessing(false);
+      
+      // Redirect back to dashboard after successful payment
+      setTimeout(() => navigate("/dashboard"), 1500);
+    }, 1500);
   };
   
   const handleWishMoneySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
     
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount");
+      setIsProcessing(false);
       return;
     }
     
-    toast.success("Wish Money payment recorded. Your balance will be updated after verification.");
-    resetForm();
+    // Simulate processing time
+    setTimeout(() => {
+      updateUserBalance(amount);
+      
+      toast.success("Wish Money payment processed successfully!", {
+        description: "Your balance has been updated."
+      });
+      
+      resetForm();
+      setIsProcessing(false);
+      
+      // Redirect back to dashboard after successful payment
+      setTimeout(() => navigate("/dashboard"), 1500);
+    }, 1500);
   };
   
   const handleBinancePaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
     
     if (!amount || amount <= 0) {
       toast.error("Please enter a valid amount");
+      setIsProcessing(false);
       return;
     }
     
-    toast.success("Binance Pay transaction initiated. Your balance will be updated after confirmation.");
-    resetForm();
+    // Simulate processing time
+    setTimeout(() => {
+      updateUserBalance(amount);
+      
+      toast.success("Binance Pay transaction processed successfully!", { 
+        description: "Your balance has been updated."
+      });
+      
+      resetForm();
+      setIsProcessing(false);
+      
+      // Redirect back to dashboard after successful payment
+      setTimeout(() => navigate("/dashboard"), 1500);
+    }, 1500);
   };
   
   const resetForm = () => {

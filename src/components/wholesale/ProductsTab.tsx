@@ -15,34 +15,51 @@ interface ProductsTabProps {
 
 const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialog }) => {
   const [allItems, setAllItems] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Convert services to the Product format expected by ProductCard
-    const servicesAsProducts: Product[] = services.map(service => ({
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
-      image: service.image,
-      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      featured: service.featured || false,
-      type: service.type || 'service',
-      deliveryTime: service.deliveryTime || "",
-      apiUrl: service.apiUrl,
-      availableMonths: service.availableMonths,
-      value: service.value,
-    }));
+    // Set loading state
+    setIsLoading(true);
     
-    // Combine products and services
-    console.log("Products count:", products.length);
-    console.log("Services count:", servicesAsProducts.length);
-    setAllItems([...products, ...servicesAsProducts]);
+    try {
+      // Convert services to the Product format expected by ProductCard
+      const servicesAsProducts: Product[] = services.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        price: service.price,
+        wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
+        image: service.image || '/placeholder.svg', // Fallback image
+        category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+        featured: service.featured || false,
+        type: service.type || 'service',
+        deliveryTime: service.deliveryTime || "",
+        apiUrl: service.apiUrl,
+        availableMonths: service.availableMonths,
+        value: service.value,
+      }));
+      
+      // Clone the products array to avoid mutation issues
+      const productsCopy = [...products];
+      
+      // Combine both product lists
+      console.log("Products count:", productsCopy.length);
+      console.log("Services count:", servicesAsProducts.length);
+      console.log("Product IDs:", productsCopy.map(p => p.id).join(', '));
+      console.log("Service IDs:", servicesAsProducts.map(s => s.id).join(', '));
+      
+      // Set the combined list
+      setAllItems([...productsCopy, ...servicesAsProducts]);
+    } catch (error) {
+      console.error("Error processing products and services:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [products]);
   
   // Handler for when a product is clicked
   const handleProductClick = useCallback((product: Product) => {
-    console.log("Product clicked:", product.name);
+    console.log("Product clicked:", product.name, product.id);
     onOpenPurchaseDialog();
   }, [onOpenPurchaseDialog]);
   
@@ -65,30 +82,38 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
         <p>Showing {allItems.length} items ({products.length} products and {allItems.length - products.length} services)</p>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {allItems.map((product) => (
-          <div 
-            key={product.id} 
-            className="cursor-pointer h-full" 
-            onClick={() => handleProductClick(product)}
-            style={{ display: 'block', height: '100%' }}
-          >
-            <ProductCard 
-              product={product} 
-              isWholesale={true}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((_, index) => (
+            <div key={index} className="h-[300px] bg-gray-100 animate-pulse rounded-lg"></div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {allItems.map((product) => (
+            <div 
+              key={product.id} 
+              className="cursor-pointer h-full" 
               onClick={() => handleProductClick(product)}
-            />
-          </div>
-        ))}
-        
-        {allItems.length === 0 && (
-          <div className="col-span-3 text-center py-10">
-            <p className="text-gray-500">No products or services found.</p>
-          </div>
-        )}
-      </div>
+              style={{ display: 'block', height: '100%' }}
+            >
+              <ProductCard 
+                product={product} 
+                isWholesale={true}
+                onClick={() => handleProductClick(product)}
+              />
+            </div>
+          ))}
+          
+          {allItems.length === 0 && (
+            <div className="col-span-3 text-center py-10">
+              <p className="text-gray-500">No products or services found.</p>
+            </div>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 };
 
-export default React.memo(ProductsTab);
+export default ProductsTab;
