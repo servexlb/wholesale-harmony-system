@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, HomeIcon, Users, LineChart, Package, Settings, ShoppingCart, Layers } from 'lucide-react';
+import { LogOut, HomeIcon, Users, LineChart, Package, Settings, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarLink from './SidebarLink';
 
@@ -30,24 +30,10 @@ const WholesaleSidebar: React.FC<WholesaleSidebarProps> = ({
         <nav className="space-y-1">
           <SidebarLink 
             href="#" 
-            icon={<HomeIcon className="h-5 w-5" />} 
-            label="Dashboard" 
-            active={activeTab === 'dashboard'} 
-            onClick={() => setActiveTab('dashboard')} 
-          />
-          <SidebarLink 
-            href="#" 
             icon={<Package className="h-5 w-5" />} 
             label="Products" 
             active={activeTab === 'products'} 
             onClick={() => setActiveTab('products')} 
-          />
-          <SidebarLink 
-            href="#" 
-            icon={<ShoppingCart className="h-5 w-5" />} 
-            label="New Order" 
-            active={activeTab === 'new-order'} 
-            onClick={() => setActiveTab('new-order')} 
           />
           <SidebarLink 
             href="#" 

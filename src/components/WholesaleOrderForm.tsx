@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +34,16 @@ import { Product, Customer, customers as allCustomers } from '@/lib/data';
 import { Plus, User, ChevronDown } from 'lucide-react';
 import CustomerSubscriptions from './CustomerSubscriptions';
 
+// Updated form validation schema - only name and phone are required
+const newCustomerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  phone: z.string().min(6, "Phone number must be at least 6 characters"),
+  email: z.string().email("Please enter a valid email").optional().or(z.literal('')),
+  company: z.string().optional().or(z.literal('')),
+});
+
+type NewCustomerFormValues = z.infer<typeof newCustomerSchema>;
+
 // Form validation schema
 const formSchema = z.object({
   productId: z.string({ required_error: "Please select a product" }),
@@ -46,16 +55,7 @@ const formSchema = z.object({
   }).optional(),
 });
 
-// New customer form schema
-const newCustomerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().min(6, "Phone number must be at least 6 characters"),
-  company: z.string().optional(),
-});
-
 type FormValues = z.infer<typeof formSchema>;
-type NewCustomerFormValues = z.infer<typeof newCustomerSchema>;
 
 interface WholesaleOrderFormProps {
   products: Product[];
@@ -131,9 +131,9 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
     const newCustomer: Customer = {
       id: `customer-${Date.now()}`,
       name: data.name,
-      email: data.email,
+      email: data.email || '', // Handle optional email
       phone: data.phone,
-      company: data.company || '', // Ensure company is never undefined
+      company: data.company || '', // Handle optional company
       wholesalerId: wholesalerId, // Assign the customer to the current wholesaler
       balance: 0, // Initialize the balance to zero for new customers
     };
@@ -223,23 +223,9 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
                             name="name"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Name</FormLabel>
+                                <FormLabel>Name *</FormLabel>
                                 <FormControl>
                                   <Input placeholder="John Doe" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={newCustomerForm.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="john@example.com" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -251,9 +237,23 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
                             name="phone"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Phone</FormLabel>
+                                <FormLabel>Phone *</FormLabel>
                                 <FormControl>
                                   <Input placeholder="+1 (555) 123-4567" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={newCustomerForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="john@example.com" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

@@ -66,7 +66,7 @@ const mockSubscriptions: Subscription[] = [
 
 const Wholesale = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState('products');
+  const [activeTab, setActiveTab] = useState('products'); // Changed default tab to 'products'
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);

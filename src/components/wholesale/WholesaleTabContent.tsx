@@ -5,8 +5,6 @@ import ProductCard from '@/components/ProductCard';
 import CustomerTable from '@/components/CustomerTable';
 import SalesCalculator from '@/components/SalesCalculator';
 import StockSubscriptions from '@/components/StockSubscriptions';
-import WholesaleOrderForm from '@/components/WholesaleOrderForm';
-import RecentOrdersTable from './RecentOrdersTable';
 import { WholesaleOrder, Subscription } from '@/lib/types';
 import { Product, Customer } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -33,18 +31,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   handleOrderPlaced
 }) => {
   return (
-    <>
-      {activeTab === 'dashboard' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-3xl font-bold mb-8">Wholesale Dashboard</h1>
-          <SalesCalculator />
-        </motion.div>
-      )}
-      
+    <>      
       {activeTab === 'products' && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -57,29 +44,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
               <ProductCard key={product.id} product={product} isWholesale={true} />
             ))}
           </div>
-        </motion.div>
-      )}
-      
-      {activeTab === 'new-order' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-3xl font-bold mb-8">New Wholesale Order</h1>
-          <WholesaleOrderForm 
-            products={products} 
-            onOrderPlaced={handleOrderPlaced}
-            subscriptions={subscriptions}
-            wholesalerId={currentWholesaler}
-            customers={wholesalerCustomers}
-          />
-          
-          <RecentOrdersTable 
-            orders={orders} 
-            products={products} 
-            wholesalerCustomers={wholesalerCustomers} 
-          />
         </motion.div>
       )}
       
