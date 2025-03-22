@@ -30,13 +30,11 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
       Email: customer.email,
       Phone: customer.phone || 'N/A',
       CompanyName: customer.company || 'N/A',
-      Address: customer.address || 'N/A',
-      City: customer.city || 'N/A',
-      Country: customer.country || 'N/A',
+      Notes: customer.notes || 'N/A',
       SubscriptionsCount: customerSubscriptions.length,
       TotalSpent: customerSubscriptions.reduce((total, sub) => {
-        const amount = typeof sub.amount === 'number' ? sub.amount : 0;
-        return total + amount;
+        // Use price from the subscription for calculating total spent
+        return total + (sub.price || 0);
       }, 0)
     };
   });
