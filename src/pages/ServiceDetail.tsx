@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -28,14 +27,11 @@ const ServiceDetail: React.FC = () => {
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Mock user balance - in a real app, this would come from your auth/user state
   const userBalance = 120.00;
   
-  // Fetch service details based on ID
   useEffect(() => {
     if (id) {
       setLoading(true);
-      // Simulate API call
       setTimeout(() => {
         const foundService = services.find(s => s.id === id);
         setService(foundService || null);
@@ -74,7 +70,7 @@ const ServiceDetail: React.FC = () => {
   }
 
   const isSubscription = service.type === "subscription";
-  const isGameRecharge = service.type === "recharge" || service.categoryId === "category6"; // Update to check both type and category
+  const isGameRecharge = service.type === "recharge" || service.categoryId === "category6";
 
   const increaseQuantity = () => {
     setQuantity(prev => prev + 1);
@@ -86,7 +82,6 @@ const ServiceDetail: React.FC = () => {
 
   const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Only allow numbers
     if (value === "" || /^\d+$/.test(value)) {
       setCustomAmount(value);
     }
@@ -95,9 +90,8 @@ const ServiceDetail: React.FC = () => {
   const total = isGameRecharge && customAmount 
     ? parseFloat(customAmount) 
     : service.wholesalePrice * quantity;
-    
+
   const handleAddToCart = () => {
-    // Add to cart functionality would go here
     console.log("Add to cart:", { service, quantity, total });
   };
   
@@ -105,20 +99,16 @@ const ServiceDetail: React.FC = () => {
     console.log("Buy now:", { service, quantity, total });
     setIsProcessing(true);
     
-    // Check if user has sufficient balance
     if (userBalance < total) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
       setIsProcessing(false);
-      // Redirect to payment page
       navigate("/payment");
       return;
     }
 
-    // Simulate purchase processing
     setTimeout(() => {
-      // Create order with pending status
       const order = {
         id: `order-${Date.now()}`,
         serviceId: service.id,
@@ -129,7 +119,6 @@ const ServiceDetail: React.FC = () => {
         createdAt: new Date().toISOString(),
       };
 
-      // In a real app, you would send this to your backend
       console.log("Created order:", order);
       
       toast.success("Purchase pending!", {
@@ -138,7 +127,6 @@ const ServiceDetail: React.FC = () => {
       
       setIsProcessing(false);
       
-      // Redirect to dashboard
       navigate("/dashboard");
     }, 1000);
   };

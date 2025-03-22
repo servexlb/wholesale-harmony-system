@@ -30,9 +30,9 @@ export interface Service {
   type?: "subscription" | "recharge";  // Added type property
   availableMonths?: number[];  // Added availableMonths property
   apiUrl?: string;  // Added API URL for recharge services
+  features?: string[];  // Added features property
 }
 
-// Product interface with explicit properties to match the actual data structure
 export interface Product {
   id: string;
   name: string;
