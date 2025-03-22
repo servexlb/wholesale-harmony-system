@@ -5,7 +5,8 @@ import { ArrowLeft, Clock, Tag, Check, CreditCard, Zap, RotateCw, Minus, Plus } 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
-import { Service, ServiceCategory, getServiceById, getCategoryById } from '@/lib/data';
+import { Service, ServiceCategory } from '@/lib/types';
+import { getServiceById, getCategoryById } from '@/lib/mockData';
 import { toast } from '@/lib/toast';
 import { 
   Dialog, 
