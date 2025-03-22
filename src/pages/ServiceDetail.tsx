@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -87,9 +88,18 @@ const ServiceDetail: React.FC = () => {
     }
   };
 
-  const total = isGameRecharge && customAmount 
-    ? parseFloat(customAmount) 
-    : service.wholesalePrice * quantity;
+  // Fixed total price calculation for recharge products
+  const calculateTotal = () => {
+    if (isGameRecharge && customAmount) {
+      // For recharge products, the price is the service price
+      return service.wholesalePrice * (parseInt(customAmount) || 0);
+    } else {
+      // For regular products, multiply the price by quantity
+      return service.wholesalePrice * quantity;
+    }
+  };
+
+  const total = calculateTotal();
 
   const handleAddToCart = () => {
     console.log("Add to cart:", { service, quantity, total });
