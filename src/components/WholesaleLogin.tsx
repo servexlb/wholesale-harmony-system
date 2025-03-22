@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MessageCircle } from 'lucide-react';
 import { checkWholesaleCredentials } from '@/lib/data';
 
 const formSchema = z.object({
@@ -84,6 +85,10 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
     }
   };
 
+  const handleWhatsAppRedirect = () => {
+    window.open(`https://wa.me/96178991908`, '_blank');
+  };
+
   return (
     <Card className="w-full max-w-md shadow-lg">
       <CardHeader>
@@ -148,7 +153,15 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       </CardContent>
       <CardFooter className="flex flex-col items-center text-center text-sm text-muted-foreground">
         <p>Not a wholesale customer yet?</p>
-        <p>Contact us at <a href="tel:+96178991908" className="text-primary hover:underline">+961 7 899 1908</a> to apply for a wholesale account.</p>
+        <p>
+          <Button 
+            variant="link" 
+            className="p-0 h-auto font-normal text-primary inline-flex items-center"
+            onClick={handleWhatsAppRedirect}
+          >
+            Contact us on WhatsApp <MessageCircle className="ml-1 h-4 w-4" />
+          </Button>
+        </p>
       </CardFooter>
     </Card>
   );
