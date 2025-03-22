@@ -41,6 +41,12 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
     });
   }, [customers, subscriptions]);
 
+  // Ensure we have a valid purchase handler
+  const handlePurchaseForCustomer = React.useCallback((customerId: string) => {
+    console.log('CustomersTab: Purchase for customer:', customerId);
+    onPurchaseForCustomer(customerId);
+  }, [onPurchaseForCustomer]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -61,7 +67,7 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
         subscriptions={subscriptions} 
         customers={customers} 
         wholesalerId={wholesalerId}
-        onPurchaseForCustomer={onPurchaseForCustomer}
+        onPurchaseForCustomer={handlePurchaseForCustomer}
       />
     </motion.div>
   );

@@ -38,6 +38,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
               onPurchaseForCustomer(customerId);
             }
           }}
+          disabled={!onPurchaseForCustomer}
         >
           <ShoppingBag className="h-4 w-4 mr-2" />
           Purchase for Customer

@@ -41,6 +41,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   
   const handlePurchaseForCustomer = useCallback((customerId: string) => {
+    console.log('WholesaleTabContent: Purchase for customer:', customerId);
     setSelectedCustomer(customerId);
     setIsPurchaseDialogOpen(true);
   }, []);
