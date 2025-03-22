@@ -8,14 +8,6 @@ import { Customer, Product } from '@/lib/data';
 import { toast } from 'sonner';
 import { WholesaleOrder } from '@/lib/types';
 import { Search, Calendar, Zap, Package, Clock } from 'lucide-react';
-import { 
-  Command,
-  CommandInput,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 
 interface PurchaseDialogProps {
   open: boolean;
@@ -39,26 +31,25 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [selectedCustomer, setSelectedCustomer] = useState<string>(initialSelectedCustomer);
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState<string>('');
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
   
   // Reset search when dialog closes
   useEffect(() => {
     if (!open) {
-      setSearchQuery('');
+      setProductSearch('');
     }
   }, [open]);
 
-  // Filter customers based on search query
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.includes(searchQuery) ||
-    (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Filter products based on search query
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    product.description.toLowerCase().includes(productSearch.toLowerCase())
   );
 
   const selectedProductData = products.find(p => p.id === selectedProduct);
+  const selectedCustomerData = customers.find(c => c.id === selectedCustomer);
 
   const handlePurchaseSubmit = () => {
     if (!selectedCustomer || !selectedProduct) {
@@ -114,69 +105,36 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         <div className="space-y-4 py-4">
           <div>
             <label className="text-sm font-medium mb-1 block">Customer</label>
-            
-            {/* Customer Search UI */}
-            <div className="relative">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Button 
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    onClick={() => setIsCustomerSearchOpen(true)}
-                  >
-                    <span className="flex items-center">
-                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-70" />
-                      {selectedCustomer 
-                        ? customers.find(c => c.id === selectedCustomer)?.name 
-                        : "Search customers..."}
-                    </span>
-                  </Button>
-                  
-                  <Dialog open={isCustomerSearchOpen} onOpenChange={setIsCustomerSearchOpen}>
-                    <DialogContent className="p-0" style={{ maxWidth: 500 }}>
-                      <Command className="rounded-lg border shadow-sm">
-                        <CommandInput 
-                          placeholder="Search customer by name, email or phone..."
-                          value={searchQuery}
-                          onValueChange={setSearchQuery}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No customers found.</CommandEmpty>
-                          <CommandGroup heading="Customers">
-                            {filteredCustomers.map((customer) => (
-                              <CommandItem
-                                key={customer.id}
-                                value={customer.id}
-                                onSelect={(currentValue) => {
-                                  setSelectedCustomer(customer.id);
-                                  setIsCustomerSearchOpen(false);
-                                }}
-                              >
-                                <div className="flex flex-col">
-                                  <span>{customer.name}</span>
-                                  <span className="text-sm text-muted-foreground">{customer.phone}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                
-                {selectedCustomer && (
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => loadPurchaseHistory(selectedCustomer)}
-                  >
-                    <Clock className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
+            <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    <div className="flex flex-col">
+                      <span>{customer.name}</span>
+                      <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          
+          {selectedCustomer && (
+            <div className="flex justify-end">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => loadPurchaseHistory(selectedCustomer)}
+                className="text-xs"
+              >
+                <Clock className="h-3 w-3 mr-1" />
+                View purchase history
+              </Button>
+            </div>
+          )}
           
           {showPurchaseHistory && selectedCustomer && (
             <div className="p-4 bg-muted/40 rounded-md space-y-2">
@@ -214,23 +172,36 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           
           <div>
             <label className="text-sm font-medium mb-1 block">Product</label>
-            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a product" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    <div className="flex items-center gap-2">
-                      {product.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
-                      {product.type === 'recharge' && <Zap className="h-4 w-4 text-amber-500" />}
-                      {(!product.type || product.type === 'giftcard') && <Package className="h-4 w-4 text-green-500" />}
-                      <span>{product.name} - ${product.wholesalePrice.toFixed(2)}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  className="pl-10"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                />
+              </div>
+              
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredProducts.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      <div className="flex items-center gap-2">
+                        {product.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
+                        {product.type === 'recharge' && <Zap className="h-4 w-4 text-amber-500" />}
+                        {(!product.type || product.type === 'giftcard') && <Package className="h-4 w-4 text-green-500" />}
+                        <span>{product.name} - ${product.wholesalePrice.toFixed(2)}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div>
