@@ -17,12 +17,17 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Service } from "@/lib/types";
+import { toast } from "@/lib/toast";
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [customAmount, setCustomAmount] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Mock user balance - in a real app, this would come from your auth/user state
+  const userBalance = 120.00;
   
   // In a real app, you would fetch the service details based on the ID
   // For now, let's use mock data
@@ -76,8 +81,44 @@ const ServiceDetail: React.FC = () => {
   
   const handleBuyNow = () => {
     console.log("Buy now:", { service, quantity, total });
-    // Navigate to checkout page
-    navigate("/checkout");
+    setIsProcessing(true);
+    
+    // Check if user has sufficient balance
+    if (userBalance < total) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to make this purchase"
+      });
+      setIsProcessing(false);
+      // Redirect to payment page
+      navigate("/payment");
+      return;
+    }
+
+    // Simulate purchase processing
+    setTimeout(() => {
+      // Create order with pending status
+      const order = {
+        id: `order-${Date.now()}`,
+        serviceId: service.id,
+        quantity: quantity,
+        customAmount: customAmount,
+        totalPrice: total,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+
+      // In a real app, you would send this to your backend
+      console.log("Created order:", order);
+      
+      toast.success("Purchase pending!", {
+        description: "Your order is being processed"
+      });
+      
+      setIsProcessing(false);
+      
+      // Redirect to dashboard
+      navigate("/dashboard");
+    }, 1000);
   };
 
   return (
@@ -218,7 +259,14 @@ const ServiceDetail: React.FC = () => {
                 </div>
 
                 <Button className="w-full mb-4" onClick={handleAddToCart}>Add to Cart</Button>
-                <Button variant="outline" className="w-full" onClick={handleBuyNow}>Buy Now</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleBuyNow}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Processing..." : "Buy Now"}
+                </Button>
                 
                 <div className="mt-6 text-sm text-gray-500">
                   <div className="flex items-center justify-between py-1">

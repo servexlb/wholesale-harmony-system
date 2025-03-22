@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Service, ServiceCategory } from "@/lib/types";
+import { toast } from "@/lib/toast";
 
 interface ServiceCardProps {
   service: Service;
@@ -14,6 +15,10 @@ interface ServiceCardProps {
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const navigate = useNavigate();
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  
+  // Mock user balance - in a real app, this would come from your auth/user state
+  const userBalance = 120.00;
   
   // Generate a more specific image URL for each service type
   const getImageUrl = (serviceName: string) => {
@@ -39,7 +44,42 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
 
   const handleBuyNow = () => {
     console.log("Buy now clicked for service:", service);
-    navigate(`/services/${service.id}`);
+    setIsPurchasing(true);
+    
+    // Check if user has sufficient balance
+    if (userBalance < service.price) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to make this purchase"
+      });
+      setIsPurchasing(false);
+      // Redirect to payment page
+      navigate("/payment");
+      return;
+    }
+
+    // Simulate purchase processing
+    setTimeout(() => {
+      // Create order with pending status
+      const order = {
+        id: `order-${Date.now()}`,
+        serviceId: service.id,
+        totalPrice: service.price,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+
+      // In a real app, you would send this to your backend
+      console.log("Created order:", order);
+      
+      toast.success("Purchase pending!", {
+        description: "Your order is being processed"
+      });
+      
+      setIsPurchasing(false);
+      
+      // Redirect to dashboard
+      navigate("/dashboard");
+    }, 1000);
   };
 
   return (
@@ -105,9 +145,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             View Details
           </Button>
         </Link>
-        <Button size="sm" onClick={handleBuyNow}>
+        <Button 
+          size="sm" 
+          onClick={handleBuyNow}
+          disabled={isPurchasing}
+        >
           <CreditCard className="h-4 w-4 mr-2" />
-          Buy Now
+          {isPurchasing ? "Processing..." : "Buy Now"}
         </Button>
       </CardFooter>
     </Card>
