@@ -55,7 +55,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {allItems.map((product) => (
-          <div key={product.id} className="cursor-pointer" onClick={handleProductClick}>
+          <div key={product.id} className="h-full cursor-pointer" onClick={handleProductClick}>
             <ProductCard 
               product={product} 
               isWholesale={true}
