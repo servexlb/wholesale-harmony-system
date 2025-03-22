@@ -98,14 +98,14 @@ const AdminDigitalInventory: React.FC = () => {
       minQuantity: service.type === "subscription" ? 1 : undefined
     }));
     
-    const formattedDataProducts: Product[] = dataProducts.map(product => {
-      const baseProduct: Product = {
+    const formattedDataProducts = dataProducts.map(product => {
+      const baseProduct = {
         id: product.id,
         name: product.name,
         description: product.description,
         price: product.price,
         wholesalePrice: product.wholesalePrice,
-        image: product.image,
+        image: product.image, 
         category: product.category,
         featured: product.featured || false,
         type: product.type,
@@ -125,7 +125,12 @@ const AdminDigitalInventory: React.FC = () => {
       return baseProduct;
     });
     
-    setAllProducts([...formattedDataProducts, ...servicesAsProducts]);
+    const combinedProducts = [...formattedDataProducts, ...servicesAsProducts];
+    setAllProducts(combinedProducts);
+    
+    console.log("Total products loaded:", combinedProducts.length);
+    console.log("Data products:", formattedDataProducts.length);
+    console.log("Service products:", servicesAsProducts.length);
   }, []);
 
   const handleAddItem = () => {
