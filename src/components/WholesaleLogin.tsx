@@ -49,6 +49,9 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       const isValid = checkWholesaleCredentials(values.username, values.password);
       
       if (isValid) {
+        // Clear any previous wholesaler data first
+        localStorage.removeItem('wholesalerUsername');
+        
         // Store the wholesaler information in localStorage
         localStorage.setItem('wholesalerUsername', values.username);
         

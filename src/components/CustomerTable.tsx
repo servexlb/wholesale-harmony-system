@@ -68,6 +68,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredCustomers = customers.filter(customer => 
+    (customer.wholesalerId === wholesalerId) && 
     (customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone.includes(searchTerm))
   );
