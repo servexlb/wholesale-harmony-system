@@ -171,7 +171,6 @@ const AdminDigitalInventory: React.FC = () => {
     
     const newItems: DigitalItem[] = [];
     
-    // Create multiple items based on quantity
     for (let i = 0; i < quantity; i++) {
       newItems.push({
         id: `di${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
@@ -217,7 +216,6 @@ const AdminDigitalInventory: React.FC = () => {
       const [email, password, username, pinCode] = parts;
       
       if (email && password) {
-        // Create multiple items for each line based on quantity
         for (let i = 0; i < quantity; i++) {
           newItems.push({
             id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${i}`,
@@ -256,7 +254,6 @@ const AdminDigitalInventory: React.FC = () => {
   const duplicateItem = (item: DigitalItem) => {
     const duplicatedItems: DigitalItem[] = [];
     
-    // Create multiple copies based on quantity
     for (let i = 0; i < quantity; i++) {
       duplicatedItems.push({
         ...item,
@@ -298,7 +295,6 @@ const AdminDigitalInventory: React.FC = () => {
     selectedProducts.forEach(productId => {
       const product = allProducts.find(p => p.id === productId);
       
-      // Create multiple items for each selected product based on quantity
       for (let i = 0; i < quantity; i++) {
         productsToAdd.push({
           id: `di${Date.now()}-${productId}-${i}-${Math.random().toString(36).substr(2, 9)}`,
