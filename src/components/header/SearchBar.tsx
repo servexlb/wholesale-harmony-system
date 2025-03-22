@@ -2,18 +2,30 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const SearchBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-
+  const location = useLocation();
+  
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/services?search=${encodeURIComponent(searchQuery)}`);
+      // If on wholesale path, search for customers
+      if (location.pathname.includes('/wholesale')) {
+        // Pass search to wholesale customer tab
+        navigate(`/wholesale?tab=customers&search=${encodeURIComponent(searchQuery)}`);
+      } else {
+        // Default search for services
+        navigate(`/services?search=${encodeURIComponent(searchQuery)}`);
+      }
     }
   };
+
+  const placeholder = location.pathname.includes('/wholesale') 
+    ? "Search for customers..."
+    : "Search for services, games, apps...";
 
   return (
     <div className="relative mx-4 flex-1 max-w-md">
@@ -22,7 +34,7 @@ const SearchBar: React.FC = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search for services, games, apps..."
+            placeholder={placeholder}
             className="pl-10 pr-4 py-2 w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

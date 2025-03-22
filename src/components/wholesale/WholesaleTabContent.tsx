@@ -61,7 +61,10 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       )}
       
       {activeTab === 'sales' && (
-        <SalesTab />
+        <SalesTab 
+          orders={orders}
+          customers={wholesalerCustomers}
+        />
       )}
       
       {activeTab === 'settings' && (
