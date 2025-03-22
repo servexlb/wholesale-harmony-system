@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, Sun, Moon } from 'lucide-react';
@@ -13,7 +12,6 @@ const Header = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check for user preference in localStorage
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(isDarkMode);
     if (isDarkMode) {
@@ -63,7 +61,6 @@ const Header = () => {
           <span className="font-semibold text-primary">.com</span>
         </Link>
 
-        {/* Search bar */}
         <div className="hidden md:flex relative mx-4 flex-1 max-w-md">
           <Input
             type="search"
@@ -73,7 +70,6 @@ const Header = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4">
           <Button 
             variant="ghost" 
@@ -103,7 +99,6 @@ const Header = () => {
           </Link>
         </nav>
 
-        {/* Mobile menu button */}
         <div className="md:hidden flex items-center gap-2">
           <Button 
             variant="ghost" 
@@ -133,18 +128,15 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-background shadow-md animate-fade-in">
-          <div className="p-4">
+          <div className="p-4 relative">
             <Input
               type="search"
               placeholder="Search for services..."
-              className="pl-10 pr-4 py-2 w-full relative mb-4"
+              className="pl-10 pr-4 py-2 w-full mb-4"
             />
-            <div className="absolute left-7 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           </div>
           <nav className="flex flex-col p-4 space-y-2">
             <Link 
