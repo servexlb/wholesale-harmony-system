@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
 import { CreditCard, Repeat, AlertCircle, Copy, Check, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getCustomerById, addCustomerBalance } from "@/lib/data";
 
 const UserPaymentOptions = () => {
   const navigate = useNavigate();
@@ -20,11 +21,15 @@ const UserPaymentOptions = () => {
   const [copied, setCopied] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
   
-  const userId = localStorage.getItem('currentUserId') || 'guest';
+  const userId = localStorage.getItem('wholesalerUsername') || 'guest';
   
   useEffect(() => {
-    const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
-    setUserBalance(userBalanceStr ? parseFloat(userBalanceStr) : 0);
+    const customer = getCustomerById(userId);
+    if (customer) {
+      setUserBalance(customer.balance);
+    } else {
+      setUserBalance(0);
+    }
   }, [userId]);
   
   const wishMoneyAccount = "76349522";
@@ -37,46 +42,27 @@ const UserPaymentOptions = () => {
   
   const handleCreditCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would connect to a payment processor
     
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      type: "deposit",
-      amount: amount || 0,
-      method: "Credit Card",
-      status: "completed",
-      date: new Date().toISOString()
-    };
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
     
-    const transactionHistoryKey = `transactionHistory_${userId}`;
-    const transactionHistory = JSON.parse(localStorage.getItem(transactionHistoryKey) || '[]');
-    transactionHistory.push(transaction);
-    localStorage.setItem(transactionHistoryKey, JSON.stringify(transactionHistory));
+    addCustomerBalance(userId, amount);
     
-    const newBalance = userBalance + (amount || 0);
-    localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
-    setUserBalance(newBalance);
+    setUserBalance(prev => prev + amount);
     
-    toast.success(`Payment of $${amount?.toFixed(2)} is being processed. Your balance will be updated after verification.`);
+    toast.success(`Payment of $${amount.toFixed(2)} is being processed. Your balance will be updated after verification.`);
     resetForm();
   };
   
   const handleWishMoneySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      type: "deposit",
-      amount: amount || 0,
-      method: "Wish Money",
-      status: "pending",
-      date: new Date().toISOString()
-    };
-    
-    const transactionHistoryKey = `transactionHistory_${userId}`;
-    const transactionHistory = JSON.parse(localStorage.getItem(transactionHistoryKey) || '[]');
-    transactionHistory.push(transaction);
-    localStorage.setItem(transactionHistoryKey, JSON.stringify(transactionHistory));
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
     
     toast.success("Wish Money payment recorded. Your balance will be updated after verification.");
     resetForm();
@@ -85,19 +71,10 @@ const UserPaymentOptions = () => {
   const handleBinancePaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      type: "deposit",
-      amount: amount || 0,
-      method: "Binance Pay",
-      status: "pending",
-      date: new Date().toISOString()
-    };
-    
-    const transactionHistoryKey = `transactionHistory_${userId}`;
-    const transactionHistory = JSON.parse(localStorage.getItem(transactionHistoryKey) || '[]');
-    transactionHistory.push(transaction);
-    localStorage.setItem(transactionHistoryKey, JSON.stringify(transactionHistory));
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
     
     toast.success("Binance Pay transaction initiated. Your balance will be updated after confirmation.");
     resetForm();

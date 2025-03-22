@@ -49,6 +49,9 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       const isValid = checkWholesaleCredentials(values.username, values.password);
       
       if (isValid) {
+        // Store the wholesaler information in localStorage
+        localStorage.setItem('wholesalerUsername', values.username);
+        
         toast.success("Login successful", {
           description: "Welcome to the wholesale portal"
         });

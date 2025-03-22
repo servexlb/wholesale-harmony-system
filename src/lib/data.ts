@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -22,7 +21,8 @@ export interface Customer {
   email: string;
   company?: string;
   notes?: string;
-  wholesalerId?: string; // Add this field to track which wholesaler the customer belongs to
+  wholesalerId?: string;
+  balance: number;
 }
 
 export interface Sale {
@@ -36,6 +36,16 @@ export interface Sale {
   }[];
   total: number;
   paid: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  customerId: string;
+  productId: string;
+  startDate: string;
+  endDate: string;
+  status: "active" | "expired" | "cancelled";
+  price: number;
 }
 
 import { AdminNotification } from '@/lib/types';
@@ -105,7 +115,8 @@ export const customers: Customer[] = [
     email: "jane@example.com",
     company: "Smith Home Goods",
     notes: "Prefers delivery on Tuesdays",
-    wholesalerId: "wholesaler1"
+    wholesalerId: "wholesaler1",
+    balance: 0
   },
   {
     id: "c2",
@@ -114,7 +125,8 @@ export const customers: Customer[] = [
     email: "michael@example.com",
     company: "Urban Living Co.",
     notes: "",
-    wholesalerId: "admin"
+    wholesalerId: "admin",
+    balance: 0
   },
   {
     id: "c3",
@@ -123,7 +135,8 @@ export const customers: Customer[] = [
     email: "emma@example.com",
     company: "Williams Decor",
     notes: "New customer as of Jan 2023",
-    wholesalerId: "wholesaler1"
+    wholesalerId: "wholesaler1",
+    balance: 0
   },
 ];
 
@@ -162,6 +175,8 @@ export const sales: Sale[] = [
     paid: false
   },
 ];
+
+export const subscriptions: Subscription[] = [];
 
 export const adminNotifications: AdminNotification[] = [
   {
@@ -225,6 +240,32 @@ export const getProductById = (id: string): Product | undefined => {
 
 export const getSalesByCustomerId = (customerId: string): Sale[] => {
   return sales.filter(sale => sale.customerId === customerId);
+};
+
+export const getSubscriptionsByCustomerId = (customerId: string): Subscription[] => {
+  return subscriptions.filter(subscription => subscription.customerId === customerId);
+};
+
+export const addCustomerBalance = (customerId: string, amount: number): boolean => {
+  const customer = customers.find(c => c.id === customerId);
+  if (customer) {
+    customer.balance += amount;
+    return true;
+  }
+  return false;
+};
+
+export const deductCustomerBalance = (customerId: string, amount: number): boolean => {
+  const customer = customers.find(c => c.id === customerId);
+  if (customer && customer.balance >= amount) {
+    customer.balance -= amount;
+    return true;
+  }
+  return false;
+};
+
+export const addSubscription = (subscription: Subscription): void => {
+  subscriptions.push(subscription);
 };
 
 export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
