@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Product } from "@/lib/types";
-import { products } from "@/lib/data";
+import { products as dataProducts } from "@/lib/data";
 import { services } from "@/lib/mockData";
 
 interface DigitalItem {
@@ -82,6 +82,7 @@ const AdminDigitalInventory: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Convert services to Product type objects
     const servicesAsProducts: Product[] = services.map(service => ({
       id: service.id,
       name: service.name,
@@ -96,10 +97,30 @@ const AdminDigitalInventory: React.FC = () => {
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
-      minQuantity: service.minQuantity,
+      // Only add minQuantity if it exists
+      ...(service.type === "subscription" ? { minQuantity: 1 } : {})
     }));
     
-    setAllProducts([...products, ...servicesAsProducts]);
+    // Convert products from data.ts to match the Product type from types.ts
+    const formattedDataProducts: Product[] = dataProducts.map(product => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      wholesalePrice: product.wholesalePrice,
+      image: product.image,
+      category: product.category,
+      featured: product.featured || false,
+      type: product.type,
+      deliveryTime: product.deliveryTime || "",
+      apiUrl: product.apiUrl,
+      availableMonths: product.availableMonths,
+      value: product.value,
+      minQuantity: product.minQuantity
+    }));
+    
+    // Combine both lists
+    setAllProducts([...formattedDataProducts, ...servicesAsProducts]);
   }, []);
 
   const handleAddItem = () => {
