@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,7 +117,8 @@ const AdminDigitalInventory: React.FC = () => {
       apiUrl: product.apiUrl,
       availableMonths: product.availableMonths,
       value: product.value,
-      minQuantity: product.minQuantity
+      // Access minQuantity safely, it might not exist in the source data
+      minQuantity: product.minQuantity !== undefined ? product.minQuantity : undefined
     }));
     
     // Combine both lists
