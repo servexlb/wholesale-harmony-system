@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, User, Menu, X, Sun, Moon, Settings } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, Sun, Moon, Settings, Briefcase } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from '@/lib/utils';
@@ -80,6 +80,13 @@ const Header = () => {
           >
             {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
+          
+          <Link to="/wholesale">
+            <Button variant="outline" size="sm" className="flex gap-2 items-center">
+              <Briefcase className="h-4 w-4" />
+              <span>Wholesale</span>
+            </Button>
+          </Link>
           
           <Link to="/admin">
             <Button variant="outline" size="sm" className="flex gap-2 items-center">
@@ -166,6 +173,16 @@ const Header = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Services
+            </Link>
+            <Link 
+              to="/wholesale" 
+              className={cn(
+                "px-3 py-2 rounded-md text-base font-medium transition-colors",
+                isActive('/wholesale') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
+              )}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Wholesale
             </Link>
             <Link 
               to="/admin" 
