@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -19,16 +20,29 @@ import {
   History
 } from "lucide-react";
 
+// Generate a unique user ID for this session if not already present
+const getUserId = () => {
+  let userId = localStorage.getItem('currentUserId');
+  if (!userId) {
+    userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('currentUserId', userId);
+  }
+  return userId;
+};
+
 const Account: React.FC = () => {
+  const userId = getUserId();
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567"
+    name: "",
+    email: "",
+    phone: ""
   });
+  const [userBalance, setUserBalance] = useState(0);
 
   useEffect(() => {
-    const savedProfile = localStorage.getItem('userProfile');
+    // Load user-specific profile data
+    const savedProfile = localStorage.getItem(`userProfile_${userId}`);
     if (savedProfile) {
       try {
         const parsedProfile = JSON.parse(savedProfile);
@@ -37,7 +51,14 @@ const Account: React.FC = () => {
         console.error("Error parsing saved profile:", error);
       }
     }
-  }, []);
+    
+    // Load user-specific balance
+    const savedBalance = localStorage.getItem(`userBalance_${userId}`);
+    if (savedBalance) {
+      const balance = parseFloat(savedBalance);
+      setUserBalance(balance);
+    }
+  }, [userId]);
 
   return (
     <MainLayout>
@@ -82,19 +103,19 @@ const Account: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                    <p>{profileData.name}</p>
+                    <p>{profileData.name || "Not set"}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Email Address</label>
-                    <p>{profileData.email}</p>
+                    <p>{profileData.email || "Not set"}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                    <p>{profileData.phone}</p>
+                    <p>{profileData.phone || "Not set"}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Member Since</label>
-                    <p>January 15, 2023</p>
+                    <label className="text-sm font-medium text-muted-foreground">Account Balance</label>
+                    <p>${userBalance.toFixed(2)}</p>
                   </div>
                 </div>
                 <Button 
@@ -109,14 +130,15 @@ const Account: React.FC = () => {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <NotificationPreferences />
-              <SecuritySettings />
+              <NotificationPreferences userId={userId} />
+              <SecuritySettings userId={userId} />
             </div>
             
             <ProfileEditForm 
               isOpen={isEditProfileOpen}
               onClose={() => setIsEditProfileOpen(false)}
               initialData={profileData}
+              userId={userId}
             />
           </TabsContent>
 

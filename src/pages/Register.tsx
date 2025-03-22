@@ -46,6 +46,27 @@ const Register: React.FC = () => {
     
     setIsSubmitting(true);
     
+    // Generate a unique user ID
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('currentUserId', userId);
+    
+    // Set initial user profile with empty fields
+    const userProfile = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone
+    };
+    localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
+    
+    // Initialize user balance to 0
+    localStorage.setItem(`userBalance_${userId}`, "0");
+    
+    // Initialize empty transaction history
+    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify([]));
+    
+    // Initialize empty orders
+    localStorage.setItem(`customerOrders_${userId}`, JSON.stringify([]));
+    
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false);
@@ -60,8 +81,28 @@ const Register: React.FC = () => {
   const onGoogleSignUpSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
-    // In a real app, you would verify this token on your backend
-    // and create a user account linked to the Google credentials
+    
+    // Generate a unique user ID for the Google user
+    const userId = `google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('currentUserId', userId);
+    
+    // Set initial user profile with empty fields
+    const userProfile = {
+      name: "",
+      email: "",
+      phone: ""
+    };
+    localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
+    
+    // Initialize user balance to 0
+    localStorage.setItem(`userBalance_${userId}`, "0");
+    
+    // Initialize empty transaction history
+    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify([]));
+    
+    // Initialize empty orders
+    localStorage.setItem(`customerOrders_${userId}`, JSON.stringify([]));
+    
     toast({
       title: "Success!",
       description: "Your Google account has been connected.",

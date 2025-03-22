@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,11 +20,12 @@ const UserPaymentOptions = () => {
   const [copied, setCopied] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
   
-  // Get current user balance from localStorage
+  const userId = localStorage.getItem('currentUserId') || 'guest';
+  
   useEffect(() => {
-    const userBalanceStr = localStorage.getItem('userBalance');
-    setUserBalance(userBalanceStr ? parseFloat(userBalanceStr) : 120.00);
-  }, []);
+    const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
+    setUserBalance(userBalanceStr ? parseFloat(userBalanceStr) : 0);
+  }, [userId]);
   
   const wishMoneyAccount = "76349522";
   
@@ -39,7 +39,6 @@ const UserPaymentOptions = () => {
     e.preventDefault();
     // In a real app, this would connect to a payment processor
     
-    // Add transaction to history
     const transaction = {
       id: `txn-${Date.now()}`,
       type: "deposit",
@@ -49,13 +48,13 @@ const UserPaymentOptions = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    const transactionHistoryKey = `transactionHistory_${userId}`;
+    const transactionHistory = JSON.parse(localStorage.getItem(transactionHistoryKey) || '[]');
     transactionHistory.push(transaction);
-    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    localStorage.setItem(transactionHistoryKey, JSON.stringify(transactionHistory));
     
-    // Update balance
     const newBalance = userBalance + (amount || 0);
-    localStorage.setItem('userBalance', newBalance.toString());
+    localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
     setUserBalance(newBalance);
     
     toast.success(`Payment of $${amount?.toFixed(2)} is being processed. Your balance will be updated after verification.`);
@@ -65,7 +64,6 @@ const UserPaymentOptions = () => {
   const handleWishMoneySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Add transaction to history
     const transaction = {
       id: `txn-${Date.now()}`,
       type: "deposit",
@@ -75,9 +73,10 @@ const UserPaymentOptions = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    const transactionHistoryKey = `transactionHistory_${userId}`;
+    const transactionHistory = JSON.parse(localStorage.getItem(transactionHistoryKey) || '[]');
     transactionHistory.push(transaction);
-    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    localStorage.setItem(transactionHistoryKey, JSON.stringify(transactionHistory));
     
     toast.success("Wish Money payment recorded. Your balance will be updated after verification.");
     resetForm();
@@ -86,7 +85,6 @@ const UserPaymentOptions = () => {
   const handleBinancePaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Add transaction to history
     const transaction = {
       id: `txn-${Date.now()}`,
       type: "deposit",
@@ -96,9 +94,10 @@ const UserPaymentOptions = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    const transactionHistoryKey = `transactionHistory_${userId}`;
+    const transactionHistory = JSON.parse(localStorage.getItem(transactionHistoryKey) || '[]');
     transactionHistory.push(transaction);
-    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    localStorage.setItem(transactionHistoryKey, JSON.stringify(transactionHistory));
     
     toast.success("Binance Pay transaction initiated. Your balance will be updated after confirmation.");
     resetForm();

@@ -25,12 +25,14 @@ interface ProfileEditFormProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: ProfileData;
+  userId?: string;
 }
 
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   isOpen,
   onClose,
   initialData,
+  userId = "current",
 }) => {
   const [formData, setFormData] = useState<ProfileData>(initialData);
 
@@ -45,8 +47,17 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Save to localStorage for demo purposes
-    localStorage.setItem('userProfile', JSON.stringify(formData));
+    // Generate user-specific storage key
+    const storageKey = `userProfile_${userId}`;
+    
+    // Save to localStorage with user-specific key
+    localStorage.setItem(storageKey, JSON.stringify(formData));
+    
+    // Initialize balance to 0 for new users if not already set
+    const balanceKey = `userBalance_${userId}`;
+    if (!localStorage.getItem(balanceKey)) {
+      localStorage.setItem(balanceKey, "0");
+    }
     
     // Show success message
     toast.success("Profile updated successfully");

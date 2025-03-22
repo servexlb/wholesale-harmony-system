@@ -40,9 +40,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
   const [accountId, setAccountId] = useState("");
   
-  // Get current user balance from localStorage
-  const userBalanceStr = localStorage.getItem('userBalance');
-  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00; // Default to 120 if not set
+  // Get current user ID
+  const userId = localStorage.getItem('currentUserId') || 'guest';
+  
+  // Get user-specific balance from localStorage
+  const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
+  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
   
   const isSubscription = service.type === "subscription";
   const isRecharge = service.type === "recharge";
@@ -94,7 +97,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
 
     // Deduct the price from user balance immediately
     const newBalance = userBalance - finalPrice;
-    localStorage.setItem('userBalance', newBalance.toString());
+    localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
     // Create order with pending status
     const order = {
@@ -108,10 +111,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       createdAt: new Date().toISOString(),
     };
 
-    // Save order to localStorage
-    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    // Save order to user-specific storage
+    const customerOrdersKey = `customerOrders_${userId}`;
+    const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
     customerOrders.push(order);
-    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    localStorage.setItem(customerOrdersKey, JSON.stringify(customerOrders));
 
     // In a real app, you would send this to your backend
     console.log("Created order:", order);
