@@ -1,3 +1,4 @@
+
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -48,6 +49,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   value?: number;
+  minQuantity?: number; // Added minQuantity field
 }
 
 export interface Subscription {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ const ProductManager = () => {
       category: "",
       featured: false,
       deliveryTime: "",
+      minQuantity: undefined,
     }
   });
 
@@ -50,7 +50,8 @@ const ProductManager = () => {
       deliveryTime: service.deliveryTime || "",
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
-      value: service.value
+      value: service.value,
+      minQuantity: undefined, // Default value for new field
     }));
     
     // Convert products from data.ts to the expected Product type
@@ -67,7 +68,8 @@ const ProductManager = () => {
       deliveryTime: product.deliveryTime || "",
       apiUrl: product.apiUrl,
       availableMonths: product.availableMonths,
-      value: product.value
+      value: product.value,
+      minQuantity: undefined, // Default value for new field
     }));
     
     // Combine both product lists with the correct typing
@@ -351,7 +353,9 @@ const ProductManager = () => {
                           placeholder="1,3,6,12"
                           value={field.value ? field.value.join(',') : ''}
                           onChange={(e) => {
-                            const values = e.target.value.split(',').map(val => parseInt(val.trim())).filter(val => !isNaN(val));
+                            const values = e.target.value.split(',')
+                              .map(val => parseInt(val.trim()))
+                              .filter(val => !isNaN(val));
                             field.onChange(values.length > 0 ? values : undefined);
                           }}
                         />
