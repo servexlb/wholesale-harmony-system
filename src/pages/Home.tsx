@@ -11,7 +11,9 @@ import {
   CreditCard,
   Clock,
   ArrowRight,
-  Star
+  Star,
+  Gamepad2,
+  ThumbsUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +90,22 @@ const testimonials = [
 ];
 
 const Home: React.FC = () => {
+  // Helper function to render the correct icon based on icon name
+  const renderCategoryIcon = (iconName: string) => {
+    switch (iconName) {
+      case "play-circle":
+        return <PlayCircle className="h-6 w-6 text-primary" />;
+      case "gamepad-2":
+        return <Gamepad2 className="h-6 w-6 text-primary" />;
+      case "thumbs-up":
+        return <ThumbsUp className="h-6 w-6 text-primary" />;
+      case "shopping-cart":
+        return <ShoppingCart className="h-6 w-6 text-primary" />;
+      default:
+        return <Zap className="h-6 w-6 text-primary" />;
+    }
+  };
+
   return (
     <MainLayout>
       <motion.div
@@ -195,10 +213,7 @@ const Home: React.FC = () => {
                   <Card className="bg-card h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                     <CardContent className="p-6 flex flex-col h-full">
                       <div className="bg-primary/10 rounded-full p-3 w-12 h-12 flex items-center justify-center mb-4">
-                        {category.icon === "play-circle" && <PlayCircle className="h-6 w-6 text-primary" />}
-                        {category.icon === "gamepad-2" && <Zap className="h-6 w-6 text-primary" />}
-                        {category.icon === "thumbs-up" && <Shield className="h-6 w-6 text-primary" />}
-                        {category.icon === "shopping-cart" && <ShoppingCart className="h-6 w-6 text-primary" />}
+                        {renderCategoryIcon(category.icon)}
                       </div>
                       <h3 className="text-xl font-semibold mb-2">
                         {category.name}
