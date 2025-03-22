@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX, CreditCard, UserCog } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/tooltip';
 import { Subscription } from '@/lib/types';
 import { products } from '@/lib/data';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface CustomerSubscriptionsProps {
   subscriptions: Subscription[];
@@ -42,6 +44,18 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
     if (daysLeft <= 3) return { status: `expires in ${daysLeft} days`, color: "orange", icon: <CircleAlert className="h-4 w-4" /> };
     return { status: "active", color: "green", icon: <Clock className="h-4 w-4" /> };
   };
+
+  const handleFixProfile = (subscriptionId: string) => {
+    toast.success("Profile fix request submitted", {
+      description: "Our team will review and fix the profile within 24 hours."
+    });
+  };
+
+  const handleFixPayment = (subscriptionId: string) => {
+    toast.success("Payment issue reported", {
+      description: "Our team will contact you shortly to resolve the payment issue."
+    });
+  };
   
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
@@ -57,6 +71,7 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
               <TableHead>Status</TableHead>
               <TableHead>Expiry</TableHead>
               <TableHead>Credentials</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -107,6 +122,28 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                     ) : (
                       <span className="text-muted-foreground text-sm">No credentials</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex items-center gap-1" 
+                        onClick={() => handleFixProfile(subscription.id)}
+                      >
+                        <UserCog className="h-3 w-3" />
+                        <span>Fix Profile</span>
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex items-center gap-1"
+                        onClick={() => handleFixPayment(subscription.id)}
+                      >
+                        <CreditCard className="h-3 w-3" />
+                        <span>Payment Issue</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

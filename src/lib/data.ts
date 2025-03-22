@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -181,4 +182,18 @@ export const getProductById = (id: string): Product | undefined => {
 
 export const getSalesByCustomerId = (customerId: string): Sale[] => {
   return sales.filter(sale => sale.customerId === customerId);
+};
+
+export const fixSubscriptionProfile = (subscriptionId: string): Promise<boolean> => {
+  // This is a mock function that would normally call an API
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const reportPaymentIssue = (subscriptionId: string): Promise<boolean> => {
+  // This is a mock function that would normally call an API
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -29,10 +28,13 @@ import {
   Trash2, 
   FileText, 
   UserPlus,
-  Key
+  Key,
+  UserCog,
+  CreditCard
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +42,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-// Mock subscriptions (this would come from props in a real app)
+// Mock data for subscriptions - in a real app this would come from props
 import { products } from '@/lib/data';
 
 // Mock data for subscriptions - in a real app this would come from props
@@ -182,6 +184,18 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
     if (daysLeft === 0) return "destructive";
     if (daysLeft <= 3) return "orange"; 
     return "green";
+  };
+
+  const handleFixProfile = (subscriptionId: string) => {
+    toast.success("Profile fix request submitted", {
+      description: "Our team will review and fix the profile within 24 hours."
+    });
+  };
+
+  const handleFixPayment = (subscriptionId: string) => {
+    toast.success("Payment issue reported", {
+      description: "Our team will contact you shortly to resolve the payment issue."
+    });
   };
 
   return (
@@ -337,6 +351,27 @@ const CustomerRow: React.FC<CustomerRowProps> = ({ customer, subscriptions }) =>
                           </div>
                         </div>
                       )}
+
+                      <div className="mt-3 pt-2 border-t flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex items-center gap-1 text-xs flex-1" 
+                          onClick={() => handleFixProfile(sub.id)}
+                        >
+                          <UserCog className="h-3 w-3" />
+                          <span>Fix Profile</span>
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex items-center gap-1 text-xs flex-1"
+                          onClick={() => handleFixPayment(sub.id)}
+                        >
+                          <CreditCard className="h-3 w-3" />
+                          <span>Payment Issue</span>
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}

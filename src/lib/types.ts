@@ -41,6 +41,8 @@ export interface Subscription {
     password: string;
   };
   status: "active" | "expired" | "canceled";
+  paymentStatus?: "paid" | "pending" | "failed";
+  profileStatus?: "active" | "needs_fixing";
 }
 
 export interface Order {
