@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -215,7 +214,6 @@ const ServiceDetail: React.FC = () => {
     setIsProcessing(true);
     
     setTimeout(() => {
-      // Deduct the price from user balance
       const userBalanceStr = localStorage.getItem('userBalance');
       const currentBalance = userBalanceStr ? parseFloat(userBalanceStr) : 120.00;
       const newBalance = currentBalance - total;
@@ -569,7 +567,7 @@ const ServiceDetail: React.FC = () => {
               {isGiftCard && (
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Gift Card Value:</span>
-                  <span>${(service?.value || service?.price)?.toFixed(2)}</span>
+                  <span>${service.value?.toFixed(2) || service.price.toFixed(2)}</span>
                 </div>
               )}
               

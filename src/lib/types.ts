@@ -27,10 +27,11 @@ export interface Service {
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge";  // Added type property
-  availableMonths?: number[];  // Added availableMonths property
-  apiUrl?: string;  // Added API URL for recharge services
-  features?: string[];  // Added features property
+  type?: "subscription" | "recharge" | "giftcard";
+  availableMonths?: number[];
+  apiUrl?: string;
+  features?: string[];
+  value?: number;
 }
 
 export interface Product {
@@ -39,13 +40,14 @@ export interface Product {
   description: string;
   price: number;
   wholesalePrice: number;
-  category: string;  // Note: this is 'category' rather than 'categoryId'
+  category: string;
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge";
+  type?: "subscription" | "recharge" | "giftcard";
   availableMonths?: number[];
-  apiUrl?: string;  // Added API URL for recharge products
+  apiUrl?: string;
+  value?: number;
 }
 
 export interface Subscription {
@@ -61,7 +63,7 @@ export interface Subscription {
   status: "active" | "expired" | "canceled";
   paymentStatus?: "paid" | "pending" | "failed";
   profileStatus?: "active" | "needs_fixing";
-  durationMonths?: number; // Number of months the subscription is valid for
+  durationMonths?: number;
 }
 
 export interface Order {
@@ -74,22 +76,22 @@ export interface Order {
   createdAt: string;
   completedAt?: string;
   notes?: string;
-  customerId?: string; // The customer this order is for (for wholesale orders)
+  customerId?: string;
   credentials?: {
     email: string;
     password: string;
   };
-  durationMonths?: number; // Duration of subscription in months
-  paymentStatus?: "paid" | "pending" | "insufficient_balance"; // Added payment status
+  durationMonths?: number;
+  paymentStatus?: "paid" | "pending" | "insufficient_balance";
 }
 
 export interface WholesaleOrder extends Order {
-  customerId: string; // Required for wholesale orders
-  wholesalerId: string; // ID of the wholesaler who placed the order
+  customerId: string;
+  wholesalerId: string;
   credentials?: {
     email: string;
     password: string;
-  }; // Added credentials for wholesale orders
+  };
 }
 
 export interface SupportTicket {
@@ -111,14 +113,12 @@ export interface TicketResponse {
   createdAt: string;
 }
 
-// Simple customer interface for wholesale
 export interface SimpleCustomer {
   id: string;
   name: string;
   phone: string;
 }
 
-// Admin notification system
 export interface AdminNotification {
   id: string;
   type: "profile_fix" | "payment_issue" | "password_reset" | "new_order";

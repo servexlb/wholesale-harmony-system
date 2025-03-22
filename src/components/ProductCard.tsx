@@ -201,7 +201,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false 
               <span className="font-medium">Category:</span>
               <span>{product.category}</span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Quantity:</span>
               <span>1</span>
             </div>
