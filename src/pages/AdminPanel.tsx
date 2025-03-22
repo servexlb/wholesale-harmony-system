@@ -436,7 +436,7 @@ const ProductManager = () => {
       wholesalePrice: 0,
       category: "",
       image: "",
-      type: "recharge" as "subscription" | "recharge",
+      type: "recharge" as "subscription" | "recharge" | "giftcard",
       featured: false,
       deliveryTime: "Instant delivery",
       apiUrl: ""
@@ -559,7 +559,7 @@ const ProductManager = () => {
                 <div className="space-y-2">
                   <Label htmlFor="type">Product Type</Label>
                   <Select 
-                    onValueChange={(value: "subscription" | "recharge") => form.setValue("type", value)}
+                    onValueChange={(value: "subscription" | "recharge" | "giftcard") => form.setValue("type", value)}
                     defaultValue={form.getValues("type")}
                   >
                     <SelectTrigger>
@@ -576,6 +576,12 @@ const ProductManager = () => {
                         <div className="flex items-center">
                           <Zap className="h-4 w-4 mr-2" />
                           Recharge
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="giftcard">
+                        <div className="flex items-center">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Gift Card
                         </div>
                       </SelectItem>
                     </SelectContent>
