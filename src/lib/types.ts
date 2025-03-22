@@ -28,7 +28,7 @@ export interface Service {
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge" | "giftcard";
+  type?: "subscription" | "recharge" | "giftcard" | "service";
   availableMonths?: number[];
   apiUrl?: string;
   features?: string[];
@@ -45,7 +45,7 @@ export interface Product {
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge" | "giftcard";
+  type?: "subscription" | "recharge" | "giftcard" | "service";
   availableMonths?: number[];
   apiUrl?: string;
   value?: number;
