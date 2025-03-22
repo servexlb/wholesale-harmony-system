@@ -26,7 +26,7 @@ const ProductManager = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {productList.slice(0, 3).map((product: Product) => (
+        {productList.map((product: Product) => (
           <Card key={product.id} className="overflow-hidden">
             <div className="aspect-video w-full overflow-hidden relative">
               <img 
