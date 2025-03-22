@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { PlusCircle } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Product } from "@/lib/types"; // Make sure we use the types.ts Product type
 import { products } from "@/lib/data";
 import { services } from "@/lib/mockData";
 
@@ -14,8 +14,8 @@ const ProductManager = () => {
   const [productList, setProductList] = useState<Product[]>([]);
   
   useEffect(() => {
-    // Convert services to Product type format and combine with products
-    const servicesAsProducts = services.map(service => ({
+    // Convert services to the Product type expected by our component
+    const servicesAsProducts: Product[] = services.map(service => ({
       id: service.id,
       name: service.name,
       description: service.description,
@@ -23,14 +23,33 @@ const ProductManager = () => {
       wholesalePrice: service.wholesalePrice,
       image: service.image,
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      featured: service.featured,
-      type: service.type as any,
-      deliveryTime: service.deliveryTime,
-      apiUrl: service.apiUrl
+      featured: service.featured || false,
+      type: service.type,
+      deliveryTime: service.deliveryTime || "",
+      apiUrl: service.apiUrl,
+      availableMonths: service.availableMonths,
+      value: service.value
     }));
     
-    // Combine both product lists
-    setProductList([...products, ...servicesAsProducts]);
+    // Convert products from data.ts to the expected Product type
+    const formattedProducts: Product[] = products.map(product => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      wholesalePrice: product.wholesalePrice,
+      image: product.image,
+      category: product.category,
+      featured: product.featured || false,
+      type: product.type,
+      deliveryTime: product.deliveryTime || "",
+      apiUrl: product.apiUrl,
+      availableMonths: product.availableMonths,
+      value: product.value
+    }));
+    
+    // Combine both product lists with the correct typing
+    setProductList([...formattedProducts, ...servicesAsProducts]);
   }, []);
   
   const [showForm, setShowForm] = useState(false);
