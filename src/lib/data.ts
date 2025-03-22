@@ -6,7 +6,7 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
-  type?: "subscription" | "recharge" | "giftcard";
+  type?: "subscription" | "recharge" | "giftcard" | "service";
   value?: number;
   deliveryTime?: string;
   featured?: boolean;
