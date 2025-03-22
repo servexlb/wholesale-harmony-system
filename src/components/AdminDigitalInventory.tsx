@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search } from "lucide-react";
+import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search, User, Hash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,6 +29,8 @@ interface DigitalItem {
   credentials: {
     email: string;
     password: string;
+    username?: string;
+    pinCode?: string;
   };
   status: "available" | "delivered";
   addedAt: string;
@@ -48,7 +50,9 @@ const mockInventory: DigitalItem[] = [
     serviceName: "Premium Email Service",
     credentials: {
       email: "user1@example.com",
-      password: "securepass123"
+      password: "securepass123",
+      username: "user1",
+      pinCode: "1234"
     },
     status: "available",
     addedAt: new Date().toISOString(),
@@ -59,7 +63,9 @@ const mockInventory: DigitalItem[] = [
     serviceName: "VPN Subscription",
     credentials: {
       email: "vpnuser@example.com",
-      password: "vpnpass456"
+      password: "vpnpass456",
+      username: "vpnuser",
+      pinCode: "5678"
     },
     status: "delivered",
     addedAt: new Date(Date.now() - 86400000).toISOString(),
@@ -72,7 +78,7 @@ const AdminDigitalInventory: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [bulkImport, setBulkImport] = useState(false);
   const [selectedService, setSelectedService] = useState(mockServices[0]?.id || "");
-  const [newCredentials, setNewCredentials] = useState({ email: "", password: "" });
+  const [newCredentials, setNewCredentials] = useState({ email: "", password: "", username: "", pinCode: "" });
   const [bulkCredentials, setBulkCredentials] = useState("");
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -154,7 +160,7 @@ const AdminDigitalInventory: React.FC = () => {
     if (!selectedService || !newCredentials.email || !newCredentials.password) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields",
+        description: "Please fill in at least email and password fields",
         variant: "destructive",
       });
       return;
@@ -168,14 +174,16 @@ const AdminDigitalInventory: React.FC = () => {
       serviceName,
       credentials: {
         email: newCredentials.email,
-        password: newCredentials.password
+        password: newCredentials.password,
+        username: newCredentials.username,
+        pinCode: newCredentials.pinCode
       },
       status: "available",
       addedAt: new Date().toISOString(),
     };
 
     setInventory([...inventory, newItem]);
-    setNewCredentials({ email: "", password: "" });
+    setNewCredentials({ email: "", password: "", username: "", pinCode: "" });
     toast({
       title: "Item Added",
       description: "Digital inventory item has been added successfully",
@@ -198,14 +206,20 @@ const AdminDigitalInventory: React.FC = () => {
     const newItems: DigitalItem[] = [];
     
     lines.forEach(line => {
-      const [email, password] = line.split(':').map(part => part.trim());
+      const parts = line.split(':').map(part => part.trim());
+      const [email, password, username, pinCode] = parts;
       
       if (email && password) {
         newItems.push({
           id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           serviceId: selectedService,
           serviceName,
-          credentials: { email, password },
+          credentials: { 
+            email, 
+            password,
+            username: username || "",
+            pinCode: pinCode || ""
+          },
           status: "available",
           addedAt: new Date().toISOString(),
         });
@@ -222,7 +236,7 @@ const AdminDigitalInventory: React.FC = () => {
     } else {
       toast({
         title: "Import Failed",
-        description: "No valid credentials found. Use format: email:password",
+        description: "No valid credentials found. Use format: email:password[:username][:pinCode]",
         variant: "destructive",
       });
     }
@@ -275,6 +289,22 @@ const AdminDigitalInventory: React.FC = () => {
     } else {
       setSelectedProducts(filteredProducts.map(product => product.id));
     }
+  };
+
+  const updateCredential = (itemId: string, field: keyof DigitalItem['credentials'], value: string) => {
+    const updatedInventory = inventory.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          credentials: {
+            ...item.credentials,
+            [field]: value
+          }
+        };
+      }
+      return item;
+    });
+    setInventory(updatedInventory);
   };
 
   const availableCount = inventory.filter(item => item.status === "available").length;
@@ -464,24 +494,44 @@ const AdminDigitalInventory: React.FC = () => {
               
               {!bulkImport ? (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email"
-                      value={newCredentials.email}
-                      onChange={(e) => setNewCredentials({...newCredentials, email: e.target.value})}
-                      placeholder="user@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input 
-                      id="password"
-                      type="text"
-                      value={newCredentials.password}
-                      onChange={(e) => setNewCredentials({...newCredentials, password: e.target.value})}
-                      placeholder="password123"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input 
+                        id="email"
+                        value={newCredentials.email}
+                        onChange={(e) => setNewCredentials({...newCredentials, email: e.target.value})}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input 
+                        id="password"
+                        type="text"
+                        value={newCredentials.password}
+                        onChange={(e) => setNewCredentials({...newCredentials, password: e.target.value})}
+                        placeholder="password123"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username</Label>
+                      <Input 
+                        id="username"
+                        value={newCredentials.username}
+                        onChange={(e) => setNewCredentials({...newCredentials, username: e.target.value})}
+                        placeholder="username"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pinCode">PIN Code</Label>
+                      <Input 
+                        id="pinCode"
+                        value={newCredentials.pinCode}
+                        onChange={(e) => setNewCredentials({...newCredentials, pinCode: e.target.value})}
+                        placeholder="1234"
+                      />
+                    </div>
                   </div>
                   <Button onClick={handleAddItem} className="w-full">
                     <Key className="h-4 w-4 mr-2" />
@@ -492,13 +542,13 @@ const AdminDigitalInventory: React.FC = () => {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="bulkCredentials">
-                      Bulk Credentials (one per line, format: email:password)
+                      Bulk Credentials (one per line, format: email:password[:username][:pinCode])
                     </Label>
                     <Textarea 
                       id="bulkCredentials"
                       value={bulkCredentials}
                       onChange={(e) => setBulkCredentials(e.target.value)}
-                      placeholder="user1@example.com:password123&#10;user2@example.com:password456"
+                      placeholder="user1@example.com:password123:user1:1234&#10;user2@example.com:password456:user2:5678"
                       className="min-h-[150px]"
                     />
                   </div>
@@ -527,6 +577,8 @@ const AdminDigitalInventory: React.FC = () => {
                 <TableHead>Service</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Password</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead>PIN Code</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Added</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -535,7 +587,7 @@ const AdminDigitalInventory: React.FC = () => {
             <TableBody>
               {inventory.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                     No inventory items found. Add stock to get started.
                   </TableCell>
                 </TableRow>
@@ -544,42 +596,36 @@ const AdminDigitalInventory: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>{item.serviceName}</TableCell>
                     <TableCell>
-                      {item.credentials.email || (
-                        <Input 
-                          placeholder="Enter email" 
-                          value={item.credentials.email}
-                          onChange={(e) => {
-                            const updatedInventory = inventory.map(i => 
-                              i.id === item.id 
-                                ? { ...i, credentials: { ...i.credentials, email: e.target.value } } 
-                                : i
-                            );
-                            setInventory(updatedInventory);
-                          }}
-                          className="w-full"
-                        />
-                      )}
+                      <Input 
+                        placeholder="Enter email" 
+                        value={item.credentials.email}
+                        onChange={(e) => updateCredential(item.id, 'email', e.target.value)}
+                        className="w-full"
+                      />
                     </TableCell>
                     <TableCell>
-                      {item.credentials.password ? (
-                        <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                          {item.credentials.password}
-                        </span>
-                      ) : (
-                        <Input 
-                          placeholder="Enter password" 
-                          value={item.credentials.password}
-                          onChange={(e) => {
-                            const updatedInventory = inventory.map(i => 
-                              i.id === item.id 
-                                ? { ...i, credentials: { ...i.credentials, password: e.target.value } } 
-                                : i
-                            );
-                            setInventory(updatedInventory);
-                          }}
-                          className="w-full"
-                        />
-                      )}
+                      <Input 
+                        placeholder="Enter password" 
+                        value={item.credentials.password}
+                        onChange={(e) => updateCredential(item.id, 'password', e.target.value)}
+                        className="w-full"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        placeholder="Enter username" 
+                        value={item.credentials.username || ""}
+                        onChange={(e) => updateCredential(item.id, 'username', e.target.value)}
+                        className="w-full"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input 
+                        placeholder="Enter PIN code" 
+                        value={item.credentials.pinCode || ""}
+                        onChange={(e) => updateCredential(item.id, 'pinCode', e.target.value)}
+                        className="w-full"
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant={item.status === "available" ? "outline" : "secondary"}>
