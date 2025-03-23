@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -168,7 +169,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select a customer" />
               </SelectTrigger>
-              <SelectContent position="popper" className="z-50 max-h-60 overflow-auto">
+              <SelectContent className="bg-background border border-border shadow-md z-[100]">
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
                     <div className="flex flex-col">
@@ -209,41 +210,41 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             selectedProductId={selectedProduct}
           />
           
-          {isSubscription && (
-            <div>
-              <label className="text-sm font-medium mb-1 block">Duration (Months)</label>
-              <Select 
-                value={selectedDuration} 
-                onValueChange={setSelectedDuration}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select months" />
-                </SelectTrigger>
-                <SelectContent 
-                  position="popper" 
-                  className="z-50 w-full"
-                  align="center"
-                  sideOffset={5}
-                >
-                  <SelectItem value="1">1 month</SelectItem>
-                  <SelectItem value="3">3 months</SelectItem>
-                  <SelectItem value="6">6 months</SelectItem>
-                  <SelectItem value="12">12 months</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
-          {!isSubscription && (
-            <div>
-              <label className="text-sm font-medium mb-1 block">Quantity</label>
-              <Input 
-                type="number" 
-                min="1"
-                value={quantity.toString()}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              />
-            </div>
+          {selectedProductData && (
+            <>
+              {isSubscription ? (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Duration</label>
+                  <Select 
+                    value={selectedDuration} 
+                    onValueChange={setSelectedDuration}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent 
+                      className="bg-background border border-border shadow-md z-[100] w-full" 
+                      position="item-aligned"
+                    >
+                      <SelectItem value="1">1 month</SelectItem>
+                      <SelectItem value="3">3 months</SelectItem>
+                      <SelectItem value="6">6 months</SelectItem>
+                      <SelectItem value="12">12 months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Quantity</label>
+                  <Input 
+                    type="number" 
+                    min="1"
+                    value={quantity.toString()}
+                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+              )}
+            </>
           )}
           
           {selectedProductData && (
