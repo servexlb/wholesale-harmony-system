@@ -75,7 +75,8 @@ const ImageManager = () => {
     setImageDetails({
       name: '',
       location: '',
-      url: ''
+      url: '',
+      size: undefined
     });
     setPreviewImage(null);
     setIsAddDialogOpen(true);
@@ -86,7 +87,8 @@ const ImageManager = () => {
     setImageDetails({
       name: image.name,
       location: image.location,
-      url: image.url
+      url: image.url,
+      size: image.size
     });
     setPreviewImage(image.url);
     setIsEditDialogOpen(true);
