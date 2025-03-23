@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
@@ -17,6 +16,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+interface ExtendedProduct extends Product {
+  minQuantity?: number;
+}
+
 interface ProductsTabProps {
   products: Product[];
   customers: Customer[];
@@ -32,22 +35,19 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
   const [showServicesOnly, setShowServicesOnly] = useState(false);
   const [showProductsOnly, setShowProductsOnly] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ExtendedProduct | null>(null);
   const [productDetailOpen, setProductDetailOpen] = useState(false);
 
-  // Log products to debug
   useEffect(() => {
     console.log('Products in ProductsTab:', products);
     console.log('Products with type "service":', products.filter(p => p.type === 'service').length);
     console.log('Products with type "product" or "subscription":', products.filter(p => p.type !== 'service').length);
   }, [products]);
 
-  // Filter products based on search query and filters
   useEffect(() => {
     try {
       let filtered = [...products];
       
-      // Apply search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         filtered = filtered.filter(product => 
@@ -56,7 +56,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         );
       }
       
-      // Apply type filters
       if (showServicesOnly) {
         filtered = filtered.filter(product => product.type === 'service');
       } else if (showProductsOnly) {
@@ -71,38 +70,32 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     }
   }, [searchQuery, products, showServicesOnly, showProductsOnly]);
 
-  // Handler for when a product is clicked
   const handleProductClick = useCallback((product: Product) => {
     console.log("Product clicked:", product.name, product.id, product.type);
-    // We'll use the onOpenPurchaseDialog prop passed from the parent
     window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
       detail: { productId: product.id }
     }));
   }, []);
-  
-  // View details handler
+
   const handleViewDetails = useCallback((product: Product, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering the card click
+    e.stopPropagation();
     setSelectedProduct(product);
     setProductDetailOpen(true);
   }, []);
-  
-  // Reset filters
+
   const handleResetFilters = () => {
     setShowServicesOnly(false);
     setShowProductsOnly(false);
     setSearchQuery('');
   };
-  
-  // Clear search
+
   const handleClearSearch = () => {
     setSearchQuery('');
   };
-  
-  // Count products and services for display
+
   const productsCount = products.filter(p => p.type !== 'service').length;
   const servicesCount = products.filter(p => p.type === 'service').length;
-  
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -118,7 +111,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         </Button>
       </div>
       
-      {/* Search and Filter Bar */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-grow">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -206,7 +198,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         </div>
       )}
 
-      {/* Product Detail Dialog */}
       <Dialog open={productDetailOpen} onOpenChange={setProductDetailOpen}>
         {selectedProduct && (
           <DialogContent className="max-w-3xl">
@@ -253,7 +244,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                         <span className="font-medium">{selectedProduct.deliveryTime}</span>
                       </div>
                     )}
-                    {selectedProduct.minQuantity && (
+                    {selectedProduct?.minQuantity && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Minimum Quantity:</span>
                         <span className="font-medium">{selectedProduct.minQuantity}</span>
