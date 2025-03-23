@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings, FileText, Edit, Trash2, ShoppingBag } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -30,15 +30,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import { Customer } from "@/lib/data";
 
 interface CustomerActionsMenuProps {
   customerId: string;
   onPurchaseForCustomer?: (customerId: string) => void;
+  customer?: Customer;
 }
 
 const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   customerId,
-  onPurchaseForCustomer
+  onPurchaseForCustomer,
+  customer
 }) => {
   const { toast } = useToast();
   
@@ -51,6 +55,31 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   // Product selection state
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
+  
+  // Customer edit state
+  const [editedCustomer, setEditedCustomer] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    company: string;
+  }>({
+    name: '',
+    email: '',
+    phone: '',
+    company: ''
+  });
+  
+  // Update editedCustomer when customer prop changes or edit dialog opens
+  useEffect(() => {
+    if (customer && editSheetOpen) {
+      setEditedCustomer({
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        company: customer.company || ''
+      });
+    }
+  }, [customer, editSheetOpen]);
 
   // Handle purchase action
   const handlePurchase = (e: React.MouseEvent) => {
@@ -102,15 +131,28 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   const handleEditCustomer = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Edit clicked for customer:", customerId);
+    console.log("Edit submitted for customer:", customerId, "Updated data:", editedCustomer);
     
+    // Here you would typically call an API or update a state in a parent component
+    // For demonstration, we're just showing a toast message
     setEditSheetOpen(false);
+    
     toast({
-      title: "Edit customer",
-      description: `Editing customer ${customerId}`,
+      title: "Customer updated",
+      description: `Customer ${editedCustomer.name} has been updated successfully`,
     });
     
-    // Implement actual functionality later
+    // In a real application, you would pass the updated customer back to a parent component:
+    // onUpdateCustomer && onUpdateCustomer(customerId, editedCustomer);
+  };
+  
+  // Handle input change for the edit form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedCustomer(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   // Handle delete customer action
@@ -305,10 +347,56 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
           <SheetHeader>
             <SheetTitle>Edit Customer</SheetTitle>
           </SheetHeader>
-          <div className="py-4">
-            <p>Edit customer ID: {customerId}</p>
-            <div className="mt-4 border rounded p-4 text-center text-muted-foreground">
-              Customer edit form will be implemented here
+          <div className="py-4 space-y-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input 
+                  id="name"
+                  name="name"
+                  value={editedCustomer.name}
+                  onChange={handleInputChange}
+                  placeholder="Customer name"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={editedCustomer.email}
+                  onChange={handleInputChange}
+                  placeholder="customer@example.com"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input 
+                  id="phone"
+                  name="phone"
+                  value={editedCustomer.phone}
+                  onChange={handleInputChange}
+                  placeholder="+1 (555) 123-4567"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="company">Company</Label>
+                <Input 
+                  id="company"
+                  name="company"
+                  value={editedCustomer.company}
+                  onChange={handleInputChange}
+                  placeholder="Company name"
+                  className="mt-1"
+                />
+              </div>
             </div>
           </div>
           <SheetFooter>
