@@ -61,10 +61,7 @@ const Account: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('currentUserId');
     
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
+    toast.success("Logged out successfully");
     
     navigate('/');
   };
