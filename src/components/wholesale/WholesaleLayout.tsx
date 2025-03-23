@@ -57,6 +57,14 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
     }
   };
 
+  // Handle the search action
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    // If we're on the customers tab, we want to filter customers
+    // If we're on another tab, we might want different behavior
+    console.log("Searching for:", term, "in tab:", activeTab);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -105,7 +113,10 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
                 </div>
                 <CustomerSearchBar 
                   searchTerm={searchTerm} 
-                  setSearchTerm={setSearchTerm} 
+                  setSearchTerm={(term) => {
+                    setSearchTerm(term);
+                    handleSearch(term);
+                  }} 
                 />
                 {searchTerm && (
                   <div className="mt-2 text-xs text-muted-foreground">
@@ -123,7 +134,10 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
                 <div className="w-full max-w-md">
                   <CustomerSearchBar 
                     searchTerm={searchTerm} 
-                    setSearchTerm={setSearchTerm} 
+                    setSearchTerm={(term) => {
+                      setSearchTerm(term);
+                      handleSearch(term);
+                    }} 
                   />
                 </div>
               </div>

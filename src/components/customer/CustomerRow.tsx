@@ -44,9 +44,8 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
         </div>
         <div className="col-span-1 text-right">
           <CustomerActionsMenu 
-            customerId={customer.id} 
+            customer={customer} 
             onPurchaseForCustomer={onPurchaseForCustomer} 
-            customer={customer}
             onUpdateCustomer={onUpdateCustomer}
           />
         </div>

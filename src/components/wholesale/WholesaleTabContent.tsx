@@ -10,6 +10,7 @@ import SettingsTab from './SettingsTab';
 import StockTab from './StockTab';
 import { toast } from '@/lib/toast';
 import { getAllServices } from './sales/utils/productMapUtils';
+import CustomersAndStockTab from './CustomersAndStockTab';
 
 interface WholesaleTabContentProps {
   activeTab: string;
@@ -70,7 +71,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         </TabsContent>
         
         <TabsContent value="customers" className="h-full">
-          <CustomerTable 
+          <CustomersAndStockTab 
             customers={customers} 
             wholesalerId={currentWholesaler}
             subscriptions={subscriptions}
@@ -84,12 +85,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
           <SalesTab 
             orders={orders}
             customers={wholesalerCustomers}
-          />
-        </TabsContent>
-        
-        <TabsContent value="stock" className="h-full">
-          <StockTab 
-            subscriptions={subscriptions}
           />
         </TabsContent>
         

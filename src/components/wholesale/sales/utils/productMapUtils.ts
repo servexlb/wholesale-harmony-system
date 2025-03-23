@@ -16,12 +16,15 @@ export const createServiceMap = () => {
   // Add services to map
   if (servicesToUse && Array.isArray(servicesToUse)) {
     servicesToUse.forEach(service => {
+      // Make sure we have a valid category value
+      const category = service.category || service.categoryId || 'Uncategorized';
+      
       serviceMap.set(service.id, {
         id: service.id,
         name: service.name,
         type: service.type || 'service',
         price: service.wholesalePrice || service.price,
-        category: service.category || service.categoryId || 'Uncategorized', // Ensure category is always present
+        category: category,
         value: service.value,
         apiUrl: service.apiUrl,
         minQuantity: service.minQuantity
@@ -70,7 +73,12 @@ export const getAllServices = (): Service[] => {
   const services = loadServices();
   
   // If no services from product manager, fall back to mockData
-  return services.length > 0 ? services : mockServices;
+  const servicesWithCategory = (services.length > 0 ? services : mockServices).map(service => ({
+    ...service,
+    category: service.category || service.categoryId || 'Uncategorized'
+  }));
+  
+  return servicesWithCategory;
 };
 
 // For backward compatibility, aliases for the product-related functions
