@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -313,20 +312,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <label className="text-sm font-medium">
                   Duration <span className="text-red-500">*</span>
                 </label>
-                <Select 
-                  value={selectedDuration}
-                  onValueChange={setSelectedDuration}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 month</SelectItem>
-                    <SelectItem value="3">3 months</SelectItem>
-                    <SelectItem value="6">6 months</SelectItem>
-                    <SelectItem value="12">12 months</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2 flex-wrap">
+                  {["1", "3", "6", "12"].map((duration) => (
+                    <Button 
+                      key={duration}
+                      type="button"
+                      variant={selectedDuration === duration ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedDuration(duration)}
+                      className="flex-1 min-w-[70px]"
+                    >
+                      {duration} {parseInt(duration) === 1 ? 'month' : 'months'}
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
             
