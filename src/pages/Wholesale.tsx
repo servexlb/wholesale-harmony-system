@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers, products as defaultProducts } from '@/lib/data';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
 import WholesaleTabContent from '@/components/wholesale/WholesaleTabContent';
@@ -20,7 +20,8 @@ const Wholesale = () => {
     isAuthenticated, 
     currentWholesaler, 
     handleLoginSuccess, 
-    handleLogout 
+    handleLogout,
+    isLoggedOut
   } = useWholesaleAuth();
   
   const {
@@ -75,7 +76,7 @@ const Wholesale = () => {
 
   // If not authenticated, show login screen
   if (!isAuthenticated) {
-    return <WholesaleAuth onLoginSuccess={handleLoginSuccess} />;
+    return <WholesaleAuth onLoginSuccess={handleLoginSuccess} isLoggedOut={isLoggedOut} />;
   }
 
   // Render main wholesale interface

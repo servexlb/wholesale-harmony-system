@@ -5,14 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, User } from 'lucide-react';
-import { toast } from '@/lib/toast';
+import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 interface WholesaleLoginProps {
   onSuccess: (username: string) => void;
+  isLoggedOut?: boolean;
 }
 
-const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
+const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut = false }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,11 +23,11 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
   useEffect(() => {
     // Check if user is already logged in
     const isAuthenticated = localStorage.getItem('wholesaleAuthenticated') === 'true';
-    if (isAuthenticated) {
+    if (isAuthenticated && !isLoggedOut) {
       const username = localStorage.getItem('wholesalerId') || '';
       onSuccess(username);
     }
-  }, [onSuccess]);
+  }, [onSuccess, isLoggedOut]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +40,10 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       // Check for default credentials
       if ((username === 'admin' && password === 'admin123') || 
           (username === 'wholesaler1' && password === 'password123')) {
-        toast.success('Login successful!');
+        toast({
+          title: "Login successful!",
+          description: "Welcome to the wholesale portal."
+        });
         onSuccess(username);
         return;
       }
@@ -51,7 +55,10 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
         const user = users.find((u: any) => u.username === username && u.password === password);
         
         if (user) {
-          toast.success('Login successful!');
+          toast({
+            title: "Login successful!",
+            description: "Welcome to the wholesale portal."
+          });
           onSuccess(username);
           return;
         }
@@ -67,7 +74,9 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Wholesale Login</CardTitle>
         <CardDescription className="text-center">
-          Enter your credentials to access the wholesale portal
+          {isLoggedOut 
+            ? "You've been signed out. Please login again to access the wholesale portal."
+            : "Enter your credentials to access the wholesale portal"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
