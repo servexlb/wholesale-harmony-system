@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Table, 
@@ -50,7 +49,8 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     const loadUsers = () => {
       const usersList: User[] = [];
-      const userIds = Object.values(JSON.parse(localStorage.getItem('userEmailToId') || '{}'));
+      const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
+      const userIds = Object.values(userEmailToId) as string[]; // Cast to string[] to fix type error
       const registeredUsers = JSON.parse(localStorage.getItem('users') || '[]');
       
       registeredUsers.forEach((user: any, index: number) => {

@@ -1,4 +1,3 @@
-
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -56,7 +55,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId: boolean; // Changed from optional to required for fixed TypeScript error
+  requiresId: boolean; // Make this required to fix TypeScript errors
 }
 
 export interface Subscription {
