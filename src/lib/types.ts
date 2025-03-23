@@ -149,6 +149,40 @@ export interface AdminNotification {
   read: boolean;
 }
 
+// New customer notification type
+export interface CustomerNotification {
+  id: string;
+  userId: string;
+  type: "profile_fixed" | "payment_resolved" | "password_reset" | "order_completed";
+  message: string;
+  createdAt: string;
+  read: boolean;
+  subscriptionId?: string;
+  serviceName?: string;
+}
+
+// New types for subscription issues
+export type IssueStatus = "pending" | "in_progress" | "resolved";
+export type IssueType = "profile_fix" | "payment_issue" | "password_reset";
+
+export interface SubscriptionIssue {
+  id: string;
+  subscriptionId: string;
+  userId: string;
+  customerName: string;
+  serviceName: string;
+  type: IssueType;
+  status: IssueStatus;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  notes?: string;
+  credentials?: {
+    email: string;
+    password: string;
+  };
+}
+
 // New payment related interfaces
 export type PaymentStatus = "pending" | "approved" | "rejected";
 

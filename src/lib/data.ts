@@ -14,6 +14,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
+  requiresId?: boolean;
 }
 
 export interface Customer {
@@ -50,7 +51,13 @@ export interface Subscription {
   price: number;
 }
 
-import { AdminNotification } from '@/lib/types';
+import { 
+  AdminNotification, 
+  SubscriptionIssue, 
+  IssueType, 
+  IssueStatus,
+  CustomerNotification 
+} from '@/lib/types';
 
 export const products: Product[] = [
   {
@@ -213,6 +220,9 @@ export const adminNotifications: AdminNotification[] = [
   }
 ];
 
+export const subscriptionIssues: SubscriptionIssue[] = [];
+export const customerNotifications: CustomerNotification[] = [];
+
 const wholesaleUsers = [
   { username: 'wholesaler1', password: 'password123' },
   { username: 'admin', password: 'admin123' }
@@ -248,6 +258,10 @@ export const getSubscriptionsByCustomerId = (customerId: string): Subscription[]
   return subscriptions.filter(subscription => subscription.customerId === customerId);
 };
 
+export const getSubscriptionById = (id: string): Subscription | undefined => {
+  return subscriptions.find(subscription => subscription.id === id);
+};
+
 export const addCustomerBalance = (customerId: string, amount: number): boolean => {
   const customer = customers.find(c => c.id === customerId);
   if (customer) {
@@ -270,14 +284,35 @@ export const addSubscription = (subscription: Subscription): void => {
   subscriptions.push(subscription);
 };
 
-export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+export const createSubscriptionIssue = (issueData: {
+  subscriptionId: string;
+  userId: string;
+  customerName: string;
+  serviceName: string;
+  type: IssueType;
+  credentials?: { email: string; password: string; };
+}): Promise<boolean> => {
+  const newIssue: SubscriptionIssue = {
+    id: `issue-${Date.now()}`,
+    subscriptionId: issueData.subscriptionId,
+    userId: issueData.userId,
+    customerName: issueData.customerName,
+    serviceName: issueData.serviceName,
+    type: issueData.type,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    credentials: issueData.credentials
+  };
+  
+  subscriptionIssues.unshift(newIssue);
+  
   const newNotification: AdminNotification = {
     id: `n${adminNotifications.length + 1}`,
-    type: "profile_fix",
-    subscriptionId,
-    userId,
-    customerName,
-    serviceName,
+    type: issueData.type,
+    subscriptionId: issueData.subscriptionId,
+    userId: issueData.userId,
+    customerName: issueData.customerName,
+    serviceName: issueData.serviceName,
     createdAt: new Date().toISOString(),
     read: false
   };
@@ -286,44 +321,110 @@ export const fixSubscriptionProfile = (subscriptionId: string, userId: string, c
   
   return new Promise((resolve) => {
     setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const getSubscriptionIssues = (): SubscriptionIssue[] => {
+  return subscriptionIssues;
+};
+
+export const resolveSubscriptionIssue = (
+  issueId: string, 
+  resolvedBy: string, 
+  notes?: string
+): Promise<boolean> => {
+  const issue = subscriptionIssues.find(i => i.id === issueId);
+  if (issue) {
+    issue.status = "resolved";
+    issue.resolvedAt = new Date().toISOString();
+    issue.resolvedBy = resolvedBy;
+    if (notes) {
+      issue.notes = notes;
+    }
+  }
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const sendCustomerNotification = (notificationData: {
+  userId: string;
+  type: "profile_fixed" | "payment_resolved" | "password_reset" | "order_completed";
+  message: string;
+  subscriptionId?: string;
+  serviceName?: string;
+}): Promise<boolean> => {
+  const newNotification: CustomerNotification = {
+    id: `cn-${Date.now()}`,
+    userId: notificationData.userId,
+    type: notificationData.type,
+    message: notificationData.message,
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: notificationData.subscriptionId,
+    serviceName: notificationData.serviceName
+  };
+  
+  customerNotifications.unshift(newNotification);
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 500);
+  });
+};
+
+export const getCustomerNotifications = (userId: string): CustomerNotification[] => {
+  return customerNotifications.filter(notification => notification.userId === userId);
+};
+
+export const markCustomerNotificationAsRead = (notificationId: string): void => {
+  const notification = customerNotifications.find(n => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
+  }
+};
+
+export const markAllCustomerNotificationsAsRead = (userId: string): void => {
+  customerNotifications.forEach(notification => {
+    if (notification.userId === userId) {
+      notification.read = true;
+    }
+  });
+};
+
+export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "profile_fix",
+    credentials: subscription?.credentials
   });
 };
 
 export const reportPaymentIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
-  const newNotification: AdminNotification = {
-    id: `n${adminNotifications.length + 1}`,
-    type: "payment_issue",
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
     subscriptionId,
     userId,
     customerName,
     serviceName,
-    createdAt: new Date().toISOString(),
-    read: false
-  };
-  
-  adminNotifications.unshift(newNotification);
-  
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 1000);
+    type: "payment_issue",
+    credentials: subscription?.credentials
   });
 };
 
 export const reportPasswordIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
-  const newNotification: AdminNotification = {
-    id: `n${adminNotifications.length + 1}`,
-    type: "password_reset",
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
     subscriptionId,
     userId,
     customerName,
     serviceName,
-    createdAt: new Date().toISOString(),
-    read: false
-  };
-  
-  adminNotifications.unshift(newNotification);
-  
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 1000);
+    type: "password_reset",
+    credentials: subscription?.credentials
   });
 };
 

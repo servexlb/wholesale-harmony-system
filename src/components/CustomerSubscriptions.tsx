@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { Key, Clock, CircleAlert, CircleX, CreditCard, UserCog, KeyRound } from 'lucide-react';
+import { Key, Clock, CircleAlert, CircleX } from 'lucide-react';
 import { 
   Table,
   TableBody,
@@ -18,9 +18,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Subscription } from '@/lib/types';
-import { products, fixSubscriptionProfile, reportPaymentIssue, reportPasswordIssue, getCustomerById, getProductById } from '@/lib/data';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { products } from '@/lib/data';
+import SubscriptionActions from '@/components/customer/SubscriptionActions';
+import CustomerNotifications from '@/components/customer/CustomerNotifications';
 
 interface CustomerSubscriptionsProps {
   subscriptions: Subscription[];
@@ -44,64 +44,13 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
     if (daysLeft <= 3) return { status: `expires in ${daysLeft} days`, color: "orange", icon: <CircleAlert className="h-4 w-4" /> };
     return { status: "active", color: "green", icon: <Clock className="h-4 w-4" /> };
   };
-
-  const handleFixProfile = async (subscriptionId: string, serviceId: string) => {
-    const customer = getCustomerById(customerId);
-    const product = getProductById(serviceId);
-    
-    if (customer && product) {
-      await fixSubscriptionProfile(
-        subscriptionId, 
-        customerId, 
-        customer.name, 
-        product.name
-      );
-      
-      toast.success("Profile fix request submitted", {
-        description: "Our team will review and fix the profile within 24 hours."
-      });
-    }
-  };
-
-  const handleFixPayment = async (subscriptionId: string, serviceId: string) => {
-    const customer = getCustomerById(customerId);
-    const product = getProductById(serviceId);
-    
-    if (customer && product) {
-      await reportPaymentIssue(
-        subscriptionId, 
-        customerId, 
-        customer.name, 
-        product.name
-      );
-      
-      toast.success("Payment issue reported", {
-        description: "Our team will contact you shortly to resolve the payment issue."
-      });
-    }
-  };
-
-  const handlePasswordReset = async (subscriptionId: string, serviceId: string) => {
-    const customer = getCustomerById(customerId);
-    const product = getProductById(serviceId);
-    
-    if (customer && product) {
-      await reportPasswordIssue(
-        subscriptionId, 
-        customerId, 
-        customer.name, 
-        product.name
-      );
-      
-      toast.success("Password reset requested", {
-        description: "Our team will reset the password and provide new credentials soon."
-      });
-    }
-  };
   
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
-      <h3 className="font-medium text-lg mb-4">Active Subscriptions</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-medium text-lg">Active Subscriptions</h3>
+        <CustomerNotifications userId={customerId} />
+      </div>
       
       {customerSubscriptions.length === 0 ? (
         <p className="text-muted-foreground text-center py-4">No active subscriptions found for this customer.</p>
@@ -166,37 +115,12 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex items-center gap-1" 
-                        onClick={() => handleFixProfile(subscription.id, subscription.serviceId)}
-                      >
-                        <UserCog className="h-3 w-3" />
-                        <span>Fix Profile</span>
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex items-center gap-1"
-                        onClick={() => handleFixPayment(subscription.id, subscription.serviceId)}
-                      >
-                        <CreditCard className="h-3 w-3" />
-                        <span>Payment Issue</span>
-                      </Button>
-                      {subscription.credentials && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex items-center gap-1"
-                          onClick={() => handlePasswordReset(subscription.id, subscription.serviceId)}
-                        >
-                          <KeyRound className="h-3 w-3" />
-                          <span>Reset Password</span>
-                        </Button>
-                      )}
-                    </div>
+                    <SubscriptionActions
+                      subscriptionId={subscription.id}
+                      serviceId={subscription.serviceId}
+                      customerId={customerId}
+                      hasCredentials={!!subscription.credentials}
+                    />
                   </TableCell>
                 </TableRow>
               );

@@ -3,7 +3,12 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserCog, CreditCard, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
-import { fixSubscriptionProfile, reportPaymentIssue, reportPasswordIssue, getCustomerById, getProductById } from '@/lib/data';
+import { 
+  createSubscriptionIssue,
+  getCustomerById, 
+  getProductById,
+  getSubscriptionById
+} from '@/lib/data';
 
 interface SubscriptionActionsProps {
   subscriptionId: string;
@@ -28,6 +33,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
     try {
       const customer = getCustomerById(customerId);
       const product = getProductById(serviceId);
+      const subscription = getSubscriptionById(subscriptionId);
       
       if (!customer || !product) {
         toast.error("Customer or product not found");
@@ -35,12 +41,14 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         return;
       }
       
-      await fixSubscriptionProfile(
-        subscriptionId, 
-        customerId, 
-        customer.name, 
-        product.name
-      );
+      await createSubscriptionIssue({
+        subscriptionId,
+        userId: customerId,
+        customerName: customer.name,
+        serviceName: product.name,
+        type: "profile_fix",
+        credentials: subscription?.credentials
+      });
       
       toast.success("Profile fix request submitted", {
         description: "Our team will review and fix the profile within 24 hours."
@@ -61,6 +69,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
     try {
       const customer = getCustomerById(customerId);
       const product = getProductById(serviceId);
+      const subscription = getSubscriptionById(subscriptionId);
       
       if (!customer || !product) {
         toast.error("Customer or product not found");
@@ -68,12 +77,14 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         return;
       }
       
-      await reportPaymentIssue(
-        subscriptionId, 
-        customerId, 
-        customer.name, 
-        product.name
-      );
+      await createSubscriptionIssue({
+        subscriptionId,
+        userId: customerId,
+        customerName: customer.name,
+        serviceName: product.name,
+        type: "payment_issue",
+        credentials: subscription?.credentials
+      });
       
       toast.success("Payment issue reported", {
         description: "Our team will contact you shortly to resolve the payment issue."
@@ -94,6 +105,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
     try {
       const customer = getCustomerById(customerId);
       const product = getProductById(serviceId);
+      const subscription = getSubscriptionById(subscriptionId);
       
       if (!customer || !product) {
         toast.error("Customer or product not found");
@@ -101,12 +113,14 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         return;
       }
       
-      await reportPasswordIssue(
-        subscriptionId, 
-        customerId, 
-        customer.name, 
-        product.name
-      );
+      await createSubscriptionIssue({
+        subscriptionId,
+        userId: customerId,
+        customerName: customer.name,
+        serviceName: product.name,
+        type: "password_reset",
+        credentials: subscription?.credentials
+      });
       
       toast.success("Password reset requested", {
         description: "Our team will reset the password and provide new credentials soon."
