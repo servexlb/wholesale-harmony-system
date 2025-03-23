@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Settings, User, ShoppingBag, MessageCircle, LogOut, LogIn } from 'lucide-react';
@@ -49,6 +50,8 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated 
       localStorage.removeItem(`customerOrders_${userId}`);
     }
     
+    // Trigger global logout event for other parts of the app (including wholesale)
+    window.dispatchEvent(new Event('globalLogout'));
     window.dispatchEvent(new Event('authStateChanged'));
     
     toast({

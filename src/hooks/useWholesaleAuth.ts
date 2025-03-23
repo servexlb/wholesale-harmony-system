@@ -15,7 +15,20 @@ export function useWholesaleAuth() {
       setCurrentWholesaler(wholesalerId);
       setIsLoggedOut(false);
     }
-  }, []);
+    
+    // Listen for global logout events
+    const handleGlobalLogout = () => {
+      if (isAuthenticated) {
+        handleLogout();
+      }
+    };
+    
+    window.addEventListener('globalLogout', handleGlobalLogout);
+    
+    return () => {
+      window.removeEventListener('globalLogout', handleGlobalLogout);
+    };
+  }, [isAuthenticated]);
 
   const handleLoginSuccess = useCallback((username: string) => {
     setIsAuthenticated(true);
