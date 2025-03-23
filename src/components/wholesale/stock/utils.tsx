@@ -1,49 +1,48 @@
 
 import React from 'react';
-import { differenceInDays, parseISO } from 'date-fns';
 import { Subscription } from '@/lib/types';
-import { customers, products } from '@/lib/data';
-import { Clock, CircleAlert, CircleX } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Clock, Ban } from 'lucide-react';
 
-export const getSubscriptionStatus = (subscription: Subscription): { 
-  label: string; 
-  variant: "default" | "secondary" | "destructive"; 
-  icon: React.ReactNode 
-} => {
-  try {
-    const expiryDate = parseISO(subscription.endDate);
-    const daysUntilExpiry = differenceInDays(expiryDate, new Date());
-
-    if (subscription.status === "canceled") {
-      return { label: "Canceled", variant: "destructive", icon: <CircleX className="h-3 w-3 mr-1" /> };
-    } else if (daysUntilExpiry <= 0) {
-      return { label: "Expired", variant: "destructive", icon: <CircleX className="h-3 w-3 mr-1" /> };
-    } else if (daysUntilExpiry <= 7) {
-      return { label: "Expiring Soon", variant: "secondary", icon: <CircleAlert className="h-3 w-3 mr-1" /> };
-    } else {
-      return { label: "Active", variant: "default", icon: <Clock className="h-3 w-3 mr-1" /> };
-    }
-  } catch (error) {
-    console.error('Error calculating subscription status:', error);
-    return { label: "Unknown", variant: "destructive", icon: <CircleX className="h-3 w-3 mr-1" /> };
+export const getSubscriptionStatusIcon = (status: string) => {
+  switch (status) {
+    case 'active':
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    case 'expired':
+      return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+    case 'pending':
+      return <Clock className="h-4 w-4 text-blue-500" />;
+    case 'cancelled':
+      return <Ban className="h-4 w-4 text-red-500" />;
+    default:
+      return null;
   }
 };
 
-export const filterSubscriptions = (subscriptions: Subscription[], searchTerm: string): Subscription[] => {
-  try {
-    if (!searchTerm.trim()) return subscriptions;
-    
-    return subscriptions.filter(subscription => {
-      const customer = customers.find(c => c.id === subscription.userId);
-      const product = products.find(p => p.id === subscription.serviceId);
+export const isSubscriptionActive = (subscription: Subscription) => {
+  return subscription.status === 'active';
+};
 
-      if (!customer || !product) return false;
+export const isSubscriptionExpired = (subscription: Subscription) => {
+  return subscription.status === 'expired';
+};
 
-      const searchStr = `${customer.name} ${customer.phone} ${customer.email} ${product.name}`.toLowerCase();
-      return searchStr.includes(searchTerm.toLowerCase());
-    });
-  } catch (error) {
-    console.error('Error filtering subscriptions:', error);
-    return [];
-  }
+export const isSubscriptionCancelled = (subscription: Subscription) => {
+  return subscription.status === 'cancelled'; // Fixed from 'canceled' to 'cancelled'
+};
+
+export const getRemainingDays = (endDate: string) => {
+  const end = new Date(endDate);
+  const now = new Date();
+  const diffTime = end.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays > 0 ? diffDays : 0;
+};
+
+export const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 };
