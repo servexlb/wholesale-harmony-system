@@ -21,13 +21,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Service, ServiceCategory } from "@/lib/types";
+import { Service } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ServiceCardProps {
   service: Service;
-  category: ServiceCategory | undefined;
+  category?: {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+  };
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
@@ -199,51 +204,55 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   return (
     <>
       <Card key={service.id} className="overflow-hidden transition-all hover:shadow-md">
-        <div className="aspect-video relative">
-          {!imageLoaded && !imageError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <Loader2 className="h-10 w-10 text-gray-300 animate-spin" />
-            </div>
-          )}
-          
-          {!imageError ? (
-            <img 
-              src={imageUrl} 
-              alt={service.name}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => {
-                console.log(`Service image failed to load: ${imageUrl}`);
-                setImageError(true);
-              }}
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
-              <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-500">{service.name}</span>
-            </div>
-          )}
-          
-          {service.featured && (
+        <Link to={`/services/${service.id}`} className="block">
+          <div className="aspect-video relative">
+            {!imageLoaded && !imageError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <Loader2 className="h-10 w-10 text-gray-300 animate-spin" />
+              </div>
+            )}
+            
+            {!imageError ? (
+              <img 
+                src={imageUrl} 
+                alt={service.name}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => {
+                  console.log(`Service image failed to load: ${imageUrl}`);
+                  setImageError(true);
+                }}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
+                <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
+                <span className="text-sm text-gray-500">{service.name}</span>
+              </div>
+            )}
+            
+            {service.featured && (
+              <Badge
+                variant="default" 
+                className="absolute top-2 right-2"
+              >
+                Featured
+              </Badge>
+            )}
+            
             <Badge
-              variant="default" 
-              className="absolute top-2 right-2"
+              variant="outline" 
+              className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
             >
-              Featured
+              {getServiceTypeIcon()}
+              {getServiceTypeName()}
             </Badge>
-          )}
-          
-          <Badge
-            variant="outline" 
-            className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
-          >
-            {getServiceTypeIcon()}
-            {getServiceTypeName()}
-          </Badge>
-        </div>
+          </div>
+        </Link>
         <CardHeader className="p-4 pb-0">
           <div className="flex justify-between items-start">
-            <h3 className="font-semibold text-lg">{service.name}</h3>
+            <Link to={`/services/${service.id}`} className="hover:underline">
+              <h3 className="font-semibold text-lg">{service.name}</h3>
+            </Link>
             <Badge variant="outline">{category?.name || service.categoryId}</Badge>
           </div>
         </CardHeader>

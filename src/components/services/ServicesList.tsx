@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import ServiceCard from '@/components/ServiceCard';
+import ServiceCard from '@/components/services/ServiceCard';
 import { Service } from '@/lib/types';
 
 interface ServicesListProps {
@@ -55,12 +55,21 @@ const ServicesList: React.FC<ServicesListProps> = ({
     );
   }
 
+  // Find the category object for each service
+  const getServiceCategory = (service: Service) => {
+    return serviceCategories.find(category => 
+      category.id === service.categoryId || 
+      category.name.toLowerCase() === service.category?.toLowerCase()
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredServices.map((service, index) => (
+      {filteredServices.map((service) => (
         <ServiceCard
           key={service.id}
           service={service}
+          category={getServiceCategory(service)}
         />
       ))}
     </div>
