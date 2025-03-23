@@ -5,13 +5,13 @@ import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/ProductCard';
 import { Product, Customer } from '@/lib/data';
-import { Service } from '@/lib/types';
+import { Service, WholesaleOrder } from '@/lib/types';
 import { services } from '@/lib/mockData';
 
 interface ProductsTabProps {
   products: Product[];
   customers: Customer[];
-  onOrderPlaced: (order: any) => void;
+  onOrderPlaced: (order: WholesaleOrder) => void;
 }
 
 const ProductsTab: React.FC<ProductsTabProps> = ({ 

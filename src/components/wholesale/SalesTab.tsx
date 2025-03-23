@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Customer } from '@/lib/data';
@@ -22,12 +21,10 @@ const SalesTab: React.FC<SalesTabProps> = ({
   const [filterCustomer, setFilterCustomer] = useState('all');
   const [filterPeriod, setFilterPeriod] = useState('all');
   
-  // Memoize filtered orders with useCallback for better performance
   const filteredOrders = useMemo(() => {
     if (!orders.length) return [];
     
     return orders.filter(order => {
-      // Skip expensive filtering if no filters are applied
       if (searchTerm === '' && filterCustomer === 'all' && filterPeriod === 'all') {
         return true;
       }
@@ -36,11 +33,9 @@ const SalesTab: React.FC<SalesTabProps> = ({
       let matchesCustomer = true;
       let matchesPeriod = true;
       
-      // Only perform search if there's a search term
       if (searchTerm !== '') {
         matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase());
         
-        // Only check customer name if search doesn't match order ID
         if (!matchesSearch && order.customerId) {
           const customer = customers.find(c => c.id === order.customerId);
           if (customer) {
@@ -74,13 +69,11 @@ const SalesTab: React.FC<SalesTabProps> = ({
     });
   }, [orders, customers, searchTerm, filterCustomer, filterPeriod]);
   
-  // Calculate total sales amount
   const totalSales = useMemo(() => {
     if (!filteredOrders.length) return 0;
     return filteredOrders.reduce((total, order) => total + order.totalPrice, 0);
   }, [filteredOrders]);
-
-  // Prepare export data with more readable format
+  
   const exportData = useMemo(() => {
     if (!filteredOrders.length) return [];
     
@@ -99,7 +92,6 @@ const SalesTab: React.FC<SalesTabProps> = ({
     });
   }, [filteredOrders, customers]);
   
-  // Memoize handler functions to prevent unnecessary rerenders
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
   }, []);
@@ -129,20 +121,17 @@ const SalesTab: React.FC<SalesTabProps> = ({
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Sales Calculator Component - Wrap in React.memo */}
         <div className="bg-white p-5 rounded-lg shadow-sm md:col-span-2">
           <h2 className="text-lg font-medium mb-4">Sales Analytics</h2>
           <SalesCalculator />
         </div>
         
-        {/* Sales Summary */}
         <SalesSummary 
           totalOrders={filteredOrders.length} 
           totalSales={totalSales} 
         />
       </div>
       
-      {/* Purchase History Table */}
       <PurchaseHistory 
         filteredOrders={filteredOrders}
         customers={customers}
@@ -157,5 +146,4 @@ const SalesTab: React.FC<SalesTabProps> = ({
   );
 };
 
-// Use React.memo to prevent unnecessary re-renders
 export default React.memo(SalesTab);

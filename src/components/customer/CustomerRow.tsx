@@ -55,7 +55,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
       {expanded && subscriptions.length > 0 && (
         <ExpandedSubscriptionDetails 
           subscriptions={subscriptions} 
-          customerName={customer.name}
+          customerId={customer.id}
         />
       )}
     </div>

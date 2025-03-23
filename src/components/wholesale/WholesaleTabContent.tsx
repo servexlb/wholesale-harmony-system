@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
 import { Customer, Product } from '@/lib/data';
 import { Subscription, WholesaleOrder } from '@/lib/types';
@@ -35,38 +35,43 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
 }) => {
   return (
     <div className="h-full">
-      <TabsContent value="dashboard" className="h-full">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {/* Dashboard content */}
-          <h2>Dashboard content</h2>
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="products" className="h-full">
-        <ProductsTab products={products} />
-      </TabsContent>
-      
-      <TabsContent value="customers" className="h-full">
-        <CustomerTable 
-          customers={customers} 
-          wholesalerId={currentWholesaler}
-          subscriptions={subscriptions}
-          onAddCustomer={onAddCustomer}
-          onUpdateCustomer={onUpdateCustomer}
-        />
-      </TabsContent>
-      
-      <TabsContent value="sales" className="h-full">
-        <SalesTab 
-          orders={orders}
-          customers={wholesalerCustomers}
-          products={products}
-        />
-      </TabsContent>
-      
-      <TabsContent value="settings" className="h-full">
-        <SettingsTab />
-      </TabsContent>
+      <Tabs value={activeTab} defaultValue={activeTab}>
+        <TabsContent value="dashboard" className="h-full">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Dashboard content */}
+            <h2>Dashboard content</h2>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="products" className="h-full">
+          <ProductsTab 
+            products={products} 
+            customers={wholesalerCustomers}
+            onOrderPlaced={handleOrderPlaced}
+          />
+        </TabsContent>
+        
+        <TabsContent value="customers" className="h-full">
+          <CustomerTable 
+            customers={customers} 
+            wholesalerId={currentWholesaler}
+            subscriptions={subscriptions}
+            onAddCustomer={onAddCustomer}
+            onUpdateCustomer={onUpdateCustomer}
+          />
+        </TabsContent>
+        
+        <TabsContent value="sales" className="h-full">
+          <SalesTab 
+            orders={orders}
+            customers={wholesalerCustomers}
+          />
+        </TabsContent>
+        
+        <TabsContent value="settings" className="h-full">
+          <SettingsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
