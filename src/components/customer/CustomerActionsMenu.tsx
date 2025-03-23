@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, FileText, Edit, Trash2, ShoppingBag } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface CustomerActionsMenuProps {
   customerId: string;
@@ -20,13 +21,26 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   customerId,
   onPurchaseForCustomer
 }) => {
+  const { toast } = useToast();
+
   // Handle purchase action
   const handlePurchase = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     console.log("Purchase clicked for customer:", customerId);
+    
     if (onPurchaseForCustomer) {
       onPurchaseForCustomer(customerId);
+      toast({
+        title: "Purchase initiated",
+        description: `Starting purchase process for customer ${customerId}`,
+      });
+    } else {
+      toast({
+        title: "Action unavailable",
+        description: "Purchase functionality is not available at this time",
+        variant: "destructive",
+      });
     }
   };
 
@@ -35,7 +49,13 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     e.preventDefault();
     e.stopPropagation();
     console.log("View orders clicked for customer:", customerId);
-    // Add actual implementation later
+    
+    toast({
+      title: "View orders",
+      description: `Viewing orders for customer ${customerId}`,
+    });
+    
+    // Implement actual functionality later
   };
 
   // Handle edit customer action
@@ -43,7 +63,13 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     e.preventDefault();
     e.stopPropagation();
     console.log("Edit clicked for customer:", customerId);
-    // Add actual implementation later
+    
+    toast({
+      title: "Edit customer",
+      description: `Editing customer ${customerId}`,
+    });
+    
+    // Implement actual functionality later
   };
 
   // Handle delete customer action
@@ -51,9 +77,17 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     e.preventDefault();
     e.stopPropagation();
     console.log("Delete clicked for customer:", customerId);
-    // Add actual implementation later
+    
+    toast({
+      title: "Delete customer",
+      description: `Deleting customer ${customerId}`,
+      variant: "destructive",
+    });
+    
+    // Implement actual functionality later
   };
 
+  // Handle menu open/close to prevent row expansion
   const handleMenuOpen = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -61,12 +95,12 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild onClick={handleMenuOpen}>
         <Button 
           variant="ghost" 
           size="sm" 
           className="h-8 w-8 p-0"
-          onClick={handleMenuOpen}
+          data-dropdown-trigger="true"
         >
           <span className="sr-only">Open menu</span>
           <MoreHorizontal className="h-4 w-4" />
@@ -74,9 +108,10 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="z-[100] bg-white border shadow-md"
+        className="z-[9999] bg-white border shadow-md"
         onClick={(e) => e.stopPropagation()}
         onPointerDownOutside={(e) => e.preventDefault()}
+        forceMount
       >
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -84,6 +119,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
           onClick={handlePurchase}
           disabled={!onPurchaseForCustomer}
           className="cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
+          data-action="purchase"
         >
           <ShoppingBag className="h-4 w-4 mr-2" />
           Purchase for Customer
@@ -91,6 +127,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
         <DropdownMenuItem 
           onClick={handleViewOrders}
           className="cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
+          data-action="view-orders"
         >
           <FileText className="h-4 w-4 mr-2" />
           View Orders
@@ -98,6 +135,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
         <DropdownMenuItem 
           onClick={handleEditCustomer}
           className="cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
+          data-action="edit"
         >
           <Edit className="h-4 w-4 mr-2" />
           Edit Customer
@@ -106,6 +144,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
         <DropdownMenuItem 
           className="text-destructive cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
           onClick={handleDeleteCustomer}
+          data-action="delete"
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Customer

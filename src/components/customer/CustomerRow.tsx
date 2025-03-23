@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Phone, Calendar, Key } from 'lucide-react';
@@ -26,11 +25,13 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
   const [expanded, setExpanded] = useState(false);
 
   const handleRowClick = (e: React.MouseEvent) => {
-    // Skip expansion when clicking on dropdown elements
+    // Skip expansion when clicking on dropdown or action elements
     if (
       (e.target as HTMLElement).closest('.dropdown-action') || 
       (e.target as HTMLElement).closest('[role="menuitem"]') ||
-      (e.target as HTMLElement).closest('[data-radix-menu-content]')
+      (e.target as HTMLElement).closest('[data-radix-dropdown-menu-content]') ||
+      (e.target as HTMLElement).closest('button[data-dropdown-trigger="true"]') ||
+      (e.target as HTMLElement).closest('[data-action]')
     ) {
       return;
     }
@@ -120,7 +121,14 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
           )}
         </TableCell>
         <TableCell className="text-right">
-          <div className="z-[100] relative dropdown-action" onClick={(e) => e.stopPropagation()}>
+          <div 
+            className="z-[100] relative dropdown-action" 
+            onClick={(e) => {
+              // This prevents the row click from firing
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
             <CustomerActionsMenu 
               customerId={customer.id} 
               onPurchaseForCustomer={onPurchaseForCustomer} 
