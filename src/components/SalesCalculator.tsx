@@ -152,15 +152,16 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
       <SalesSummaryStats 
         totalSales={totalSales}
         totalCustomers={totalCustomers}
-        totalServices={totalServices}
+        totalProducts={totalServices} // Use totalServices for totalProducts prop
         averageOrderValue={averageOrderValue}
+        totalServices={totalServices} // Pass totalServices separately
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <MonthlySalesChart monthlySalesData={monthlySalesData} />
         <SalesDistributionChart 
           salesByCustomer={salesByCustomer} 
-          salesByService={salesByService} 
+          salesByProduct={salesByService} // Renamed from salesByService to salesByProduct
         />
       </div>
     </motion.div>

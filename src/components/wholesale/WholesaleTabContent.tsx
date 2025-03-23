@@ -92,7 +92,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         
         <TabsContent value="products" className="h-full">
           <ProductsTab 
-            products={allProducts} 
+            services={allProducts} 
             customers={wholesalerCustomers}
             onOrderPlaced={handleOrderPlaced}
           />
