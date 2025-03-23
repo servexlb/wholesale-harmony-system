@@ -6,7 +6,12 @@ import { Service } from '@/lib/types';
 
 interface ServicesListProps {
   filteredServices: Service[];
-  serviceCategories: any[]; // We'll refine this type later
+  serviceCategories: {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+  }[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   selectedCategory: string | null;
