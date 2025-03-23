@@ -10,10 +10,12 @@ import AdminBalanceManagement from "@/components/AdminBalanceManagement";
 import AdminDigitalInventory from "@/components/AdminDigitalInventory";
 import AdminNotifications from "@/components/AdminNotifications";
 import AdminCustomersPage from "@/components/admin/AdminCustomersPage";
+import AdminPayments from "@/components/admin/AdminPayments";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
-  Server, LogOut, CreditCard, LayoutDashboard
+  Server, LogOut, CreditCard, LayoutDashboard,
+  DollarSign
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 
@@ -91,6 +93,14 @@ const AdminPanel: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 
+                    onClick={() => navigate("/admin/payments")}
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Payments
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
                     onClick={() => navigate("/admin/inventory")}
                   >
                     <Server className="mr-2 h-4 w-4" />
@@ -147,6 +157,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/customers" element={<AdminCustomersPage />} />
               <Route path="/services" element={<AdminServices />} />
               <Route path="/orders" element={<AdminOrders />} />
+              <Route path="/payments" element={<AdminPayments />} />
               <Route path="/inventory" element={<AdminDigitalInventory />} />
               <Route path="/balance" element={<AdminBalanceManagement />} />
               <Route path="/customization" element={<AdminCustomization />} />

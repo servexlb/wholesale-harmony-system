@@ -140,3 +140,22 @@ export interface AdminNotification {
   createdAt: string;
   read: boolean;
 }
+
+// New payment related interfaces
+export type PaymentStatus = "pending" | "approved" | "rejected";
+
+export interface Payment {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  amount: number;
+  method: "credit_card" | "bank_transfer" | "paypal" | "other";
+  status: PaymentStatus;
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  notes?: string;
+  receiptUrl?: string;
+  transactionId?: string;
+}
