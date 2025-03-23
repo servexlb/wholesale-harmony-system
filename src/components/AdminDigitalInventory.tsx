@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,12 +67,12 @@ const AdminDigitalInventory: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   
   // Load inventory when component mounts
-  useEffect(() => {
-    const loadInventory = () => {
-      const stock = getAllCredentialStock();
-      setInventory(convertToDigitalItems(stock));
-    };
+  const loadInventory = useCallback(() => {
+    const stock = getAllCredentialStock();
+    setInventory(convertToDigitalItems(stock));
+  }, []);
 
+  useEffect(() => {
     loadInventory();
     
     // Add event listener for credential stock updates
@@ -81,7 +81,7 @@ const AdminDigitalInventory: React.FC = () => {
     return () => {
       window.removeEventListener('credential-stock-updated', loadInventory);
     };
-  }, []);
+  }, [loadInventory]);
 
   useEffect(() => {
     const servicesAsProducts: Product[] = services.map(service => ({
@@ -309,34 +309,53 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const updateCredential = (itemId: string, field: keyof DigitalItem['credentials'], value: string) => {
-    // Update the credentials in the specified field
-    const updatedInventory = inventory.map(item => {
-      if (item.id === itemId) {
-        const updatedCredentials = {
-          ...item.credentials,
-          [field]: value
-        };
-        
-        // Call the utility function to update in localStorage and return updated item
-        const result = updateCredentialInStock(itemId, {
-          credentials: updatedCredentials
-        });
-        
-        if (result) {
+    // Find the credential in the local state
+    const itemToUpdate = inventory.find(item => item.id === itemId);
+    
+    if (!itemToUpdate) {
+      console.error(`Item with id ${itemId} not found in inventory`);
+      return;
+    }
+    
+    // Create updated credentials object
+    const updatedCredentials = {
+      ...itemToUpdate.credentials,
+      [field]: value
+    };
+    
+    // Ensure email and password are always included (required by the type)
+    const validatedCredentials = {
+      email: updatedCredentials.email || "",
+      password: updatedCredentials.password || "",
+      username: updatedCredentials.username,
+      pinCode: updatedCredentials.pinCode
+    };
+    
+    // Update the credential in localStorage
+    const result = updateCredentialInStock(itemId, {
+      credentials: validatedCredentials
+    });
+    
+    if (result) {
+      // Update the local state with the new credential
+      const updatedInventory = inventory.map(item => {
+        if (item.id === itemId) {
           return {
             ...item,
-            credentials: updatedCredentials
+            credentials: validatedCredentials
           };
         }
-      }
-      return item;
-    });
-    
-    setInventory(updatedInventory);
-    
-    toast.success("Credential Updated", {
-      description: `Updated ${field} for item ${itemId.substring(0, 8)}...`,
-    });
+        return item;
+      });
+      
+      setInventory(updatedInventory);
+      
+      // No toast here to avoid excessive notifications while typing
+    } else {
+      toast.error("Update Failed", {
+        description: `Could not update ${field} for item ${itemId.substring(0, 8)}...`,
+      });
+    }
   };
 
   const availableCount = inventory.filter(item => item.status === "available").length;

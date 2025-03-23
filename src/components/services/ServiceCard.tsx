@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus, Gift, Wallet, CheckCircle, HourglassIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Service, ServiceType, Order } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { CreditCard, Eye, ImageIcon, Minus, Plus, User } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -12,19 +13,12 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Service, Order } from "@/lib/types";
-import { toast } from "@/lib/toast";
-import { Skeleton } from "@/components/ui/skeleton";
-import PurchaseSuccessDialog from "../PurchaseSuccessDialog";
-import { checkCredentialAvailability, processOrderWithCredentials } from "@/lib/credentialUtils";
+import { toast } from '@/lib/toast';
+import { 
+  fulfillOrderWithCredentials, 
+  checkCredentialAvailability 
+} from '@/lib/credentialUtils';
 
 interface ServiceCardProps {
   service: Service;
@@ -121,7 +115,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       total: finalPrice
     };
 
-    const processedOrder = processOrderWithCredentials(order) as Order;
+    const processedOrder = fulfillOrderWithCredentials(order) as Order;
 
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');

@@ -9,7 +9,7 @@ import { useWholesaleAuth } from '@/hooks/useWholesaleAuth';
 import { useWholesaleData } from '@/hooks/useWholesaleData';
 import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
 import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
-import { Service } from '@/lib/types';
+import { Service, WholesaleOrder } from '@/lib/types';
 import { loadServices } from '@/lib/productManager';
 import { Button } from '@/components/ui/button';
 
@@ -107,9 +107,12 @@ const Wholesale = () => {
   };
   
   // Handle purchase submission
-  const handlePurchaseSubmit = () => {
+  const handlePurchaseSubmit = (order: WholesaleOrder) => {
     setIsSubmitting(true);
-    // Implement your purchase logic here
+    
+    // Process the order
+    handleOrderPlaced(order);
+    
     setTimeout(() => {
       setIsSubmitting(false);
       setPurchaseDialogOpen(false);
@@ -131,22 +134,20 @@ const Wholesale = () => {
         setActiveTab={setActiveTab}
         handleLogout={handleLogout}
       >
-        {/* Show the inline purchase form when open */}
-        {purchaseDialogOpen && (
-          <PurchaseDialog
-            customerName={customerName}
-            customerEmail={customerEmail}
-            customerPhone={customerPhone}
-            customerAddress={customerAddress}
-            customerCompany={customerCompany}
-            customerNotes={customerNotes}
-            onPurchase={handlePurchaseSubmit}
-            isSubmitting={isSubmitting}
-            isMobile={false}
-          >
-            <Button>Open Purchase Dialog</Button>
-          </PurchaseDialog>
-        )}
+        {/* Show the purchase dialog when needed */}
+        <PurchaseDialog
+          customerName={customerName}
+          customerEmail={customerEmail}
+          customerPhone={customerPhone}
+          customerAddress={customerAddress}
+          customerCompany={customerCompany}
+          customerNotes={customerNotes}
+          onPurchase={handlePurchaseSubmit}
+          isSubmitting={isSubmitting}
+          isMobile={false}
+        >
+          <Button style={{ display: 'none' }}>Open Purchase Dialog</Button>
+        </PurchaseDialog>
         
         <WholesaleTabContent 
           activeTab={activeTab}

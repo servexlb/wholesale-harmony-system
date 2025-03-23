@@ -1,434 +1,511 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, Wallet } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import MainLayout from "@/components/MainLayout";
-import { useNavigate } from "react-router-dom";
-import { toast } from "@/lib/toast";
-import PurchaseSuccessDialog from "@/components/PurchaseSuccessDialog";
-import { processOrderWithCredentials } from "@/lib/credentialUtils";
-import { Order } from "@/lib/types";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { ArrowLeft, CreditCard, Wallet, CheckCircle2, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Service, Order } from '@/lib/types';
+import { fulfillOrderWithCredentials } from '@/lib/credentialUtils';
+import PurchaseSuccessDialog from '@/components/PurchaseSuccessDialog';
 
-const Checkout: React.FC = () => {
+const Checkout = () => {
   const navigate = useNavigate();
-  const [paymentMethod, setPaymentMethod] = useState("account-balance");
+  const location = useLocation();
+  const [service, setService] = useState<Service | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [duration, setDuration] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState('balance');
+  const [accountId, setAccountId] = useState('');
+  const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showCredentials, setShowCredentials] = useState(false);
-  const [requireCredentials, setRequireCredentials] = useState(true);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [credentials, setCredentials] = useState({
     email: '',
-    password: ''
+    password: '',
+    username: '',
+    notes: ''
   });
-  const [purchasedOrder, setPurchasedOrder] = useState<{
-    id: string;
-    serviceId: string;
-    serviceName: string;
-    totalPrice: number;
-    credentials: any | null;
-    createdAt: string;
-  } | null>(null);
+  const [showCredentialFields, setShowCredentialFields] = useState(false);
   
-  const userId = localStorage.getItem('currentUserId');
+  // Get current user ID
+  const userId = localStorage.getItem('currentUserId') || 'guest';
+  
+  // Get user balance from localStorage
   const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
-  const userBalance = userBalanceStr && userId ? parseFloat(userBalanceStr) : 0;
-  const total = 12.99;
+  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
 
   useEffect(() => {
-    const isUserLoggedIn = !!userId && userId.startsWith('user_');
-    setIsAuthenticated(isUserLoggedIn);
-    
-    if (!isUserLoggedIn) {
-      toast.error("Authentication required", {
-        description: "Please log in to make a purchase"
-      });
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
-      return;
-    }
-    
-    if (paymentMethod === "account-balance" && userBalance < total) {
-      toast.error("Insufficient balance", {
-        description: "You don't have enough funds to make this purchase"
-      });
-      setTimeout(() => {
-        navigate("/payment");
-      }, 1500);
-    }
-    
-    const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
-    if (savedSetting !== null) {
-      const requireCreds = savedSetting === "true";
-      setRequireCredentials(requireCreds);
-      setShowCredentials(requireCreds);
-    }
-    
-    const handleCredentialSettingChanged = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.requireCredentials !== undefined) {
-        setRequireCredentials(customEvent.detail.requireCredentials);
-        setShowCredentials(customEvent.detail.requireCredentials);
+    // Get service from location state
+    if (location.state?.service) {
+      setService(location.state.service);
+      
+      // Set default quantity and duration
+      if (location.state.quantity) {
+        setQuantity(location.state.quantity);
       }
-    };
-    
-    window.addEventListener('credential-setting-changed', handleCredentialSettingChanged);
-    
-    return () => {
-      window.removeEventListener('credential-setting-changed', handleCredentialSettingChanged);
-    };
-  }, []);
+      
+      if (location.state.duration) {
+        setDuration(location.state.duration);
+      }
+      
+      // Set default account ID if provided
+      if (location.state.accountId) {
+        setAccountId(location.state.accountId);
+      }
+      
+      // Determine if we should show credential fields
+      const isSubscription = location.state.service.type === 'subscription';
+      const requireCredentials = localStorage.getItem("requireSubscriptionCredentials") === "true";
+      setShowCredentialFields(isSubscription && requireCredentials);
+    } else {
+      // No service provided, redirect to services page
+      navigate('/services');
+    }
+  }, [location, navigate]);
 
-  const showPurchaseConfirmation = () => {
-    if (!isAuthenticated) {
-      toast.error("Authentication required", {
-        description: "Please log in to make a purchase"
-      });
-      navigate("/login");
-      return;
+  // Calculate total price
+  const calculateTotal = () => {
+    if (!service) return 0;
+    
+    // For subscription services, multiply by duration
+    if (service.type === 'subscription') {
+      return service.price * duration;
     }
     
-    if (paymentMethod === "account-balance" && userBalance < total) {
-      toast.error("Insufficient balance", {
-        description: "You don't have enough funds to make this purchase"
-      });
-      navigate("/payment");
-      return;
-    }
-    
-    setIsConfirmDialogOpen(true);
+    // For other services, multiply by quantity
+    return service.price * quantity;
   };
 
-  const handleCompletePurchase = () => {
-    if (!isAuthenticated) {
-      toast.error("Authentication required");
-      navigate("/login");
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      setQuantity(value);
+    }
+  };
+
+  const handleDurationChange = (value: string) => {
+    setDuration(parseInt(value));
+  };
+
+  const handlePaymentMethodChange = (value: string) => {
+    setPaymentMethod(value);
+  };
+
+  const handleCredentialChange = (field: string, value: string) => {
+    setCredentials(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCheckout = async () => {
+    // Validate required fields
+    if (service?.type === 'topup' && !accountId) {
+      toast.error("Account ID required", {
+        description: "Please enter your account ID for this service"
+      });
       return;
     }
     
-    if (showCredentials && (credentials.email.trim() === '' || credentials.password.trim() === '')) {
-      toast.error("Missing credentials", {
-        description: "Please provide both email and password for the subscription account"
+    // Validate credentials if required
+    if (showCredentialFields && (!credentials.email || !credentials.password)) {
+      toast.error("Credentials required", {
+        description: "Please provide both email and password for this subscription"
+      });
+      return;
+    }
+    
+    // Calculate total price
+    const totalPrice = calculateTotal();
+    
+    // Check if user has sufficient balance for balance payment
+    if (paymentMethod === 'balance' && userBalance < totalPrice) {
+      toast.error("Insufficient balance", {
+        description: "You don't have enough funds to complete this purchase"
       });
       return;
     }
     
     setIsProcessing(true);
-
-    if (paymentMethod === "account-balance") {
-      const newBalance = userBalance - total;
-      localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
-    }
-
-    const order: Order = {
-      id: `order-${Date.now()}`,
-      userId: userId,
-      serviceId: "service-netflix",
-      quantity: 1,
-      totalPrice: total,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending",
-      credentials: showCredentials ? credentials : undefined,
-      products: [],
-      total: total
-    };
-
-    const processedOrder = processOrderWithCredentials(order) as Order;
-
-    const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${userId}`) || '[]');
-    customerOrders.push(processedOrder);
-    localStorage.setItem(`customerOrders_${userId}`, JSON.stringify(customerOrders));
-
-    console.log("Created order:", processedOrder);
     
-    setPurchasedOrder({
-      id: processedOrder.id,
-      serviceId: "service-netflix",
-      serviceName: "Netflix Premium",
-      totalPrice: total,
-      credentials: processedOrder.credentials || null,
-      createdAt: processedOrder.createdAt
-    });
-    
-    setIsProcessing(false);
-    setIsConfirmDialogOpen(false);
-    setIsSuccessDialogOpen(true);
-  };
-
-  const checkAvailableCredentials = (serviceId: string) => {
-    if (serviceId === "service-netflix") {
-      return {
-        email: `user_${Math.floor(1000 + Math.random() * 9000)}@netflix-example.com`,
-        password: `NetflixPass${Math.floor(1000 + Math.random() * 9000)}!`,
-        notes: "This Netflix account is ready to use immediately. Login at netflix.com."
+    try {
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Deduct from balance if using balance payment
+      if (paymentMethod === 'balance') {
+        const newBalance = userBalance - totalPrice;
+        localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
+      }
+      
+      // Create order
+      const order: Order = {
+        id: `order-${Date.now()}`,
+        userId,
+        serviceId: service?.id || '',
+        serviceName: service?.name || '',
+        quantity: service?.type === 'subscription' ? 1 : quantity,
+        durationMonths: service?.type === 'subscription' ? duration : undefined,
+        totalPrice,
+        status: 'completed',
+        paymentMethod,
+        accountId: service?.type === 'topup' ? accountId : undefined,
+        notes: notes || undefined,
+        createdAt: new Date().toISOString(),
+        ...(showCredentialFields ? {
+          credentials: {
+            email: credentials.email,
+            password: credentials.password,
+            username: credentials.username || undefined,
+            notes: credentials.notes || undefined
+          }
+        } : {})
       };
+      
+      // Process order with credentials if available
+      const processedOrder = fulfillOrderWithCredentials(order);
+      
+      // Save order to localStorage
+      const orderStorageKey = `customerOrders_${userId}`;
+      const customerOrders = JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
+      customerOrders.push(processedOrder);
+      localStorage.setItem(orderStorageKey, JSON.stringify(customerOrders));
+      
+      // Set completed order for success dialog
+      setCompletedOrder(processedOrder);
+      
+      // Show success dialog
+      setShowSuccessDialog(true);
+    } catch (error) {
+      console.error('Error processing checkout:', error);
+      toast.error("Checkout failed", {
+        description: "There was an error processing your payment. Please try again."
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    
-    return null;
   };
 
-  if (!isAuthenticated) {
+  if (!service) {
     return (
-      <MainLayout>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="container py-8"
-        >
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>Authentication Required</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">You need to be logged in to make a purchase.</p>
-              <div className="flex gap-4">
-                <Button onClick={() => navigate('/login')} className="flex-1">
-                  Sign In
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/register')} className="flex-1">
-                  Register
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </MainLayout>
+      <div className="container max-w-4xl py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Loading checkout...</h1>
+        </div>
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="container py-8"
+    <div className="container max-w-4xl py-8">
+      <Button 
+        variant="ghost" 
+        className="mb-6" 
+        onClick={() => navigate(-1)}
       >
-        <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <Card className="mt-0">
-              <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
-              </CardHeader>
-              <CardContent>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Checkout</CardTitle>
+              <CardDescription>
+                Complete your purchase of {service.name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Service details */}
+              <div className="flex items-start space-x-4">
+                <div className="h-16 w-16 rounded-md overflow-hidden bg-gray-100">
+                  <img 
+                    src={service.image || '/placeholder.svg'} 
+                    alt={service.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-medium">{service.name}</h3>
+                  <p className="text-sm text-muted-foreground">{service.description}</p>
+                  <div className="mt-1">
+                    <span className="text-sm font-medium">${service.price.toFixed(2)}</span>
+                    {service.type === 'subscription' && <span className="text-sm text-muted-foreground"> / month</span>}
+                  </div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Quantity or Duration */}
+              {service.type === 'subscription' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Subscription Duration</Label>
+                  <Select 
+                    value={duration.toString()} 
+                    onValueChange={handleDurationChange}
+                  >
+                    <SelectTrigger id="duration">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(service.availableMonths || [1, 3, 6, 12]).map((month) => (
+                        <SelectItem key={month} value={month.toString()}>
+                          {month} {month === 1 ? 'month' : 'months'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={handleQuantityChange}
+                  />
+                </div>
+              )}
+              
+              {/* Account ID for topup services */}
+              {service.type === 'topup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="accountId">
+                    Account ID <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="accountId"
+                    value={accountId}
+                    onChange={(e) => setAccountId(e.target.value)}
+                    placeholder="Enter your account ID"
+                    required
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    This ID is required to process your recharge
+                  </p>
+                </div>
+              )}
+              
+              {/* Credential fields for subscription services */}
+              {showCredentialFields && (
+                <div className="space-y-4 p-4 border rounded-md">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Account Credentials</h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Please provide your account credentials for this subscription
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="email"
+                        value={credentials.email}
+                        onChange={(e) => handleCredentialChange('email', e.target.value)}
+                        placeholder="your-email@example.com"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={credentials.password}
+                        onChange={(e) => handleCredentialChange('password', e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username (Optional)</Label>
+                      <Input
+                        id="username"
+                        value={credentials.username}
+                        onChange={(e) => handleCredentialChange('username', e.target.value)}
+                        placeholder="Your username"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="credentialNotes">Notes (Optional)</Label>
+                      <Textarea
+                        id="credentialNotes"
+                        value={credentials.notes}
+                        onChange={(e) => handleCredentialChange('notes', e.target.value)}
+                        placeholder="Any additional information"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Additional notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any special instructions or requirements"
+                  rows={3}
+                />
+              </div>
+              
+              <Separator />
+              
+              {/* Payment method */}
+              <div className="space-y-3">
+                <Label>Payment Method</Label>
                 <RadioGroup 
-                  defaultValue="account-balance"
-                  value={paymentMethod}
-                  onValueChange={setPaymentMethod}
+                  value={paymentMethod} 
+                  onValueChange={handlePaymentMethodChange}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-2"
                 >
-                  <div className="flex items-center space-x-2 border p-4 rounded-md">
-                    <RadioGroupItem value="account-balance" id="account-balance" />
-                    <Label htmlFor="account-balance" className="flex-1">
-                      Account Balance (${userBalance.toFixed(2)} available)
+                  <div className={`flex items-center space-x-2 border rounded-md p-3 cursor-pointer ${paymentMethod === 'balance' ? 'border-primary bg-primary/5' : ''}`}>
+                    <RadioGroupItem value="balance" id="balance" />
+                    <Label htmlFor="balance" className="flex items-center cursor-pointer">
+                      <Wallet className="h-4 w-4 mr-2" />
+                      <div>
+                        <div>Account Balance</div>
+                        <div className="text-sm text-muted-foreground">
+                          Available: ${userBalance.toFixed(2)}
+                        </div>
+                      </div>
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2 border p-4 rounded-md mt-2">
-                    <RadioGroupItem value="credit-card" id="credit-card" />
-                    <Label htmlFor="credit-card" className="flex-1">
-                      Credit Card
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border p-4 rounded-md mt-2">
-                    <RadioGroupItem value="paypal" id="paypal" />
-                    <Label htmlFor="paypal" className="flex-1">
-                      PayPal
+                  
+                  <div className={`flex items-center space-x-2 border rounded-md p-3 cursor-pointer ${paymentMethod === 'card' ? 'border-primary bg-primary/5' : ''}`}>
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="flex items-center cursor-pointer">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      <div>
+                        <div>Credit/Debit Card</div>
+                        <div className="text-sm text-muted-foreground">
+                          Secure payment
+                        </div>
+                      </div>
                     </Label>
                   </div>
                 </RadioGroup>
-
-                {paymentMethod === "account-balance" && userBalance < total && (
-                  <div className="mt-4 p-4 border border-red-200 bg-red-50 rounded-md text-red-800 flex items-start">
-                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-medium">Insufficient balance</p>
-                      <p className="text-sm">Your current balance (${userBalance.toFixed(2)}) is less than the total (${total.toFixed(2)}). Please <Button variant="link" className="p-0 h-auto text-sm text-red-800 underline" onClick={() => navigate("/payment")}>add funds</Button> to continue.</p>
-                    </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Order summary */}
+        <div>
+          <Card className="sticky top-6">
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Service</span>
+                  <span>{service.name}</span>
+                </div>
+                
+                {service.type === 'subscription' ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Duration</span>
+                    <span>{duration} {duration === 1 ? 'month' : 'months'}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Quantity</span>
+                    <span>{quantity}</span>
                   </div>
                 )}
                 
-                {showCredentials && (
-                  <div className="mt-6 p-4 border rounded-md">
-                    <h3 className="text-base font-medium mb-3">Subscription Credentials</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Please provide the email and password you'd like to use for this subscription service.
-                    </p>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="subscription-email">Email</Label>
-                        <Input 
-                          id="subscription-email" 
-                          type="email"
-                          value={credentials.email}
-                          onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="your-email@example.com"
-                          className="mt-1"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="subscription-password">Password</Label>
-                        <Input 
-                          id="subscription-password" 
-                          type="password"
-                          value={credentials.password}
-                          onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                          placeholder="••••••••"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <div>
-                      <p>Netflix Premium Subscription</p>
-                      <p className="text-sm text-gray-500">1-month subscription</p>
-                    </div>
-                    <p>$15.99</p>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between">
-                    <p>Subtotal</p>
-                    <p>$15.99</p>
-                  </div>
-                  <div className="flex justify-between">
-                    <p>Discount</p>
-                    <p>-$3.00</p>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold">
-                    <p>Total</p>
-                    <p>${total}</p>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Price</span>
+                  <span>${service.price.toFixed(2)}</span>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full" 
-                  onClick={showPurchaseConfirmation}
-                  disabled={isProcessing || (showCredentials && (credentials.email === '' || credentials.password === ''))}
-                >
-                  {isProcessing ? "Processing..." : "Complete Purchase"}
-                </Button>
-              </CardFooter>
-            </Card>
-            
-            {userBalance < total && paymentMethod === "account-balance" && (
-              <div className="mt-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate("/payment")}
-                >
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Top Up Balance
-                </Button>
               </div>
-            )}
-          </div>
-        </div>
-
-        <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Purchase</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to complete this purchase?
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Total Price:</span>
-                <span className="font-bold">${total.toFixed(2)}</span>
+              
+              <Separator />
+              
+              <div className="flex justify-between font-medium">
+                <span>Total</span>
+                <span>${calculateTotal().toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Payment Method:</span>
-                <span>
-                  {paymentMethod === "account-balance" ? "Account Balance" : 
-                   paymentMethod === "credit-card" ? "Credit Card" : "PayPal"}
-                </span>
-              </div>
-              {paymentMethod === "account-balance" && (
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Remaining Balance After Purchase:</span>
-                  <span>${(userBalance - total).toFixed(2)}</span>
-                </div>
-              )}
-              {showCredentials && (
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="font-medium mb-2">Subscription Credentials</h4>
-                  <div className="flex justify-between items-center mb-1 text-sm">
-                    <span>Email:</span>
-                    <span>{credentials.email}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Password:</span>
-                    <span>••••••••</span>
+              
+              {/* Payment method warning */}
+              {paymentMethod === 'balance' && userBalance < calculateTotal() && (
+                <div className="bg-yellow-50 text-yellow-800 p-3 rounded-md text-sm flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Insufficient balance</p>
+                    <p>Please add funds or choose another payment method.</p>
                   </div>
                 </div>
               )}
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
-                Cancel
-              </Button>
+              
+              {/* Service delivery info */}
+              <div className="bg-muted p-3 rounded-md space-y-2">
+                <div className="flex items-center text-sm">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>
+                    Delivery: {service.deliveryTime || 'Within 24 hours'}
+                  </span>
+                </div>
+                <div className="flex items-center text-sm">
+                  <ShieldCheck className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>Secure transaction</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
               <Button 
-                onClick={handleCompletePurchase} 
-                disabled={isProcessing || (showCredentials && (credentials.email === '' || credentials.password === ''))}
+                className="w-full" 
+                size="lg"
+                onClick={handleCheckout}
+                disabled={
+                  isProcessing || 
+                  (service.type === 'topup' && !accountId) ||
+                  (paymentMethod === 'balance' && userBalance < calculateTotal()) ||
+                  (showCredentialFields && (!credentials.email || !credentials.password))
+                }
               >
-                {isProcessing ? "Processing..." : "Confirm Purchase"}
+                {isProcessing ? 'Processing...' : 'Complete Purchase'}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        {purchasedOrder && (
-          <PurchaseSuccessDialog
-            open={isSuccessDialogOpen}
-            onOpenChange={setIsSuccessDialogOpen}
-            orderId={purchasedOrder.id}
-            serviceId={purchasedOrder.serviceId}
-            serviceName={purchasedOrder.serviceName}
-            amount={purchasedOrder.totalPrice}
-            credentials={purchasedOrder.credentials}
-            purchaseDate={purchasedOrder.createdAt}
-          />
-        )}
-      </motion.div>
-    </MainLayout>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+      
+      {/* Success dialog */}
+      {completedOrder && (
+        <PurchaseSuccessDialog
+          open={showSuccessDialog}
+          onOpenChange={setShowSuccessDialog}
+          orderId={completedOrder.id}
+          serviceId={completedOrder.serviceId}
+          serviceName={completedOrder.serviceName}
+          amount={completedOrder.totalPrice}
+          credentials={completedOrder.credentials}
+          purchaseDate={completedOrder.createdAt}
+        />
+      )}
+    </div>
   );
 };
 

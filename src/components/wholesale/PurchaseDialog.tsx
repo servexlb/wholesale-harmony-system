@@ -1,47 +1,29 @@
 
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { toast } from 'sonner';
-import { Product, Service, Customer, WholesaleOrder } from '@/lib/types';
-import { services as mockServices } from '@/lib/mockData';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
-import { loadServices } from '@/lib/productManager';
+import { Badge } from "@/components/ui/badge";
+import { loadServices } from "@/lib/productManager";
+import { toast } from "sonner";
+import { Customer, WholesaleOrder } from "@/lib/types";
 
 interface PurchaseDialogProps {
-  children: React.ReactNode;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
   customerCompany: string;
   customerNotes: string;
-  onPurchase: () => void;
+  onPurchase: (order: WholesaleOrder) => void;
   isSubmitting: boolean;
-  isMobile: boolean;
-}
-
-// Define a separate interface for the component as it's used in Wholesale.tsx
-interface WholesalePurchaseDialogProps {
-  onOpenChange: (value: boolean) => void;
-  customers: Customer[];
-  products: Service[];
-  selectedCustomer: string;
-  currentWholesaler: string;
-  onOrderPlaced: (order: WholesaleOrder) => void;
+  children?: React.ReactNode;
+  isMobile?: boolean;
 }
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
-  children,
   customerName,
   customerEmail,
   customerPhone,
@@ -50,189 +32,215 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   customerNotes,
   onPurchase,
   isSubmitting,
-  isMobile
+  children,
+  isMobile = false
 }) => {
+  const [localCustomerName, setLocalCustomerName] = useState(customerName);
+  const [localCustomerEmail, setLocalCustomerEmail] = useState(customerEmail);
+  const [localCustomerPhone, setLocalCustomerPhone] = useState(customerPhone);
+  const [localCustomerAddress, setLocalCustomerAddress] = useState(customerAddress);
+  const [localCustomerCompany, setLocalCustomerCompany] = useState(customerCompany);
+  const [localCustomerNotes, setLocalCustomerNotes] = useState(customerNotes);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<any[]>([]);
-  const [totalPrice, setTotalPrice] = useState(0);
-  const [services, setServices] = useState<Service[]>([]);
-  const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [customerError, setCustomerError] = useState('');
-  
-  useEffect(() => {
-    // Load services from product manager
-    const loadedServices = loadServices();
-    
-    // If no services from product manager, fall back to mockData
-    const servicesToUse = loadedServices.length > 0 ? loadedServices : mockServices;
-    
-    // Set services
-    setServices(servicesToUse);
-  }, []);
-  
-  const handlePurchase = () => {
-    if (!customerName) {
-      setCustomerError('Customer name is required');
-      return;
+
+  const services = loadServices();
+
+  const handleSelectService = (serviceId: string) => {
+    if (selectedServices.includes(serviceId)) {
+      setSelectedServices(selectedServices.filter(id => id !== serviceId));
+    } else {
+      setSelectedServices([...selectedServices, serviceId]);
     }
-    
-    setCustomerError('');
-    onPurchase();
-    setOpen(false);
-    clearCart();
-  };
-  
-  const clearCart = () => {
-    setItems([]);
-    setTotalPrice(0);
-  };
-  
-  const toggleCustomerForm = () => {
-    setShowCustomerForm(!showCustomerForm);
   };
 
-  const filteredServices = services.filter(
-    service => service.availableForCustomers !== false
-  );
-  
-  const hasUnavailableServices = items.some(item => {
-    return !filteredServices.find(service => service.id === item.id);
-  });
-  
+  const handleSubmit = () => {
+    // Validate required fields
+    if (!localCustomerName.trim()) {
+      toast.error("Customer name is required");
+      return;
+    }
+
+    // Process the order
+    const order: WholesaleOrder = {
+      id: `order-${Date.now()}`,
+      customerId: `customer-${Date.now()}`,
+      status: "processing",
+      services: selectedServices.map(serviceId => {
+        const service = services.find(s => s.id === serviceId);
+        return {
+          serviceId,
+          quantity: 1,
+          price: service?.wholesalePrice || 0
+        };
+      }),
+      customerName: localCustomerName,
+      customerEmail: localCustomerEmail,
+      customerPhone: localCustomerPhone,
+      customerAddress: localCustomerAddress,
+      customerCompany: localCustomerCompany,
+      customerNotes: localCustomerNotes,
+      createdAt: new Date().toISOString(),
+      totalAmount: selectedServices.reduce((total, serviceId) => {
+        const service = services.find(s => s.id === serviceId);
+        return total + (service?.wholesalePrice || 0);
+      }, 0)
+    };
+
+    onPurchase(order);
+    setOpen(false);
+    setSelectedServices([]);
+    // Reset form fields to initial values
+    setLocalCustomerName(customerName);
+    setLocalCustomerEmail(customerEmail);
+    setLocalCustomerPhone(customerPhone);
+    setLocalCustomerAddress(customerAddress);
+    setLocalCustomerCompany(customerCompany);
+    setLocalCustomerNotes(customerNotes);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Confirm Purchase</DialogTitle>
-          <DialogDescription>
-            {isMobile ? (
-              <>
-                You are about to purchase the selected items. Please confirm your
-                details and proceed.
-              </>
-            ) : (
-              <>
-                You are about to purchase the following items:
-                <ul>
-                  {items.map((item) => (
-                    <li key={item.id}>
-                      {item.quantity} x {item.name}
-                    </li>
-                  ))}
-                </ul>
-                Total: ${totalPrice.toFixed(2)}
-                <br />
-                Please confirm your details and proceed.
-              </>
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {hasUnavailableServices && (
-          <div className="mb-4 p-3 rounded-md bg-yellow-50 border border-yellow-200 text-sm text-yellow-700 flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Some items in your cart are no longer available for purchase and will not be included in the order.
-          </div>
-        )}
-        
-        <div className="grid gap-4 py-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="name">Customer Information</Label>
-            <Button variant="link" size="sm" onClick={toggleCustomerForm}>
-              {showCustomerForm ? 'Hide Form' : 'Edit'}
-            </Button>
-          </div>
-          
-          {customerError && (
-            <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700 flex items-center">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              {customerError}
-            </div>
-          )}
-          
-          {showCustomerForm ? (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={customerName}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={customerEmail}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={customerPhone}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={customerAddress}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={customerCompany}
-                  />
-                </div>
-              </div>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className={`sm:max-w-[600px] ${isMobile ? 'max-h-[90vh] overflow-y-auto' : ''}`}>
+          <DialogHeader>
+            <DialogTitle>Customer Purchase</DialogTitle>
+            <DialogDescription>
+              Create an order for this customer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="customerName">Name</Label>
                 <Input
-                  id="notes"
-                  value={customerNotes}
+                  id="customerName"
+                  value={localCustomerName}
+                  onChange={(e) => setLocalCustomerName(e.target.value)}
+                  placeholder="Customer name"
                 />
               </div>
-            </>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              Name: {customerName || 'N/A'}
-              <br />
-              Email: {customerEmail || 'N/A'}
-              <br />
-              Phone: {customerPhone || 'N/A'}
-              <br />
-              Address: {customerAddress || 'N/A'}
-              <br />
-              Company: {customerCompany || 'N/A'}
-              <br />
-              Notes: {customerNotes || 'N/A'}
+              <div className="space-y-2">
+                <Label htmlFor="customerEmail">Email</Label>
+                <Input
+                  id="customerEmail"
+                  type="email"
+                  value={localCustomerEmail}
+                  onChange={(e) => setLocalCustomerEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                />
+              </div>
             </div>
-          )}
-        </div>
-        
-        <Button type="submit" onClick={handlePurchase} disabled={isSubmitting} className="w-full">
-          {isSubmitting ? (
-            <>
-              Purchasing...
-              <span className="ml-2 animate-spin">
-                <CheckCircle className="h-5 w-5" />
-              </span>
-            </>
-          ) : (
-            "Purchase"
-          )}
-        </Button>
-      </DialogContent>
-    </Dialog>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customerPhone">Phone</Label>
+                <Input
+                  id="customerPhone"
+                  value={localCustomerPhone}
+                  onChange={(e) => setLocalCustomerPhone(e.target.value)}
+                  placeholder="Phone number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerCompany">Company</Label>
+                <Input
+                  id="customerCompany"
+                  value={localCustomerCompany}
+                  onChange={(e) => setLocalCustomerCompany(e.target.value)}
+                  placeholder="Company name"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerAddress">Address</Label>
+              <Input
+                id="customerAddress"
+                value={localCustomerAddress}
+                onChange={(e) => setLocalCustomerAddress(e.target.value)}
+                placeholder="Customer address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerNotes">Notes</Label>
+              <Textarea
+                id="customerNotes"
+                value={localCustomerNotes}
+                onChange={(e) => setLocalCustomerNotes(e.target.value)}
+                placeholder="Additional notes"
+                rows={3}
+              />
+            </div>
+            
+            {/* Service selection */}
+            <div className="space-y-2">
+              <Label>Select Services</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {services.map((service) => (
+                  <div
+                    key={service.id}
+                    className={`p-2 border rounded-lg cursor-pointer ${
+                      selectedServices.includes(service.id) ? "border-primary bg-primary/10" : "border-border"
+                    }`}
+                    onClick={() => handleSelectService(service.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{service.name}</span>
+                      <Badge variant="outline">${service.wholesalePrice}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Order summary */}
+            {selectedServices.length > 0 && (
+              <div className="bg-muted p-3 rounded-lg">
+                <h4 className="font-medium mb-2">Order Summary</h4>
+                <div className="space-y-1">
+                  {selectedServices.map((serviceId) => {
+                    const service = services.find((s) => s.id === serviceId);
+                    return (
+                      <div key={serviceId} className="flex justify-between text-sm">
+                        <span>{service?.name}</span>
+                        <span>${service?.wholesalePrice.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="border-t mt-2 pt-2 font-medium flex justify-between">
+                    <span>Total</span>
+                    <span>
+                      $
+                      {selectedServices
+                        .reduce((total, serviceId) => {
+                          const service = services.find((s) => s.id === serviceId);
+                          return total + (service?.wholesalePrice || 0);
+                        }, 0)
+                        .toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || !localCustomerName || selectedServices.length === 0}
+            >
+              {isSubmitting ? "Processing..." : "Create Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {React.cloneElement(children as React.ReactElement, {
+        onClick: () => setOpen(true)
+      })}
+    </>
   );
 };
 

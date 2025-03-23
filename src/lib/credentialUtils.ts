@@ -261,10 +261,26 @@ export const fulfillOrderWithCredentials = (order: Order): Order => {
     // No credentials available
     return {
       ...order,
-      credentialStatus: 'unavailable'
+      credentialStatus: 'pending'
     };
   } catch (error) {
     console.error('Error fulfilling order with credentials:', error);
     return order;
   }
+};
+
+// Check if credentials are available for a service
+export const checkCredentialAvailability = (serviceId: string): boolean => {
+  try {
+    const available = getAvailableCredentialsForService(serviceId);
+    return available.length > 0;
+  } catch (error) {
+    console.error('Error checking credential availability:', error);
+    return false;
+  }
+};
+
+// Process order with credentials (for checkout and service card)
+export const processOrderWithCredentials = (order: Order): Order => {
+  return fulfillOrderWithCredentials(order);
 };
