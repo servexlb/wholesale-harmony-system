@@ -1,6 +1,7 @@
 
 import { Subscription } from '@/lib/types';
 import { Alert, Clock, CheckCircle } from 'lucide-react';
+import React from 'react';
 
 export const getSubscriptionStatus = (subscription: Subscription) => {
   const now = new Date();
@@ -11,7 +12,7 @@ export const getSubscriptionStatus = (subscription: Subscription) => {
     return { 
       label: 'Expired', 
       variant: 'destructive', 
-      icon: <Alert className="h-3 w-3 mr-1" /> 
+      icon: React.createElement(Alert, { className: "h-3 w-3 mr-1" })
     };
   }
   
@@ -19,13 +20,13 @@ export const getSubscriptionStatus = (subscription: Subscription) => {
     return { 
       label: `${daysLeft} days left`, 
       variant: 'warning', 
-      icon: <Clock className="h-3 w-3 mr-1" /> 
+      icon: React.createElement(Clock, { className: "h-3 w-3 mr-1" })
     };
   }
   
   return { 
     label: 'Active', 
     variant: 'success', 
-    icon: <CheckCircle className="h-3 w-3 mr-1" /> 
+    icon: React.createElement(CheckCircle, { className: "h-3 w-3 mr-1" })
   };
 };
