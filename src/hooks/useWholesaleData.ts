@@ -1,12 +1,33 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { WholesaleOrder, Subscription } from '@/lib/types';
-import { Customer, products as defaultProducts } from '@/lib/data';
+import { WholesaleOrder, Subscription, Service } from '@/lib/types';
+import { Customer } from '@/lib/data';
+import { loadServices } from '@/lib/productManager';
 
 export function useWholesaleData(currentWholesaler: string) {
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [customersData, setCustomersData] = useState<Customer[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+
+  // Load services from product manager
+  useEffect(() => {
+    setServices(loadServices());
+    
+    const handleServiceUpdated = () => {
+      setServices(loadServices());
+    };
+    
+    window.addEventListener('service-updated', handleServiceUpdated);
+    window.addEventListener('service-added', handleServiceUpdated);
+    window.addEventListener('service-deleted', handleServiceUpdated);
+    
+    return () => {
+      window.removeEventListener('service-updated', handleServiceUpdated);
+      window.removeEventListener('service-added', handleServiceUpdated);
+      window.removeEventListener('service-deleted', handleServiceUpdated);
+    };
+  }, []);
 
   // Load saved data from localStorage on component mount
   useEffect(() => {
@@ -60,11 +81,11 @@ export function useWholesaleData(currentWholesaler: string) {
       return updatedOrders.slice(0, 100);
     });
     
-    // Find the product to check if it's a subscription
-    const product = defaultProducts.find(p => p.id === order.serviceId);
+    // Find the service to check if it's a subscription
+    const service = services.find(s => s.id === order.serviceId);
     
     // If it's a subscription product or has credentials, create a subscription
-    if (product?.type === 'subscription' || order.credentials) {
+    if (service?.type === 'subscription' || order.credentials) {
       // Calculate end date based on the duration months or default to 30 days
       const durationMonths = order.durationMonths || 1;
       const endDate = new Date();

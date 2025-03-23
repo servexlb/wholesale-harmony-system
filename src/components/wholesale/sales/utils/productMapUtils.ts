@@ -16,7 +16,8 @@ export const createServiceMap = () => {
         id: service.id,
         name: service.name,
         type: service.type || 'service',
-        price: service.wholesalePrice || service.price
+        price: service.wholesalePrice || service.price,
+        category: service.category || service.categoryId || 'Uncategorized' // Ensure category is always present
       });
     });
   }
@@ -29,7 +30,8 @@ export const createServiceMap = () => {
       id: 'service-fallback',
       name: 'Unknown Service',
       type: 'service',
-      price: 0
+      price: 0,
+      category: 'Uncategorized'
     });
   }
   
@@ -37,7 +39,7 @@ export const createServiceMap = () => {
 };
 
 // Helper function to get a service by ID, with fallback handling
-export const getServiceById = (serviceMap, serviceId) => {
+export const getServiceById = (serviceMap: Map<string, any>, serviceId: string) => {
   if (!serviceId) return null;
   
   const service = serviceMap.get(serviceId);
@@ -48,7 +50,8 @@ export const getServiceById = (serviceMap, serviceId) => {
       id: serviceId,
       name: 'Unknown Service',
       type: 'service',
-      price: 0
+      price: 0,
+      category: 'Uncategorized'
     };
   }
   

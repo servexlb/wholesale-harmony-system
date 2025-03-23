@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/lib/types';
-import { loadProducts, PRODUCT_EVENTS, initProductManager } from '@/lib/productManager';
+import { loadProducts, PRODUCT_EVENTS, initProductManager, serviceToProduct } from '@/lib/productManager';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,7 +27,23 @@ const Index = () => {
     initProductManager();
     const loadProductData = () => {
       const productData = loadProducts();
-      setProducts(productData);
+      // Ensure all products have the required category property
+      const normalizedProducts = productData.map(p => {
+        if (!p.category && p.categoryId) {
+          return {
+            ...p,
+            category: p.categoryId
+          };
+        }
+        if (!p.category) {
+          return {
+            ...p,
+            category: 'Uncategorized'
+          };
+        }
+        return p;
+      });
+      setProducts(normalizedProducts);
     };
     
     loadProductData();

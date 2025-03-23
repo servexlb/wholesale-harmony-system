@@ -15,8 +15,8 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customers: Customer[];
-  products: Service[]; // Updated to Service[] instead of Product[]
-  selectedCustomer: string;
+  products: Service[]; // Now correctly typed as Service[]
+  selectedCustomer?: string;
   currentWholesaler: string;
   onOrderPlaced: (order: WholesaleOrder) => void;
 }

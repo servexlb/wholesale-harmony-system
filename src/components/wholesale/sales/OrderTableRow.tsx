@@ -8,8 +8,8 @@ import { WholesaleOrder } from '@/lib/types';
 interface OrderTableRowProps {
   order: WholesaleOrder;
   customer: Customer | undefined;
-  service: { id: string, name: string, type?: string } | undefined;
-  product?: { id: string, name: string, type?: string } | undefined; // For backward compatibility
+  service: { id: string, name: string, type?: string, category?: string } | undefined;
+  product?: { id: string, name: string, type?: string, category?: string } | undefined; // For backward compatibility
 }
 
 const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service, product }) => {

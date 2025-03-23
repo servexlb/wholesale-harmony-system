@@ -1,24 +1,51 @@
-
-export type UserRole = "customer" | "wholesale" | "admin";
-
-export interface User {
+export interface Customer {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
-  role: UserRole;
-  balance: number;
-  createdAt: string;
+  address?: string;
+  company?: string;
+  wholesalerId?: string;
+  notes?: string;
+  [key: string]: any;
 }
 
-export type ServiceType = "subscription" | "topup" | "giftcard" | "recharge" | "service";
-
-export interface ServiceCategory {
+export interface WholesaleOrder {
   id: string;
-  name: string;
-  description: string;
-  icon: string;
+  customerId: string;
+  serviceId: string;
+  quantity: number;
+  totalPrice: number;
+  createdAt: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  durationMonths?: number;
+  credentials?: {
+    username?: string;
+    password?: string;
+    notes?: string;
+    [key: string]: any;
+  };
 }
+
+// Update the Subscription interface to include credentials
+export interface Subscription {
+  id: string;
+  userId: string;
+  serviceId: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'expired' | 'cancelled';
+  durationMonths?: number;
+  credentials?: {
+    username?: string;
+    password?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+}
+
+// Make sure Service and Product are compatible
+export type ServiceType = 'subscription' | 'giftcard' | 'topup' | 'recharge' | 'service';
 
 export interface MonthlyPricing {
   months: number;
@@ -29,33 +56,12 @@ export interface MonthlyPricing {
 export interface Service {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
-  wholesalePrice: number;
-  categoryId: string;
-  image: string;
-  deliveryTime: string;
-  featured: boolean;
-  type: ServiceType;
-  availableMonths?: number[];
-  requiresId?: boolean;
-  minQuantity?: number;
-  value?: number;
-  apiUrl?: string;
-  features?: string[];
-  category?: string; // Make category optional in Service interface
-  monthlyPricing?: MonthlyPricing[];
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  wholesalePrice: number;
-  image: string;
-  category: string;
-  categoryId?: string; // Make categoryId optional in Product
+  wholesalePrice?: number;
+  image?: string;
+  categoryId?: string;
+  category?: string;
   featured?: boolean;
   type?: ServiceType;
   value?: number;
@@ -67,137 +73,22 @@ export interface Product {
   monthlyPricing?: MonthlyPricing[];
 }
 
-export interface Subscription {
-  id: string;
-  userId: string;
-  serviceId: string;
-  startDate: string;
-  endDate: string;
-  credentials?: {
-    email: string;
-    password: string;
-  };
-  status: "active" | "expired" | "canceled";
-  paymentStatus?: "paid" | "pending" | "failed";
-  profileStatus?: "active" | "needs_fixing";
-  durationMonths?: number;
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  serviceId: string;
-  quantity: number;
-  totalPrice: number;
-  status: "pending" | "processing" | "completed" | "failed";
-  createdAt: string;
-  completedAt?: string;
-  notes?: string;
-  customerId?: string;
-  credentials?: {
-    email: string;
-    password: string;
-  };
-  durationMonths?: number;
-  paymentStatus?: "paid" | "pending" | "insufficient_balance";
-  accountId?: string;
-}
-
-export interface WholesaleOrder extends Order {
-  customerId: string;
-  wholesalerId: string;
-  credentials?: {
-    email: string;
-    password: string;
-  };
-}
-
-export interface SupportTicket {
-  id: string;
-  userId: string;
-  subject: string;
-  description: string;
-  status: "open" | "in-progress" | "resolved" | "closed";
-  createdAt: string;
-  updatedAt: string;
-  imageUrl?: string;
-}
-
-export interface TicketResponse {
-  id: string;
-  ticketId: string;
-  userId: string;
-  message: string;
-  createdAt: string;
-}
-
-export interface SimpleCustomer {
+export interface Product {
   id: string;
   name: string;
-  phone: string;
-}
-
-export interface AdminNotification {
-  id: string;
-  type: "profile_fix" | "payment_issue" | "password_reset" | "new_order";
-  subscriptionId?: string;
-  orderId?: string;
-  userId: string;
-  customerName: string;
-  serviceName: string;
-  createdAt: string;
-  read: boolean;
-}
-
-// New customer notification type
-export interface CustomerNotification {
-  id: string;
-  userId: string;
-  type: "profile_fixed" | "payment_resolved" | "password_reset" | "order_completed";
-  message: string;
-  createdAt: string;
-  read: boolean;
-  subscriptionId?: string;
-  serviceName?: string;
-}
-
-// New types for subscription issues
-export type IssueStatus = "pending" | "in_progress" | "resolved";
-export type IssueType = "profile_fix" | "payment_issue" | "password_reset";
-
-export interface SubscriptionIssue {
-  id: string;
-  subscriptionId: string;
-  userId: string;
-  customerName: string;
-  serviceName: string;
-  type: IssueType;
-  status: IssueStatus;
-  createdAt: string;
-  resolvedAt?: string;
-  resolvedBy?: string;
-  notes?: string;
-  credentials?: {
-    email: string;
-    password: string;
-  };
-}
-
-// New payment related interfaces
-export type PaymentStatus = "pending" | "approved" | "rejected";
-
-export interface Payment {
-  id: string;
-  userId: string;
-  userEmail: string;
-  userName: string;
-  amount: number;
-  method: "credit_card" | "bank_transfer" | "paypal" | "other";
-  status: PaymentStatus;
-  createdAt: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  notes?: string;
-  receiptUrl?: string;
-  transactionId?: string;
+  description?: string;
+  price: number;
+  wholesalePrice?: number;
+  image?: string;
+  category: string;
+  categoryId?: string;
+  featured?: boolean;
+  type?: ServiceType;
+  value?: number;
+  deliveryTime?: string;
+  availableMonths?: number[];
+  apiUrl?: string;
+  minQuantity?: number;
+  requiresId?: boolean;
+  monthlyPricing?: MonthlyPricing[];
 }
