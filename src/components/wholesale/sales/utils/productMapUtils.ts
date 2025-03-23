@@ -1,5 +1,4 @@
 
-import { products } from '@/lib/data';
 import { services } from '@/lib/mockData';
 
 // Create a memoized service lookup map for better performance

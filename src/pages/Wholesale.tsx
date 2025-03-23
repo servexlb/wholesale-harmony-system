@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { customers as defaultCustomers, products as defaultProducts } from '@/lib/data';
+import { customers as defaultCustomers } from '@/lib/data';
+import { services } from '@/lib/mockData';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
 import WholesaleTabContent from '@/components/wholesale/WholesaleTabContent';
 import WholesaleLayout from '@/components/wholesale/WholesaleLayout';
@@ -94,7 +95,7 @@ const Wholesale = () => {
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
             customers={wholesalerCustomers}
-            products={defaultProducts}
+            products={services} // Use services instead of products
             selectedCustomer={selectedCustomerId}
             currentWholesaler={currentWholesaler}
             onOrderPlaced={handleOrderPlaced}
@@ -103,7 +104,7 @@ const Wholesale = () => {
         
         <WholesaleTabContent 
           activeTab={activeTab}
-          products={defaultProducts}
+          products={services} // Use services for backward compatibility
           customers={customersData}
           wholesalerCustomers={wholesalerCustomers}
           orders={orders}

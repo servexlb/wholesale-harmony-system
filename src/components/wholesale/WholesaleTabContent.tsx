@@ -2,7 +2,7 @@
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
-import { Customer, Product } from '@/lib/data';
+import { Customer } from '@/lib/data';
 import { Subscription, WholesaleOrder, Service, ServiceType } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
@@ -13,7 +13,7 @@ import { toast } from '@/lib/toast';
 
 interface WholesaleTabContentProps {
   activeTab: string;
-  products: Product[];
+  products: any[]; // Keep for backward compatibility
   customers: Customer[];
   wholesalerCustomers: Customer[];
   orders: WholesaleOrder[];
@@ -38,39 +38,24 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   onUpdateCustomer,
   onPurchaseForCustomer
 }) => {
-  // Combine products and services for the ProductsTab
+  // Use only services from mockData instead of combining with products
   const allServices = React.useMemo(() => {
     try {
-      // Convert services to the Service format expected by ProductCard
+      // Convert services to ensure they have the correct ServiceType
       const servicesList = services.map(service => ({
         ...service,
-        // Ensure type is a valid ServiceType
         type: service.type as ServiceType
       }));
       
-      // Convert products to Service type ensuring categoryId is always set
-      const productsAsServices = products.map(product => ({
-        ...product,
-        // Ensure categoryId is set - use existing categoryId or fall back to category
-        categoryId: product.categoryId || product.category || "uncategorized",
-        // Mark non-service products as subscription type by default if not set
-        type: product.type || "subscription" as ServiceType
-      })) as Service[];
-      
       console.log('Services count:', servicesList.length);
-      console.log('Products count:', productsAsServices.length);
       
-      // Create a combined array of both products and services
-      const combined = [...productsAsServices, ...servicesList] as Service[];
-      console.log('Combined products and services count:', combined.length);
-      
-      return combined;
+      return servicesList;
     } catch (error) {
-      console.error('Error combining products and services:', error);
+      console.error('Error processing services:', error);
       toast.error('Error loading services');
       return [] as Service[];
     }
-  }, [products]);
+  }, []);
 
   return (
     <div className="h-full">

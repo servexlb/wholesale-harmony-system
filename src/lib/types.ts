@@ -1,4 +1,3 @@
-
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -39,7 +38,6 @@ export interface Service {
   features?: string[];
 }
 
-// Product type for backward compatibility
 export interface Product {
   id: string;
   name: string;
@@ -56,7 +54,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId?: boolean; // Changed to optional boolean field
+  requiresId?: boolean;
 }
 
 export interface Subscription {
@@ -92,7 +90,7 @@ export interface Order {
   };
   durationMonths?: number;
   paymentStatus?: "paid" | "pending" | "insufficient_balance";
-  accountId?: string; // For top-up services
+  accountId?: string;
 }
 
 export interface WholesaleOrder extends Order {

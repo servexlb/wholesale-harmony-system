@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Calendar, Zap, Package } from 'lucide-react';
-import { Product } from '@/lib/data';
+import { Service } from '@/lib/types';
 
 interface ProductSearchProps {
-  products: Product[];
+  products: Service[]; // Changed from Product to Service
   selectedProductId: string;
   onProductSelect: (productId: string) => void;
 }
@@ -42,11 +42,11 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   // Group products by category
   const productsByCategory = useMemo(() => {
-    const categorizedProducts = {} as Record<string, Product[]>;
+    const categorizedProducts = {} as Record<string, Service[]>;
     
     // First pass: collect all unique categories
     filteredProducts.forEach(product => {
-      const category = product.category || 'Uncategorized';
+      const category = product.categoryId || 'Uncategorized';
       if (!categorizedProducts[category]) {
         categorizedProducts[category] = [];
       }
@@ -96,7 +96,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   return (
     <div>
-      <label className="text-sm font-medium mb-1 block">Product</label>
+      <label className="text-sm font-medium mb-1 block">Service</label>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full mt-2">
         <TabsList className="grid grid-cols-4 mb-2">
@@ -112,7 +112,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search services..."
             className="pl-10"
             value={productSearch}
             onChange={(e) => handleSearchChange(e.target.value)}
@@ -124,11 +124,11 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         {isCommandOpen && (
           <Command className="rounded-lg border shadow-md absolute top-full mt-1 w-full z-50 bg-white">
             <CommandList className="max-h-[300px] overflow-auto">
-              <CommandInput placeholder="Search products..." value={productSearch} onValueChange={setProductSearch} className="border-none focus:ring-0" />
-              <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
+              <CommandInput placeholder="Search services..." value={productSearch} onValueChange={setProductSearch} className="border-none focus:ring-0" />
+              <CommandEmpty>No services found. Try a different search term.</CommandEmpty>
               {Object.keys(productsByCategory).length === 0 ? (
                 <div className="py-6 text-center text-sm">
-                  No products found. Try a different category or search term.
+                  No services found. Try a different category or search term.
                 </div>
               ) : (
                 Object.entries(productsByCategory).map(([category, categoryProducts]) => (
@@ -142,7 +142,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
                         {renderProductIcon(product.type)}
                         <div className="flex flex-col">
                           <span className="font-medium">{product.name}</span>
-                          <span className="text-xs text-muted-foreground">${product.wholesalePrice?.toFixed(2) || "0.00"}</span>
+                          <span className="text-xs text-muted-foreground">${product.wholesalePrice?.toFixed(2) || product.price.toFixed(2)}</span>
                         </div>
                       </CommandItem>
                     ))}
