@@ -1,52 +1,69 @@
+
 import { CredentialStock, Order, Service } from "./types";
 
-// Mock credential stock storage
-const credentialStock: CredentialStock[] = [
-  {
-    id: "cred-1",
-    serviceId: "service-netflix",
-    credentials: {
-      email: "netflix_premium1@example.com",
-      password: "securepass123",
-      notes: "Premium account with 4K streaming"
-    },
-    status: "available",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "cred-2",
-    serviceId: "service-netflix",
-    credentials: {
-      email: "netflix_premium2@example.com",
-      password: "securepass456",
-      notes: "Premium account with 4K streaming"
-    },
-    status: "available",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "cred-3",
-    serviceId: "service-disney",
-    credentials: {
-      email: "disney_plus1@example.com",
-      password: "disneypass123",
-      notes: "Disney+ subscription"
-    },
-    status: "available",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "cred-4",
-    serviceId: "service-spotify",
-    credentials: {
-      email: "spotify_premium@example.com",
-      password: "spotifypass123",
-      notes: "Spotify Premium subscription"
-    },
-    status: "available",
-    createdAt: new Date().toISOString()
+// Load credential stock from localStorage or use default if not available
+const loadCredentialStock = (): CredentialStock[] => {
+  const storedStock = localStorage.getItem('credentialStock');
+  if (storedStock) {
+    return JSON.parse(storedStock);
   }
-];
+  
+  // Default initial stock if nothing is in localStorage
+  return [
+    {
+      id: "cred-1",
+      serviceId: "service-netflix",
+      credentials: {
+        email: "netflix_premium1@example.com",
+        password: "securepass123",
+        notes: "Premium account with 4K streaming"
+      },
+      status: "available",
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cred-2",
+      serviceId: "service-netflix",
+      credentials: {
+        email: "netflix_premium2@example.com",
+        password: "securepass456",
+        notes: "Premium account with 4K streaming"
+      },
+      status: "available",
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cred-3",
+      serviceId: "service-disney",
+      credentials: {
+        email: "disney_plus1@example.com",
+        password: "disneypass123",
+        notes: "Disney+ subscription"
+      },
+      status: "available",
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "cred-4",
+      serviceId: "service-spotify",
+      credentials: {
+        email: "spotify_premium@example.com",
+        password: "spotifypass123",
+        notes: "Spotify Premium subscription"
+      },
+      status: "available",
+      createdAt: new Date().toISOString()
+    }
+  ];
+};
+
+// Get credential stock
+let credentialStock = loadCredentialStock();
+
+// Save credential stock to localStorage
+const saveCredentialStock = (): void => {
+  localStorage.setItem('credentialStock', JSON.stringify(credentialStock));
+};
 
 // Check if credentials are available for a service
 export const checkCredentialAvailability = (serviceId: string): boolean => {
@@ -75,8 +92,19 @@ export const assignCredentialsToOrder = (order: Order): Order => {
   
   if (availableCredential) {
     // Mark credential as assigned
-    availableCredential.status = "assigned";
-    availableCredential.assignedToOrderId = order.id;
+    const updatedCredentialStock = credentialStock.map(cred => {
+      if (cred.id === availableCredential.id) {
+        return {
+          ...cred,
+          status: "assigned",
+          assignedToOrderId: order.id
+        };
+      }
+      return cred;
+    });
+
+    credentialStock = updatedCredentialStock;
+    saveCredentialStock();
     
     // Update the order with credentials
     return {
@@ -124,6 +152,7 @@ export const addCredentialToStock = (
   };
   
   credentialStock.push(newCredential);
+  saveCredentialStock();
   return newCredential;
 };
 
@@ -139,3 +168,21 @@ export const processOrderWithCredentials = (order: Order): Order => {
   
   return assignCredentialsToOrder(order);
 };
+
+// Get all credential stock (for admin panels)
+export const getAllCredentialStock = (): CredentialStock[] => {
+  return [...credentialStock];
+};
+
+// Delete a credential from stock
+export const deleteCredentialFromStock = (credentialId: string): boolean => {
+  const initialLength = credentialStock.length;
+  credentialStock = credentialStock.filter(cred => cred.id !== credentialId);
+  
+  if (credentialStock.length !== initialLength) {
+    saveCredentialStock();
+    return true;
+  }
+  return false;
+};
+

@@ -18,63 +18,40 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Product, Service, ServiceType } from "@/lib/types";
+import { Product, Service, ServiceType, CredentialStock } from "@/lib/types";
 import { products as dataProducts } from "@/lib/data";
 import { services } from "@/lib/mockData";
+import { 
+  getAllCredentialStock, 
+  addCredentialToStock, 
+  deleteCredentialFromStock 
+} from "@/lib/credentialUtils";
 
-interface DigitalItem {
-  id: string;
-  serviceId: string;
+interface DigitalItem extends CredentialStock {
   serviceName: string;
-  credentials: {
-    email: string;
-    password: string;
-    username?: string;
-    pinCode?: string;
-  };
-  status: "available" | "delivered";
-  addedAt: string;
-  deliveredAt?: string;
 }
 
 const mockServices = [
   { id: "s1", name: "Premium Email Service" },
   { id: "s2", name: "VPN Subscription" },
   { id: "s3", name: "Streaming Service" },
-];
-
-const mockInventory: DigitalItem[] = [
-  {
-    id: "di1",
-    serviceId: "s1",
-    serviceName: "Premium Email Service",
-    credentials: {
-      email: "user1@example.com",
-      password: "securepass123",
-      username: "user1",
-      pinCode: "1234"
-    },
-    status: "available",
-    addedAt: new Date().toISOString(),
-  },
-  {
-    id: "di2",
-    serviceId: "s2",
-    serviceName: "VPN Subscription",
-    credentials: {
-      email: "vpnuser@example.com",
-      password: "vpnpass456",
-      username: "vpnuser",
-      pinCode: "5678"
-    },
-    status: "delivered",
-    addedAt: new Date(Date.now() - 86400000).toISOString(),
-    deliveredAt: new Date().toISOString(),
-  },
+  { id: "service-netflix", name: "Netflix" },
+  { id: "service-disney", name: "Disney+" },
+  { id: "service-spotify", name: "Spotify" },
 ];
 
 const AdminDigitalInventory: React.FC = () => {
-  const [inventory, setInventory] = useState<DigitalItem[]>(mockInventory);
+  const convertToDigitalItems = (stock: CredentialStock[]): DigitalItem[] => {
+    return stock.map(item => {
+      const service = mockServices.find(s => s.id === item.serviceId) || { name: item.serviceId };
+      return {
+        ...item,
+        serviceName: service.name
+      };
+    });
+  };
+
+  const [inventory, setInventory] = useState<DigitalItem[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [bulkImport, setBulkImport] = useState(false);
   const [selectedService, setSelectedService] = useState(mockServices[0]?.id || "");
@@ -88,6 +65,15 @@ const AdminDigitalInventory: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadInventory = () => {
+      const stock = getAllCredentialStock();
+      setInventory(convertToDigitalItems(stock));
+    };
+
+    loadInventory();
+  }, []);
 
   useEffect(() => {
     const servicesAsProducts: Product[] = services.map(service => ({
@@ -166,26 +152,26 @@ const AdminDigitalInventory: React.FC = () => {
     }
 
     const serviceName = mockServices.find(s => s.id === selectedService)?.name || "";
-    
     const newItems: DigitalItem[] = [];
     
     for (let i = 0; i < quantity; i++) {
-      newItems.push({
-        id: `di${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-        serviceId: selectedService,
-        serviceName,
-        credentials: {
-          email: newCredentials.email,
-          password: newCredentials.password,
-          username: newCredentials.username,
-          pinCode: newCredentials.pinCode
-        },
-        status: "available",
-        addedAt: new Date().toISOString(),
-      });
+      const credentials = {
+        email: newCredentials.email,
+        password: newCredentials.password,
+        username: newCredentials.username || "",
+        pinCode: newCredentials.pinCode || ""
+      };
+      
+      const newItem = addCredentialToStock(selectedService, credentials);
+      const digitalItem: DigitalItem = {
+        ...newItem,
+        serviceName
+      };
+      
+      newItems.push(digitalItem);
     }
 
-    setInventory([...inventory, ...newItems]);
+    setInventory(prev => [...prev, ...newItems]);
     setNewCredentials({ email: "", password: "", username: "", pinCode: "" });
     toast({
       title: "Items Added",
@@ -215,25 +201,26 @@ const AdminDigitalInventory: React.FC = () => {
       
       if (email && password) {
         for (let i = 0; i < quantity; i++) {
-          newItems.push({
-            id: `di${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${i}`,
-            serviceId: selectedService,
-            serviceName,
-            credentials: { 
-              email, 
-              password,
-              username: username || "",
-              pinCode: pinCode || ""
-            },
-            status: "available",
-            addedAt: new Date().toISOString(),
-          });
+          const credentials = { 
+            email, 
+            password,
+            username: username || "",
+            pinCode: pinCode || ""
+          };
+          
+          const newItem = addCredentialToStock(selectedService, credentials);
+          const digitalItem: DigitalItem = {
+            ...newItem,
+            serviceName
+          };
+          
+          newItems.push(digitalItem);
         }
       }
     });
 
     if (newItems.length > 0) {
-      setInventory([...inventory, ...newItems]);
+      setInventory(prev => [...prev, ...newItems]);
       setBulkCredentials("");
       toast({
         title: "Bulk Import Successful",
@@ -253,16 +240,16 @@ const AdminDigitalInventory: React.FC = () => {
     const duplicatedItems: DigitalItem[] = [];
     
     for (let i = 0; i < quantity; i++) {
-      duplicatedItems.push({
-        ...item,
-        id: `di${Date.now()}-dup-${i}-${Math.random().toString(36).substr(2, 9)}`,
-        status: "available",
-        addedAt: new Date().toISOString(),
-        deliveredAt: undefined
-      });
+      const newItem = addCredentialToStock(item.serviceId, {...item.credentials});
+      const digitalItem: DigitalItem = {
+        ...newItem,
+        serviceName: item.serviceName
+      };
+      
+      duplicatedItems.push(digitalItem);
     }
     
-    setInventory([...inventory, ...duplicatedItems]);
+    setInventory(prev => [...prev, ...duplicatedItems]);
     
     toast({
       title: "Items Duplicated",
@@ -272,6 +259,7 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const handleDeleteItem = (id: string) => {
+    deleteCredentialFromStock(id);
     setInventory(inventory.filter(item => item.id !== id));
     toast({
       title: "Item Removed",
@@ -294,21 +282,22 @@ const AdminDigitalInventory: React.FC = () => {
       const product = allProducts.find(p => p.id === productId);
       
       for (let i = 0; i < quantity; i++) {
-        productsToAdd.push({
-          id: `di${Date.now()}-${productId}-${i}-${Math.random().toString(36).substr(2, 9)}`,
-          serviceId: product?.id || "",
-          serviceName: product?.name || "",
-          credentials: {
-            email: "",
-            password: ""
-          },
-          status: "available" as const,
-          addedAt: new Date().toISOString(),
-        });
+        const credentials = {
+          email: "",
+          password: ""
+        };
+        
+        const newItem = addCredentialToStock(product?.id || "", credentials);
+        const digitalItem: DigitalItem = {
+          ...newItem,
+          serviceName: product?.name || ""
+        };
+        
+        productsToAdd.push(digitalItem);
       }
     });
     
-    setInventory([...inventory, ...productsToAdd]);
+    setInventory(prev => [...prev, ...productsToAdd]);
     toast({
       title: "Products Added to Inventory",
       description: `Added ${productsToAdd.length} products to inventory. You can now add credentials for them.`,
@@ -331,13 +320,31 @@ const AdminDigitalInventory: React.FC = () => {
     
     const updatedInventory = inventory.map(item => {
       if (item.id === itemId) {
-        return {
+        const updatedItem = {
           ...item,
           credentials: {
             ...item.credentials,
             [field]: value
           }
         };
+        
+        const allStock = getAllCredentialStock();
+        const updatedStock = allStock.map(stock => {
+          if (stock.id === itemId) {
+            return {
+              ...stock,
+              credentials: {
+                ...stock.credentials,
+                [field]: value
+              }
+            };
+          }
+          return stock;
+        });
+        
+        localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
+        
+        return updatedItem;
       }
       return item;
     });
@@ -351,7 +358,7 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const availableCount = inventory.filter(item => item.status === "available").length;
-  const deliveredCount = inventory.filter(item => item.status === "delivered").length;
+  const deliveredCount = inventory.filter(item => item.status === "assigned").length;
 
   return (
     <div className="space-y-6">
@@ -667,7 +674,7 @@ const AdminDigitalInventory: React.FC = () => {
                       <TableCell className="min-w-[180px]">
                         <Input 
                           placeholder="Enter email" 
-                          value={item.credentials.email}
+                          value={item.credentials.email || ""}
                           onChange={(e) => updateCredential(item.id, 'email', e.target.value)}
                           className="w-full focus:border-blue-500"
                         />
@@ -675,7 +682,7 @@ const AdminDigitalInventory: React.FC = () => {
                       <TableCell className="min-w-[180px]">
                         <Input 
                           placeholder="Enter password" 
-                          value={item.credentials.password}
+                          value={item.credentials.password || ""}
                           onChange={(e) => updateCredential(item.id, 'password', e.target.value)}
                           className="w-full focus:border-blue-500"
                         />
@@ -698,11 +705,11 @@ const AdminDigitalInventory: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.status === "available" ? "outline" : "secondary"}>
-                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                          {item.status === "available" ? "Available" : "Assigned"}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(item.addedAt).toLocaleDateString()}
+                        {new Date(item.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
