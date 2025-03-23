@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, HomeIcon, Users, LineChart, Package, Settings, Layers } from 'lucide-react';
+import { LogOut, HomeIcon, Users, LineChart, Package, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SidebarLink from './SidebarLink';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -79,13 +79,6 @@ const WholesaleSidebar: React.FC<WholesaleSidebarProps> = ({
             label="Customers" 
             active={activeTab === 'customers'} 
             onClick={() => handleTabSelect('customers')} 
-          />
-          <SidebarLink 
-            href="#" 
-            icon={<Layers className="h-5 w-5" />} 
-            label="Stock" 
-            active={activeTab === 'stock'} 
-            onClick={() => handleTabSelect('stock')} 
           />
           <SidebarLink 
             href="#" 

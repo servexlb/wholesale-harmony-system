@@ -7,7 +7,6 @@ import { Subscription, WholesaleOrder, Service, ServiceType } from '@/lib/types'
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
-import StockTab from './StockTab';
 import { toast } from '@/lib/toast';
 import { getAllServices } from './sales/utils/productMapUtils';
 import CustomersAndStockTab from './CustomersAndStockTab';
