@@ -37,7 +37,7 @@ export interface Service {
   value?: number;
   apiUrl?: string;
   features?: string[];
-  category?: string; // Optional category to make compatible with Product
+  category?: string; // Making category optional in Service interface
 }
 
 export interface Product {
@@ -48,7 +48,7 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
-  categoryId?: string; // Make categoryId optional in Product
+  categoryId?: string; // Making categoryId optional in Product
   featured?: boolean;
   type?: ServiceType;
   value?: number;
@@ -56,7 +56,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId?: boolean; // Add requiresId property
+  requiresId?: boolean; // Adding requiresId property to Product interface
 }
 
 export interface Subscription {
