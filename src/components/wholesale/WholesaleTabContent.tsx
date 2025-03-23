@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
@@ -48,17 +47,18 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       image: service.image || '/placeholder.svg', // Fallback image
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
       featured: service.featured || false,
-      type: 'service', // Explicitly set type to 'service'
+      type: 'service' as const, // Use 'as const' to narrow the type
       deliveryTime: service.deliveryTime || "",
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
     }));
     
-    // Add type 'product' explicitly to products that don't have a type
-    const typedProducts = products.map(product => ({
+    // Ensure products have a valid type property
+    const typedProducts: Product[] = products.map(product => ({
       ...product,
-      type: product.type || 'product'
+      // If product.type is undefined, set it to 'service', otherwise keep original type
+      type: product.type || 'service' 
     }));
     
     console.log('Services count:', servicesAsProducts.length);
