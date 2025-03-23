@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/lib/toast';
-import { Settings, User, Bell, Shield } from 'lucide-react';
+import { Settings, User, Bell, Shield, LogOut } from 'lucide-react';
 import WholesaleProfileForm from './settings/WholesaleProfileForm';
 import WholesaleNotificationSettings from './settings/WholesaleNotificationSettings';
 import WholesaleSecuritySettings from './settings/WholesaleSecuritySettings';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsTab: React.FC = () => {
   const [username, setUsername] = useState<string>('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Load the wholesaler username from local storage
@@ -20,6 +22,15 @@ const SettingsTab: React.FC = () => {
       setUsername(storedUsername);
     }
   }, []);
+
+  const handleLogout = () => {
+    // Clear wholesale authentication
+    localStorage.removeItem('wholesaleAuthenticated');
+    localStorage.removeItem('wholesalerId');
+    
+    toast.success('Logged out successfully');
+    navigate('/wholesale');
+  };
 
   return (
     <motion.div
@@ -30,14 +41,25 @@ const SettingsTab: React.FC = () => {
     >
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Account Settings</h1>
-        <Button 
-          variant="outline" 
-          onClick={() => toast.success('Settings updated')}
-          className="hidden sm:flex"
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Save All Changes
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => toast.success('Settings updated')}
+            className="hidden sm:flex"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Save All Changes
+          </Button>
+          
+          <Button 
+            variant="destructive" 
+            onClick={handleLogout}
+            className="hidden sm:flex"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Log Out
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -100,10 +122,17 @@ const SettingsTab: React.FC = () => {
       </Tabs>
 
       <div className="mt-6 text-center sm:hidden">
-        <Button onClick={() => toast.success('Settings updated')}>
-          <Settings className="mr-2 h-4 w-4" />
-          Save All Changes
-        </Button>
+        <div className="flex flex-col gap-4">
+          <Button onClick={() => toast.success('Settings updated')}>
+            <Settings className="mr-2 h-4 w-4" />
+            Save All Changes
+          </Button>
+          
+          <Button variant="destructive" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Log Out
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

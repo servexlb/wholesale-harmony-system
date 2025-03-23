@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Settings, User, ShoppingBag, MessageCircle } from 'lucide-react';
+import { Briefcase, Settings, User, ShoppingBag, MessageCircle, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 interface NavigationLinksProps {
@@ -9,8 +9,23 @@ interface NavigationLinksProps {
 }
 
 const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  useEffect(() => {
+    // Check if user is logged in
+    const userId = localStorage.getItem('currentUserId');
+    const wholesalerAuth = localStorage.getItem('wholesaleAuthenticated');
+    
+    setIsAuthenticated(!!(userId || wholesalerAuth === 'true'));
+  }, []);
+
   const handleWhatsAppRedirect = () => {
     window.open(`https://wa.me/96178991908`, '_blank');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUserId');
+    window.location.href = '/';
   };
 
   return (
@@ -41,16 +56,29 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated 
         </Link>
       ) : null}
       
-      <Link to="/login">
-        <Button variant="outline" size="sm" className="flex gap-2 items-center">
-          <User className="h-4 w-4" />
-          <span>Login</span>
-        </Button>
-      </Link>
-      
-      <Link to="/register">
-        <Button variant="outline" size="sm">Register</Button>
-      </Link>
+      {isAuthenticated ? (
+        <>
+          <Link to="/account">
+            <Button variant="outline" size="sm" className="flex gap-2 items-center">
+              <User className="h-4 w-4" />
+              <span>Account</span>
+            </Button>
+          </Link>
+        </>
+      ) : (
+        <>
+          <Link to="/login">
+            <Button variant="outline" size="sm" className="flex gap-2 items-center">
+              <User className="h-4 w-4" />
+              <span>Login</span>
+            </Button>
+          </Link>
+          
+          <Link to="/register">
+            <Button variant="outline" size="sm">Register</Button>
+          </Link>
+        </>
+      )}
       
       <Link to="/checkout">
         <Button variant="default" size="sm" className="flex gap-2 items-center">

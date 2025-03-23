@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NotificationPreferences from "@/components/account/NotificationPreferences";
 import SecuritySettings from "@/components/account/SecuritySettings";
 import ProfileEditForm from "@/components/account/ProfileEditForm";
+import { toast } from "@/lib/toast";
 import {
   User,
   Package,
@@ -20,7 +20,6 @@ import {
   History
 } from "lucide-react";
 
-// Generate a unique user ID for this session if not already present
 const getUserId = () => {
   let userId = localStorage.getItem('currentUserId');
   if (!userId) {
@@ -32,6 +31,7 @@ const getUserId = () => {
 
 const Account: React.FC = () => {
   const userId = getUserId();
+  const navigate = useNavigate();
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "",
@@ -41,7 +41,6 @@ const Account: React.FC = () => {
   const [userBalance, setUserBalance] = useState(0);
 
   useEffect(() => {
-    // Load user-specific profile data
     const savedProfile = localStorage.getItem(`userProfile_${userId}`);
     if (savedProfile) {
       try {
@@ -52,13 +51,23 @@ const Account: React.FC = () => {
       }
     }
     
-    // Load user-specific balance
     const savedBalance = localStorage.getItem(`userBalance_${userId}`);
     if (savedBalance) {
       const balance = parseFloat(savedBalance);
       setUserBalance(balance);
     }
   }, [userId]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUserId');
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    
+    navigate('/');
+  };
 
   return (
     <MainLayout>
@@ -328,7 +337,11 @@ const Account: React.FC = () => {
             </div>
             
             <div className="flex justify-center mt-4">
-              <Button variant="ghost" className="text-destructive">
+              <Button 
+                variant="destructive" 
+                onClick={handleLogout}
+                className="flex items-center"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </Button>
