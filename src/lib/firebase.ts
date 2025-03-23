@@ -6,7 +6,8 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
-// Replace with your Firebase project configuration
+// Replace these placeholder values with your actual Firebase project configuration
+// when deploying your application
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_AUTH_DOMAIN",

@@ -14,7 +14,8 @@ import {
   orderBy, 
   limit,
   DocumentData,
-  CollectionReference
+  CollectionReference,
+  Query
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "@/lib/toast";
@@ -57,11 +58,11 @@ export function useFirestore(collectionName: string) {
     setLoading(true);
     setError(null);
     try {
-      let q = collectionRef as CollectionReference<DocumentData>;
+      let q: Query<DocumentData> = collectionRef;
       
       if (constraints) {
         if (constraints.field && constraints.operator && constraints.value !== undefined) {
-          q = query(collectionRef, where(constraints.field, constraints.operator, constraints.value));
+          q = query(q, where(constraints.field, constraints.operator, constraints.value));
         }
         
         if (constraints.orderByField) {
