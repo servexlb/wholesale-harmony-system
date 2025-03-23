@@ -43,6 +43,7 @@ import { toast } from "@/lib/toast";
 const mockPayments: Payment[] = [
   {
     id: "pmt-1",
+    orderId: "ord-1",
     userId: "user1",
     userEmail: "john.doe@example.com",
     userName: "John Doe",
@@ -55,6 +56,7 @@ const mockPayments: Payment[] = [
   },
   {
     id: "pmt-2",
+    orderId: "ord-2",
     userId: "user2",
     userEmail: "jane.smith@example.com",
     userName: "Jane Smith",
@@ -66,6 +68,7 @@ const mockPayments: Payment[] = [
   },
   {
     id: "pmt-3",
+    orderId: "ord-3",
     userId: "user3",
     userEmail: "alex.johnson@example.com",
     userName: "Alex Johnson",
@@ -74,8 +77,31 @@ const mockPayments: Payment[] = [
     status: "approved",
     createdAt: new Date(Date.now() - 172800000).toISOString(),
     reviewedAt: new Date(Date.now() - 86400000).toISOString(),
-    reviewedBy: "admin1",
     transactionId: "tx_54321",
+  },
+  {
+    id: "pmt-4",
+    orderId: "ord-4",
+    userId: "user4",
+    userEmail: "sarah.parker@example.com",
+    userName: "Sarah Parker",
+    amount: 180.00,
+    method: "usdt",
+    status: "pending",
+    createdAt: new Date(Date.now() - 43200000).toISOString(),
+    transactionId: "tx_usdt789",
+  },
+  {
+    id: "pmt-5",
+    orderId: "ord-5",
+    userId: "user5",
+    userEmail: "mike.wilson@example.com",
+    userName: "Mike Wilson",
+    amount: 320.00,
+    method: "wish",
+    status: "pending",
+    createdAt: new Date(Date.now() - 21600000).toISOString(),
+    transactionId: "tx_wish123",
   }
 ];
 
@@ -85,6 +111,7 @@ const AdminPayments: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterMethod, setFilterMethod] = useState<string>("all");
   const [notes, setNotes] = useState("");
   
   const { updateDocument } = useFirestore("payments");
@@ -96,12 +123,20 @@ const AdminPayments: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (filterStatus === "all") {
-      setFilteredPayments(payments);
-    } else {
-      setFilteredPayments(payments.filter(payment => payment.status === filterStatus));
+    let filtered = payments;
+    
+    // Filter by status
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(payment => payment.status === filterStatus);
     }
-  }, [filterStatus, payments]);
+    
+    // Filter by payment method
+    if (filterMethod !== "all") {
+      filtered = filtered.filter(payment => payment.method === filterMethod);
+    }
+    
+    setFilteredPayments(filtered);
+  }, [filterStatus, filterMethod, payments]);
 
   const handleViewDetails = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -117,8 +152,7 @@ const AdminPayments: React.FC = () => {
           ? { 
               ...payment, 
               status: newStatus, 
-              reviewedAt: new Date().toISOString(), 
-              reviewedBy: "current-admin",
+              reviewedAt: new Date().toISOString(),
               notes: notes 
             } 
           : payment
@@ -129,8 +163,7 @@ const AdminPayments: React.FC = () => {
       // This would normally call your backend or Firestore
       // await updateDocument(paymentId, { 
       //   status: newStatus, 
-      //   reviewedAt: new Date().toISOString(), 
-      //   reviewedBy: "current-admin",
+      //   reviewedAt: new Date().toISOString(),
       //   notes 
       // });
       
@@ -156,6 +189,12 @@ const AdminPayments: React.FC = () => {
         return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-300">Approved</Badge>;
       case "rejected":
         return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-300">Rejected</Badge>;
+      case "completed":
+        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-300">Completed</Badge>;
+      case "failed":
+        return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-300">Failed</Badge>;
+      case "refunded":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-300">Refunded</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -169,8 +208,33 @@ const AdminPayments: React.FC = () => {
         return "Bank Transfer";
       case "paypal":
         return "PayPal";
+      case "usdt":
+        return "USDT";
+      case "wish":
+        return "Wish Pay";
+      case "balance":
+        return "Account Balance";
       default:
         return method.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+  };
+
+  const getMethodBadge = (method: string) => {
+    switch (method) {
+      case "credit_card":
+        return <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-300">Credit Card</Badge>;
+      case "bank_transfer":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-300">Bank Transfer</Badge>;
+      case "paypal":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-300">PayPal</Badge>;
+      case "usdt":
+        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-300">USDT</Badge>;
+      case "wish":
+        return <Badge variant="outline" className="bg-pink-50 text-pink-600 border-pink-300">Wish Pay</Badge>;
+      case "balance":
+        return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-300">Account Balance</Badge>;
+      default:
+        return <Badge variant="outline">{formatMethod(method)}</Badge>;
     }
   };
 
@@ -184,16 +248,34 @@ const AdminPayments: React.FC = () => {
           </CardDescription>
         </div>
         <div className="flex items-center space-x-2">
+          <Select value={filterMethod} onValueChange={setFilterMethod}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Filter by method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Methods</SelectItem>
+              <SelectItem value="credit_card">Credit Card</SelectItem>
+              <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+              <SelectItem value="paypal">PayPal</SelectItem>
+              <SelectItem value="usdt">USDT</SelectItem>
+              <SelectItem value="wish">Wish Pay</SelectItem>
+              <SelectItem value="balance">Account Balance</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[180px]">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Payments</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -201,7 +283,7 @@ const AdminPayments: React.FC = () => {
       <CardContent>
         {filteredPayments.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No payments found matching the selected filter.
+            No payments found matching the selected filters.
           </div>
         ) : (
           <Table>
@@ -225,7 +307,7 @@ const AdminPayments: React.FC = () => {
                   </TableCell>
                   <TableCell className="font-medium">{payment.userName}</TableCell>
                   <TableCell>${payment.amount.toFixed(2)}</TableCell>
-                  <TableCell>{formatMethod(payment.method)}</TableCell>
+                  <TableCell>{getMethodBadge(payment.method)}</TableCell>
                   <TableCell>{getStatusBadge(payment.status)}</TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -257,6 +339,11 @@ const AdminPayments: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="font-medium">Payment ID:</span>
                   <span>{selectedPayment.id}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="font-medium">Order ID:</span>
+                  <span>{selectedPayment.orderId}</span>
                 </div>
                 
                 <div className="flex justify-between">

@@ -1,3 +1,4 @@
+
 export interface Customer {
   id: string;
   name: string;
@@ -82,7 +83,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  wholesalePrice?: number;
+  wholesalePrice: number;
   image?: string;
   category: string;
   categoryId?: string;
@@ -157,9 +158,9 @@ export interface CustomerNotification {
 export interface ServiceCategory {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   image?: string;
-  icon?: string;
+  icon: string;
 }
 
 export interface Order {
@@ -182,7 +183,7 @@ export interface Payment {
   id: string;
   orderId: string;
   amount: number;
-  method: 'credit_card' | 'paypal' | 'bank_transfer' | 'balance';
+  method: 'credit_card' | 'paypal' | 'bank_transfer' | 'balance' | 'usdt' | 'wish';
   status: PaymentStatus;
   createdAt: string;
   transactionId?: string;
@@ -191,13 +192,14 @@ export interface Payment {
   userEmail?: string;
   receiptUrl?: string;
   reviewedAt?: string;
+  reviewedBy?: string;
   notes?: string;
 }
 
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'approved' | 'rejected';
 
 export type IssueType = 'profile_fix' | 'payment_issue' | 'password_reset';
-export type IssueStatus = 'pending' | 'in-progress' | 'resolved' | 'cancelled';
+export type IssueStatus = 'pending' | 'in_progress' | 'resolved' | 'cancelled';
 
 export interface SubscriptionIssue {
   id: string;
