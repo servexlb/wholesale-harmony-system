@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Customer } from "@/lib/data";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CustomerActionsMenuProps {
   customerId: string;
@@ -39,6 +40,96 @@ interface CustomerActionsMenuProps {
   customer?: Customer;
   onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
 }
+
+// Define streaming services with their plans
+const streamingServices = [
+  {
+    id: 'netflix-basic',
+    name: 'Netflix Basic',
+    price: 9.99,
+    wholesalePrice: 8.49,
+    description: 'Basic plan with ads',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'netflix-standard',
+    name: 'Netflix Standard',
+    price: 15.49,
+    wholesalePrice: 13.99,
+    description: 'Watch on 2 screens at a time in Full HD',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'netflix-premium',
+    name: 'Netflix Premium',
+    price: 19.99,
+    wholesalePrice: 17.49,
+    description: 'Watch on 4 screens at a time in Ultra HD',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'amazon-prime',
+    name: 'Amazon Prime',
+    price: 14.99,
+    wholesalePrice: 12.99,
+    description: 'Prime Video, Prime Music and free shipping',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'disney-plus',
+    name: 'Disney+',
+    price: 7.99,
+    wholesalePrice: 6.49,
+    description: 'Stream Disney, Marvel, Star Wars and more',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'hulu',
+    name: 'Hulu',
+    price: 7.99,
+    wholesalePrice: 6.49,
+    description: 'Streaming service with ads',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'hbo-max',
+    name: 'HBO Max',
+    price: 15.99,
+    wholesalePrice: 13.99,
+    description: 'Stream HBO exclusive shows and movies',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  },
+  {
+    id: 'apple-tv',
+    name: 'Apple TV+',
+    price: 6.99,
+    wholesalePrice: 5.99,
+    description: 'Original shows and movies from Apple',
+    category: 'Streaming',
+    image: '/placeholder.svg',
+    type: 'subscription'
+  }
+];
+
+// Define additional services for other categories
+const otherServices = [
+  // Regular products from the data store
+  ...products
+];
 
 const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   customerId,
@@ -57,6 +148,8 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   // Product selection state
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
+  const [activeTab, setActiveTab] = useState('streaming');
+  const [selectedDuration, setSelectedDuration] = useState<string>("1");
   
   // Customer edit state
   const [editedCustomer, setEditedCustomer] = useState<{
@@ -210,6 +303,22 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     }
   };
 
+  const getProductsByCategory = () => {
+    if (activeTab === 'streaming') {
+      return streamingServices;
+    } else {
+      return otherServices;
+    }
+  };
+
+  const getSelectedProductDetails = () => {
+    if (activeTab === 'streaming') {
+      return streamingServices.find(p => p.id === selectedProduct);
+    } else {
+      return products.find(p => p.id === selectedProduct);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -259,56 +368,144 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
             <DialogTitle>Purchase for Customer</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Select Product</label>
-              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      <div className="flex flex-col">
-                        <span>{product.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ${product.wholesalePrice?.toFixed(2) || "0.00"}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-1 block">Quantity</label>
-              <Input 
-                type="number" 
-                min="1"
-                value={quantity.toString()}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              />
-            </div>
+            <Tabs defaultValue="streaming" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="streaming">Streaming Services</TabsTrigger>
+                <TabsTrigger value="other">Other Products</TabsTrigger>
+              </TabsList>
+              <TabsContent value="streaming" className="pt-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Select Streaming Service</label>
+                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a streaming service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {streamingServices.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          <div className="flex flex-col">
+                            <span>{service.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ${service.wholesalePrice?.toFixed(2) || "0.00"}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedProduct && activeTab === 'streaming' && (
+                  <div>
+                    <label className="text-sm font-medium mt-4 mb-1 block">Subscription Duration</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {['1', '3', '6', '12'].map((duration) => (
+                        <Button 
+                          key={duration}
+                          type="button"
+                          variant={selectedDuration === duration ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedDuration(duration)}
+                          className="flex-1 min-w-[70px]"
+                        >
+                          {duration} {parseInt(duration) === 1 ? 'month' : 'months'}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="other" className="pt-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Select Product</label>
+                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          <div className="flex flex-col">
+                            <span>{product.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ${product.wholesalePrice?.toFixed(2) || "0.00"}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mt-4 mb-1 block">Quantity</label>
+                  <Input 
+                    type="number" 
+                    min="1"
+                    value={quantity.toString()}
+                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
             
             {selectedProduct && (
-              <div className="p-4 bg-muted/40 rounded-md">
+              <div className="p-4 bg-muted/40 rounded-md mt-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Product:</span>
                   <span className="font-medium">
-                    {products.find(p => p.id === selectedProduct)?.name || 'Unknown Product'}
+                    {getSelectedProductDetails()?.name || 'Unknown Product'}
                   </span>
                 </div>
+                {getSelectedProductDetails()?.description && (
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Description:</span>
+                    <span className="text-sm text-right max-w-[250px]">
+                      {getSelectedProductDetails()?.description}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Price per unit:</span>
                   <span className="font-medium">
-                    ${products.find(p => p.id === selectedProduct)?.wholesalePrice?.toFixed(2) || "0.00"}
+                    ${getSelectedProductDetails()?.wholesalePrice?.toFixed(2) || "0.00"}
                   </span>
                 </div>
+                {activeTab === 'streaming' && (
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Duration:</span>
+                    <span className="font-medium">
+                      {selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between font-medium">
                   <span>Total price:</span>
                   <span className="text-primary">
-                    ${((products.find(p => p.id === selectedProduct)?.wholesalePrice || 0) * quantity).toFixed(2)}
+                    ${activeTab === 'streaming' 
+                      ? ((getSelectedProductDetails()?.wholesalePrice || 0) * parseInt(selectedDuration)).toFixed(2)
+                      : ((getSelectedProductDetails()?.wholesalePrice || 0) * quantity).toFixed(2)}
                   </span>
+                </div>
+              </div>
+            )}
+
+            {selectedProduct && activeTab === 'streaming' && (
+              <div className="space-y-3 p-3 border rounded-md">
+                <h3 className="text-sm font-medium">Subscription Credentials</h3>
+                <div>
+                  <label className="text-xs font-medium block mb-1">Email/Username</label>
+                  <Input
+                    type="text"
+                    placeholder="username@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1">Password</label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                  />
                 </div>
               </div>
             )}

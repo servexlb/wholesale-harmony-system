@@ -21,6 +21,7 @@ export interface WholesaleOrder {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   durationMonths?: number;
   wholesalerId?: string;
+  userId?: string;
   credentials?: {
     username?: string;
     password?: string;
@@ -173,6 +174,7 @@ export interface Order {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   createdAt: string;
   serviceId?: string;
+  quantity?: number;
 }
 
 export interface Payment {
@@ -183,6 +185,7 @@ export interface Payment {
   status: PaymentStatus;
   createdAt: string;
   transactionId?: string;
+  userId?: string;
   userName?: string;
   userEmail?: string;
   receiptUrl?: string;
