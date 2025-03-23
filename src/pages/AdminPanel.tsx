@@ -12,11 +12,12 @@ import AdminNotifications from "@/components/AdminNotifications";
 import AdminCustomersPage from "@/components/admin/AdminCustomersPage";
 import AdminPayments from "@/components/admin/AdminPayments";
 import SubscriptionIssues from "@/components/admin/SubscriptionIssues";
+import AdminChatMessages from "@/components/admin/AdminChatMessages";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
   Server, LogOut, CreditCard, LayoutDashboard,
-  DollarSign, AlertTriangle
+  DollarSign, AlertTriangle, MessageSquare
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 
@@ -110,6 +111,14 @@ const AdminPanel: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 
+                    onClick={() => navigate("/admin/chat-messages")}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Chat Messages
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
                     onClick={() => navigate("/admin/inventory")}
                   >
                     <Server className="mr-2 h-4 w-4" />
@@ -168,6 +177,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/orders" element={<AdminOrders />} />
               <Route path="/issues" element={<SubscriptionIssues />} />
               <Route path="/payments" element={<AdminPayments />} />
+              <Route path="/chat-messages" element={<AdminChatMessages />} />
               <Route path="/inventory" element={<AdminDigitalInventory />} />
               <Route path="/balance" element={<AdminBalanceManagement />} />
               <Route path="/customization" element={<AdminCustomization />} />

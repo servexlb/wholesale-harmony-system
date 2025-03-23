@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MapPin, Phone, Mail, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
+import ChatBot from "@/components/ChatBot";
 
 const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ const ContactPage: React.FC = () => {
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showChatBot, setShowChatBot] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -44,6 +46,10 @@ const ContactPage: React.FC = () => {
       
       setIsSubmitting(false);
     }, 1500);
+  };
+
+  const toggleChatBot = () => {
+    setShowChatBot(!showChatBot);
   };
 
   return (
@@ -116,15 +122,18 @@ const ContactPage: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Live Chat</h3>
                   <p className="text-muted-foreground mb-4">
-                    Get instant help from our support team
+                    Get instant help from our chatbot
                   </p>
-                  <Button className="mt-auto">
+                  <Button onClick={toggleChatBot} className="mt-auto">
                     Start Chat
                   </Button>
                 </div>
               </Card>
             </motion.div>
           </div>
+
+          {/* Show the ChatBot component when button is clicked */}
+          {showChatBot && <ChatBot onClose={() => setShowChatBot(false)} />}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <motion.div
