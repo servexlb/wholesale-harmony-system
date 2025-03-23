@@ -33,6 +33,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Customer } from "@/lib/data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { loadServices } from "@/lib/productManager";
+import { Service } from "@/lib/types";
 
 interface CustomerActionsMenuProps {
   customerId: string;
@@ -40,96 +42,6 @@ interface CustomerActionsMenuProps {
   customer?: Customer;
   onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
 }
-
-// Define streaming services with their plans
-const streamingServices = [
-  {
-    id: 'netflix-basic',
-    name: 'Netflix Basic',
-    price: 9.99,
-    wholesalePrice: 8.49,
-    description: 'Basic plan with ads',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'netflix-standard',
-    name: 'Netflix Standard',
-    price: 15.49,
-    wholesalePrice: 13.99,
-    description: 'Watch on 2 screens at a time in Full HD',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'netflix-premium',
-    name: 'Netflix Premium',
-    price: 19.99,
-    wholesalePrice: 17.49,
-    description: 'Watch on 4 screens at a time in Ultra HD',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'amazon-prime',
-    name: 'Amazon Prime',
-    price: 14.99,
-    wholesalePrice: 12.99,
-    description: 'Prime Video, Prime Music and free shipping',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'disney-plus',
-    name: 'Disney+',
-    price: 7.99,
-    wholesalePrice: 6.49,
-    description: 'Stream Disney, Marvel, Star Wars and more',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'hulu',
-    name: 'Hulu',
-    price: 7.99,
-    wholesalePrice: 6.49,
-    description: 'Streaming service with ads',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'hbo-max',
-    name: 'HBO Max',
-    price: 15.99,
-    wholesalePrice: 13.99,
-    description: 'Stream HBO exclusive shows and movies',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  },
-  {
-    id: 'apple-tv',
-    name: 'Apple TV+',
-    price: 6.99,
-    wholesalePrice: 5.99,
-    description: 'Original shows and movies from Apple',
-    category: 'Streaming',
-    image: '/placeholder.svg',
-    type: 'subscription'
-  }
-];
-
-// Define additional services for other categories
-const otherServices = [
-  // Regular products from the data store
-  ...products
-];
 
 const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   customerId,
@@ -150,6 +62,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState('streaming');
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
   
   // Customer edit state
   const [editedCustomer, setEditedCustomer] = useState<{
@@ -163,6 +76,25 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     phone: '',
     company: ''
   });
+  
+  // Load available services from product manager
+  useEffect(() => {
+    setAvailableServices(loadServices());
+    
+    const handleServiceUpdated = () => {
+      setAvailableServices(loadServices());
+    };
+    
+    window.addEventListener('service-updated', handleServiceUpdated);
+    window.addEventListener('service-added', handleServiceUpdated);
+    window.addEventListener('service-deleted', handleServiceUpdated);
+    
+    return () => {
+      window.removeEventListener('service-updated', handleServiceUpdated);
+      window.removeEventListener('service-added', handleServiceUpdated);
+      window.removeEventListener('service-deleted', handleServiceUpdated);
+    };
+  }, []);
   
   // Update editedCustomer when customer prop changes or edit dialog opens
   useEffect(() => {
@@ -305,18 +237,14 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 
   const getProductsByCategory = () => {
     if (activeTab === 'streaming') {
-      return streamingServices;
+      return availableServices.filter(s => s.type === 'subscription');
     } else {
-      return otherServices;
+      return availableServices.filter(s => s.type !== 'subscription');
     }
   };
 
   const getSelectedProductDetails = () => {
-    if (activeTab === 'streaming') {
-      return streamingServices.find(p => p.id === selectedProduct);
-    } else {
-      return products.find(p => p.id === selectedProduct);
-    }
+    return availableServices.find(s => s.id === selectedProduct);
   };
 
   return (
@@ -381,7 +309,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                       <SelectValue placeholder="Choose a streaming service" />
                     </SelectTrigger>
                     <SelectContent>
-                      {streamingServices.map((service) => (
+                      {getProductsByCategory().map((service) => (
                         <SelectItem key={service.id} value={service.id}>
                           <div className="flex flex-col">
                             <span>{service.name}</span>
@@ -423,7 +351,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                       <SelectValue placeholder="Choose a product" />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
+                      {getProductsByCategory().map((product) => (
                         <SelectItem key={product.id} value={product.id}>
                           <div className="flex flex-col">
                             <span>{product.name}</span>
@@ -486,26 +414,6 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                       ? ((getSelectedProductDetails()?.wholesalePrice || 0) * parseInt(selectedDuration)).toFixed(2)
                       : ((getSelectedProductDetails()?.wholesalePrice || 0) * quantity).toFixed(2)}
                   </span>
-                </div>
-              </div>
-            )}
-
-            {selectedProduct && activeTab === 'streaming' && (
-              <div className="space-y-3 p-3 border rounded-md">
-                <h3 className="text-sm font-medium">Subscription Credentials</h3>
-                <div>
-                  <label className="text-xs font-medium block mb-1">Email/Username</label>
-                  <Input
-                    type="text"
-                    placeholder="username@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium block mb-1">Password</label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                  />
                 </div>
               </div>
             )}
