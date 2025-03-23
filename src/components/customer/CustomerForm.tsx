@@ -9,11 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Customer } from '@/lib/data';
 import { toast } from 'sonner';
 
-// Customer form schema
+// Customer form schema - making email truly optional
 const customerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(6, "Phone number must be at least 6 characters"),
-  email: z.string().email("Please enter a valid email").optional().or(z.literal('')),
   company: z.string().optional().or(z.literal('')),
 });
 
@@ -36,7 +35,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     defaultValues: {
       name: '',
       phone: '',
-      email: '',
       company: '',
     },
   });
@@ -47,7 +45,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       id: `customer-${Date.now()}`,
       name: data.name,
       phone: data.phone,
-      email: data.email || '',
+      email: '', // Set email to empty string by default
       company: data.company || '',
       wholesalerId: wholesalerId,
       balance: 0
@@ -87,20 +85,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               <FormLabel>Phone *</FormLabel>
               <FormControl>
                 <Input placeholder="+1 (555) 123-4567" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email (Optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="john@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

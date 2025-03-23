@@ -19,6 +19,7 @@ interface WholesaleTabContentProps {
   handleOrderPlaced: (order: WholesaleOrder) => void;
   onAddCustomer: (customer: Customer) => void;
   onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
+  onPurchaseForCustomer?: (customerId: string) => void;
 }
 
 const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({ 
@@ -31,7 +32,8 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   currentWholesaler,
   handleOrderPlaced,
   onAddCustomer,
-  onUpdateCustomer
+  onUpdateCustomer,
+  onPurchaseForCustomer
 }) => {
   return (
     <div className="h-full">
@@ -58,6 +60,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
             subscriptions={subscriptions}
             onAddCustomer={onAddCustomer}
             onUpdateCustomer={onUpdateCustomer}
+            onPurchaseForCustomer={onPurchaseForCustomer}
           />
         </TabsContent>
         

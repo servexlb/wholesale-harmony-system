@@ -1,15 +1,20 @@
 
-import React from 'react';
-import { customers as defaultCustomers } from '@/lib/data';
+import React, { useEffect } from 'react';
+import { customers as defaultCustomers, products as defaultProducts } from '@/lib/data';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
 import WholesaleTabContent from '@/components/wholesale/WholesaleTabContent';
 import WholesaleLayout from '@/components/wholesale/WholesaleLayout';
 import { useWholesaleAuth } from '@/hooks/useWholesaleAuth';
 import { useWholesaleData } from '@/hooks/useWholesaleData';
 import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
-import { createMockSubscriptions } from '@/components/wholesale/WholesaleMockData';
+import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
+import { useState } from 'react';
 
 const Wholesale = () => {
+  // State for purchase dialog
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  
   // Initialize hooks
   const { 
     isAuthenticated, 
@@ -35,6 +40,31 @@ const Wholesale = () => {
     handleUpdateCustomer
   } = useWholesaleData(currentWholesaler);
 
+  // Listen for purchase dialog events
+  useEffect(() => {
+    const handleOpenPurchaseDialog = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.customerId) {
+        setSelectedCustomerId(customEvent.detail.customerId);
+      } else {
+        setSelectedCustomerId('');
+      }
+      setPurchaseDialogOpen(true);
+    };
+
+    window.addEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
+
+    return () => {
+      window.removeEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
+    };
+  }, []);
+
+  // Purchase for customer handler
+  const handlePurchaseForCustomer = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    setPurchaseDialogOpen(true);
+  };
+
   // If not authenticated, show login screen
   if (!isAuthenticated) {
     return <WholesaleAuth onLoginSuccess={handleLoginSuccess} />;
@@ -42,26 +72,39 @@ const Wholesale = () => {
 
   // Render main wholesale interface
   return (
-    <WholesaleLayout
-      sidebarOpen={sidebarOpen}
-      toggleSidebar={toggleSidebar}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      handleLogout={handleLogout}
-    >
-      <WholesaleTabContent 
+    <>
+      <WholesaleLayout
+        sidebarOpen={sidebarOpen}
+        toggleSidebar={toggleSidebar}
         activeTab={activeTab}
-        products={defaultCustomers.length > 0 ? [] : []} // This will trigger product loading
-        customers={customersData}
-        wholesalerCustomers={wholesalerCustomers}
-        orders={orders}
-        subscriptions={subscriptions}
+        setActiveTab={setActiveTab}
+        handleLogout={handleLogout}
+      >
+        <WholesaleTabContent 
+          activeTab={activeTab}
+          products={defaultProducts}
+          customers={customersData}
+          wholesalerCustomers={wholesalerCustomers}
+          orders={orders}
+          subscriptions={subscriptions}
+          currentWholesaler={currentWholesaler}
+          handleOrderPlaced={handleOrderPlaced}
+          onAddCustomer={handleAddCustomer}
+          onUpdateCustomer={handleUpdateCustomer}
+          onPurchaseForCustomer={handlePurchaseForCustomer}
+        />
+      </WholesaleLayout>
+      
+      <PurchaseDialog
+        open={purchaseDialogOpen}
+        onOpenChange={setPurchaseDialogOpen}
+        customers={wholesalerCustomers}
+        products={defaultProducts}
+        selectedCustomer={selectedCustomerId}
         currentWholesaler={currentWholesaler}
-        handleOrderPlaced={handleOrderPlaced}
-        onAddCustomer={handleAddCustomer}
-        onUpdateCustomer={handleUpdateCustomer}
+        onOrderPlaced={handleOrderPlaced}
       />
-    </WholesaleLayout>
+    </>
   );
 };
 
