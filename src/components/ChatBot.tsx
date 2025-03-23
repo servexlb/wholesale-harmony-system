@@ -98,13 +98,19 @@ const botKnowledge = {
 const faqList = [
   { question: "What services do you offer?", answer: botKnowledge.services.response },
   { question: "How much do your services cost?", answer: botKnowledge.pricing.response },
-  { question: "How can I contact support?", answer: botKnowledge.support.response },
+  { question: "How do I contact customer support?", answer: botKnowledge.support.response },
   { question: "What is your refund policy?", answer: botKnowledge.refund.response },
   { question: "How do I access my account?", answer: botKnowledge.subscription.response },
-  { question: "Is my data secure?", answer: botKnowledge.security.response },
-  { question: "Do you offer streaming services?", answer: botKnowledge.streaming.response },
-  { question: "What gaming services do you provide?", answer: botKnowledge.gaming.response },
-  { question: "How do I become a wholesale partner?", answer: botKnowledge.wholesale.response }
+  { question: "Is my data secure with your services?", answer: botKnowledge.security.response },
+  { question: "What streaming services do you provide?", answer: botKnowledge.streaming.response },
+  { question: "What gaming services do you offer?", answer: botKnowledge.gaming.response },
+  { question: "How can I become a wholesale partner?", answer: botKnowledge.wholesale.response },
+  { question: "I need help with my subscription", answer: "We're here to help with your subscription issues. Common problems include expired payment methods, service interruptions, or access issues. You can update your payment information in your account dashboard, or contact our support team at support@servexlb.com for immediate assistance." },
+  { question: "How do I upgrade my plan?", answer: "Upgrading your plan is easy! Simply log into your account dashboard, navigate to 'Subscriptions', select the service you want to upgrade, and click on 'Upgrade Plan'. You'll see all available options with price differences. Changes take effect immediately after payment confirmation." },
+  { question: "I can't access my streaming account", answer: "If you're having trouble accessing your streaming account, please try these steps: 1) Verify your login credentials are correct, 2) Check if your subscription is active in your dashboard, 3) Try logging out and back in, 4) Clear your browser cache. If problems persist, contact support with your account details and we'll resolve it within 24 hours." },
+  { question: "How does the wholesale program work?", answer: "Our wholesale program allows distributors and resellers to purchase our digital services at discounted rates. You'll get access to our wholesale portal with bulk pricing, dedicated support, and simplified ordering. To join, you'll need to complete an application process including business verification. Contact our wholesale team at wholesale@servexlb.com to get started." },
+  { question: "Do you offer educational discounts?", answer: "Yes! We offer special pricing for educational institutions, teachers, and students. Our educational packages include discounts of up to 40% on regular pricing. To qualify, you'll need to verify your educational status. Contact our education team at education@servexlb.com with your institution details." },
+  { question: "I need a custom solution for my business", answer: "We specialize in creating custom digital solutions tailored to your business needs. Our team can work with you to develop specialized load balancing configurations, content distribution networks, or subscription management systems. Contact our business solutions team at business@servexlb.com to schedule a consultation." },
 ];
 
 const ChatBot: React.FC = () => {
@@ -379,7 +385,7 @@ const ChatBot: React.FC = () => {
         {messages.length > 0 && showFaq && (
           <div className="pt-2">
             <div className="flex flex-wrap gap-2">
-              {faqList.slice(0, 3).map((faq, index) => (
+              {faqList.slice(0, 5).map((faq, index) => (
                 <button
                   key={index}
                   className="text-left text-xs bg-background border p-2 rounded-md hover:bg-muted transition-colors"
