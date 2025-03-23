@@ -44,7 +44,7 @@ const ProductManager = () => {
       availableMonths: service.availableMonths,
       value: service.value,
       minQuantity: service.minQuantity,
-      requiresId: service.requiresId ?? false // Ensure requiresId is always set
+      requiresId: service.requiresId ?? false // Explicitly set requiresId with a default value
     }));
     
     // Convert products from data.ts to the expected Product type
