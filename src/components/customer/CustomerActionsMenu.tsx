@@ -24,6 +24,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { products } from '@/lib/data';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CustomerActionsMenuProps {
   customerId: string;
@@ -162,61 +168,45 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 
   return (
     <>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0 z-10"
-        onClick={handleMenuClick}
-        data-dropdown-trigger="true"
-      >
-        <span className="sr-only">Open menu</span>
-        <Settings className="h-4 w-4" />
-      </Button>
-      
-      <div 
-        className="absolute right-0 top-0 mt-2 mr-2 opacity-0 hover:opacity-100 z-20 transition-opacity"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex flex-col gap-1">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center justify-start px-2 py-1 h-7 text-xs bg-white"
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild onClick={handleMenuClick} data-dropdown-trigger="true">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 z-10">
+            <span className="sr-only">Open menu</span>
+            <Settings className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-[160px] bg-white">
+          <DropdownMenuItem 
             onClick={(e) => handleActionButtonClick('purchase', e)}
             disabled={!onPurchaseForCustomer}
+            className="flex items-center cursor-pointer"
           >
-            <ShoppingBag className="h-3 w-3 mr-1" />
+            <ShoppingBag className="h-4 w-4 mr-2" />
             Purchase
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center justify-start px-2 py-1 h-7 text-xs bg-white"
+          </DropdownMenuItem>
+          <DropdownMenuItem 
             onClick={(e) => handleActionButtonClick('view-orders', e)}
+            className="flex items-center cursor-pointer"
           >
-            <FileText className="h-3 w-3 mr-1" />
-            Orders
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center justify-start px-2 py-1 h-7 text-xs bg-white"
+            <FileText className="h-4 w-4 mr-2" />
+            View Orders
+          </DropdownMenuItem>
+          <DropdownMenuItem 
             onClick={(e) => handleActionButtonClick('edit', e)}
+            className="flex items-center cursor-pointer"
           >
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center justify-start px-2 py-1 h-7 text-xs bg-white text-red-500 hover:text-red-600"
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Customer
+          </DropdownMenuItem>
+          <DropdownMenuItem 
             onClick={(e) => handleActionButtonClick('delete', e)}
+            className="flex items-center cursor-pointer text-red-500 focus:text-red-500"
           >
-            <Trash2 className="h-3 w-3 mr-1" />
+            <Trash2 className="h-4 w-4 mr-2" />
             Delete
-          </Button>
-        </div>
-      </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       
       {/* Purchase Dialog with Product Selection */}
       <Dialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
