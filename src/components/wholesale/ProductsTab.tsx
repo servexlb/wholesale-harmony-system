@@ -1,12 +1,11 @@
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/ProductCard';
 import { Product, Customer } from '@/lib/data';
-import { Service, WholesaleOrder } from '@/lib/types';
-import { services } from '@/lib/mockData';
+import { WholesaleOrder } from '@/lib/types';
 
 interface ProductsTabProps {
   products: Product[];
@@ -19,49 +18,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   customers, 
   onOrderPlaced 
 }) => {
-  const [allItems, setAllItems] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Set loading state
-    setIsLoading(true);
-    
-    try {
-      // Convert services to the Product format expected by ProductCard
-      const servicesAsProducts: Product[] = services.map(service => ({
-        id: service.id,
-        name: service.name,
-        description: service.description,
-        price: service.price,
-        wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
-        image: service.image || '/placeholder.svg', // Fallback image
-        category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-        featured: service.featured || false,
-        type: service.type || 'service',
-        deliveryTime: service.deliveryTime || "",
-        apiUrl: service.apiUrl,
-        availableMonths: service.availableMonths,
-        value: service.value,
-      }));
-      
-      // Clone the products array to avoid mutation issues
-      const productsCopy = [...products];
-      
-      // Combine both product lists
-      console.log("Products count:", productsCopy.length);
-      console.log("Services count:", servicesAsProducts.length);
-      console.log("Product IDs:", productsCopy.map(p => p.id).join(', '));
-      console.log("Service IDs:", servicesAsProducts.map(s => s.id).join(', '));
-      
-      // Set the combined list
-      setAllItems([...productsCopy, ...servicesAsProducts]);
-    } catch (error) {
-      console.error("Error processing products and services:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [products]);
-  
   // Handler for when a product is clicked
   const handleProductClick = useCallback((product: Product) => {
     console.log("Product clicked:", product.name, product.id);
@@ -70,6 +26,10 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       detail: { productId: product.id }
     }));
   }, []);
+  
+  // Determine if products or services have been passed
+  const productsCount = products.filter(p => !p.type || p.type === 'product').length;
+  const servicesCount = products.filter(p => p.type === 'service').length;
   
   return (
     <motion.div
@@ -87,10 +47,10 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       </div>
       
       <div className="mb-4">
-        <p>Showing {allItems.length} items ({products.length} products and {allItems.length - products.length} services)</p>
+        <p>Showing {products.length} items ({productsCount} products and {servicesCount} services)</p>
       </div>
       
-      {isLoading ? (
+      {products.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((_, index) => (
             <div key={index} className="h-[300px] bg-gray-100 animate-pulse rounded-lg"></div>
@@ -98,7 +58,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allItems.map((product) => (
+          {products.map((product) => (
             <div 
               key={product.id} 
               className="cursor-pointer h-full" 
@@ -113,7 +73,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
             </div>
           ))}
           
-          {allItems.length === 0 && (
+          {products.length === 0 && (
             <div className="col-span-3 text-center py-10">
               <p className="text-gray-500">No products or services found.</p>
             </div>

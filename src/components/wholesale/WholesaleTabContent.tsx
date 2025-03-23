@@ -7,6 +7,7 @@ import { Subscription, WholesaleOrder } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
+import { services } from '@/lib/mockData';
 
 interface WholesaleTabContentProps {
   activeTab: string;
@@ -35,6 +36,28 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   onUpdateCustomer,
   onPurchaseForCustomer
 }) => {
+  // Combine products and services for the ProductsTab
+  const allProducts = React.useMemo(() => {
+    // Convert services to the Product format expected by ProductCard
+    const servicesAsProducts: Product[] = services.map(service => ({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
+      image: service.image || '/placeholder.svg', // Fallback image
+      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+      featured: service.featured || false,
+      type: service.type || 'service',
+      deliveryTime: service.deliveryTime || "",
+      apiUrl: service.apiUrl,
+      availableMonths: service.availableMonths,
+      value: service.value,
+    }));
+    
+    return [...products, ...servicesAsProducts];
+  }, [products]);
+
   return (
     <div className="h-full">
       <Tabs value={activeTab} defaultValue={activeTab}>
@@ -47,7 +70,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         
         <TabsContent value="products" className="h-full">
           <ProductsTab 
-            products={products} 
+            products={allProducts} 
             customers={wholesalerCustomers}
             onOrderPlaced={handleOrderPlaced}
           />
