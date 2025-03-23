@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,31 @@ const WholesaleUserManagement = () => {
   });
   
   const [showAddForm, setShowAddForm] = useState(false);
+
+  // Load saved wholesale users on component mount
+  useEffect(() => {
+    const savedUsers = localStorage.getItem('wholesaleUsers');
+    if (savedUsers) {
+      try {
+        const parsedUsers = JSON.parse(savedUsers);
+        // Add showPassword field if it doesn't exist
+        const formattedUsers = parsedUsers.map((user: any) => ({
+          ...user,
+          showPassword: false
+        }));
+        setWholesaleUsers(formattedUsers);
+      } catch (error) {
+        console.error('Error parsing wholesale users:', error);
+      }
+    }
+  }, []);
+
+  // Save wholesale users whenever they change
+  useEffect(() => {
+    // Remove showPassword field before saving
+    const usersToSave = wholesaleUsers.map(({ showPassword, ...user }) => user);
+    localStorage.setItem('wholesaleUsers', JSON.stringify(usersToSave));
+  }, [wholesaleUsers]);
 
   const handleAddWholesaleUser = (e: React.FormEvent) => {
     e.preventDefault();

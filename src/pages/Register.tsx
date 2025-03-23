@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -57,6 +58,22 @@ const Register: React.FC = () => {
       phone: formData.phone
     };
     localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
+    
+    // Store user credentials for login
+    const userCredentials = {
+      email: formData.email,
+      password: formData.password
+    };
+    
+    // Store in a users registry for login verification
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    existingUsers.push(userCredentials);
+    localStorage.setItem('users', JSON.stringify(existingUsers));
+    
+    // Also store the user ID mapped to email for easy retrieval during login
+    const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
+    userEmailToId[formData.email] = userId;
+    localStorage.setItem('userEmailToId', JSON.stringify(userEmailToId));
     
     // Initialize user balance to 0
     localStorage.setItem(`userBalance_${userId}`, "0");

@@ -1,167 +1,115 @@
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { MessageCircle } from 'lucide-react';
-import { checkWholesaleCredentials } from '@/lib/data';
-
-const formSchema = z.object({
-  username: z.string().min(3, "Username must contain at least 3 characters"),
-  password: z.string().min(6, "Password must contain at least 6 characters"),
-  rememberMe: z.boolean().default(false),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { Lock, User } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 interface WholesaleLoginProps {
   onSuccess: (username: string) => void;
 }
 
 const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: '',
-      password: '',
-      rememberMe: false,
-    },
-  });
 
-  const onSubmit = async (values: FormValues) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
     setIsLoading(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const isValid = checkWholesaleCredentials(values.username, values.password);
-      
-      if (isValid) {
-        // Clear any previous wholesaler data first
-        localStorage.removeItem('wholesalerUsername');
-        
-        // Store the wholesaler information in localStorage
-        localStorage.setItem('wholesalerUsername', values.username);
-        
-        // If remember me is checked, save login details
-        if (values.rememberMe) {
-          localStorage.setItem('wholesaleRememberMe', 'true');
-          localStorage.setItem('wholesaleUsername', values.username);
-        } else {
-          // Clean up any previously saved login details
-          localStorage.removeItem('wholesaleRememberMe');
-          localStorage.removeItem('wholesaleUsername');
-        }
-        
-        toast.success("Login successful", {
-          description: "Welcome to the wholesale portal"
-        });
-        onSuccess(values.username);
-      } else {
-        toast.error("Login failed", {
-          description: "Invalid username or password"
-        });
-      }
-    } catch (error) {
-      toast.error("An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleWhatsAppRedirect = () => {
-    window.open(`https://wa.me/96178991908`, '_blank');
+    // For demonstration purposes, we'll check for hardcoded credentials
+    // and also check against any wholesale users added via admin
+    setTimeout(() => {
+      // Check for default credentials
+      if ((username === 'admin' && password === 'admin123') || 
+          (username === 'wholesaler1' && password === 'password123')) {
+        toast.success('Login successful!');
+        onSuccess(username);
+        return;
+      }
+
+      // Get any additional wholesale users added by the admin
+      const savedWholesaleUsers = localStorage.getItem('wholesaleUsers');
+      if (savedWholesaleUsers) {
+        const users = JSON.parse(savedWholesaleUsers);
+        const user = users.find((u: any) => u.username === username && u.password === password);
+        
+        if (user) {
+          toast.success('Login successful!');
+          onSuccess(username);
+          return;
+        }
+      }
+
+      setError('Invalid username or password');
+      setIsLoading(false);
+    }, 1000);
   };
 
   return (
-    <Card className="w-full max-w-md shadow-lg">
-      <CardHeader>
-        <CardTitle>Wholesale Login</CardTitle>
-        <CardDescription>
-          Enter your wholesale credentials to access exclusive wholesale pricing and services.
+    <Card className="w-full max-w-md">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">Wholesale Login</CardTitle>
+        <CardDescription className="text-center">
+          Enter your credentials to access the wholesale portal
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="rememberMe"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-1">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Remember me
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Logging in..." : "Log in"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      <CardFooter className="flex flex-col items-center text-center text-sm text-muted-foreground">
-        <p>Not a wholesale customer yet?</p>
-        <p>
-          <Button 
-            variant="link" 
-            className="p-0 h-auto font-normal text-primary inline-flex items-center"
-            onClick={handleWhatsAppRedirect}
-          >
-            Contact us on WhatsApp <MessageCircle className="ml-1 h-4 w-4" />
+      <CardContent className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 text-sm bg-destructive/15 text-destructive rounded-md">
+              {error}
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input 
+                id="username" 
+                className="pl-10" 
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input 
+                id="password" 
+                type="password" 
+                className="pl-10" 
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          
+          <Button className="w-full" type="submit" disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
-        </p>
+        </form>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-2">
+        <div className="text-sm text-muted-foreground text-center">
+          <p>For demo purposes:</p>
+          <p>Username: <code className="bg-muted px-1 py-0.5 rounded">wholesaler1</code> Password: <code className="bg-muted px-1 py-0.5 rounded">password123</code></p>
+          <p>Or</p>
+          <p>Username: <code className="bg-muted px-1 py-0.5 rounded">admin</code> Password: <code className="bg-muted px-1 py-0.5 rounded">admin123</code></p>
+        </div>
       </CardFooter>
     </Card>
   );
