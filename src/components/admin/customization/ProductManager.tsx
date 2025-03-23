@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash2 } from "lucide-react";
@@ -133,6 +132,7 @@ const ProductManager = () => {
       featured: false,
       type: "subscription",
       deliveryTime: "24 hours",
+      requiresId: false // Add requiresId property with default value
     };
     
     // Add it to the list

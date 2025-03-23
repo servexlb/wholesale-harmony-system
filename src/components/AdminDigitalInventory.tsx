@@ -106,7 +106,8 @@ const AdminDigitalInventory: React.FC = () => {
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
-      minQuantity: service.type === "subscription" ? 1 : undefined
+      minQuantity: service.type === "subscription" ? 1 : undefined,
+      requiresId: service.requiresId || false // Added requiresId with default false
     }));
     
     const formattedDataProducts = dataProducts.map(product => {
@@ -127,7 +128,8 @@ const AdminDigitalInventory: React.FC = () => {
         value: product.value,
         minQuantity: 'minQuantity' in product && product.minQuantity !== undefined 
           ? Number(product.minQuantity) 
-          : undefined
+          : undefined,
+        requiresId: product.requiresId || false // Added requiresId with default false
       };
     });
     
