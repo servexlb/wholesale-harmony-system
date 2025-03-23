@@ -67,6 +67,7 @@ const ContactPage: React.FC = () => {
             Reach out to us through any of the methods below.
           </p>
 
+          {/* Contact Cards Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -132,9 +133,10 @@ const ContactPage: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Show the ChatBot component when button is clicked */}
-          {showChatBot && <ChatBot onClose={() => setShowChatBot(false)} />}
+          {/* ChatBot is now shown via the floating button, no need for conditional rendering here */}
+          <ChatBot />
 
+          {/* Contact Form and Location Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <motion.div
               initial={{ opacity: 0, x: -20 }}

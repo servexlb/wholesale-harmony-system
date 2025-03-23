@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Bot, User, MessageCircle } from "lucide-react";
+import { X, Send, Bot, User, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -112,6 +112,7 @@ const ChatBot: React.FC = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [showFaq, setShowFaq] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -139,6 +140,12 @@ const ChatBot: React.FC = () => {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen && !isTyping) {
+      inputRef.current?.focus();
+    }
+  }, [isOpen, isTyping, messages]);
+
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
@@ -154,6 +161,7 @@ const ChatBot: React.FC = () => {
     setInput("");
     
     setIsTyping(true);
+    setShowFaq(false);
 
     const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
     localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
@@ -169,6 +177,7 @@ const ChatBot: React.FC = () => {
       
       setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
+      setShowFaq(true);
       
       const updatedChatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
       localStorage.setItem("chatMessages", JSON.stringify([...updatedChatHistory, botMessage]));
@@ -185,17 +194,53 @@ const ChatBot: React.FC = () => {
       timestamp: new Date()
     };
 
+    setMessages(prev => [...prev, userMessage]);
+    setShowFaq(false);
+    setIsTyping(true);
+    
+    const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+    localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
+
+    setTimeout(() => {
+      const botMessage: Message = {
+        id: Date.now().toString(),
+        text: answer,
+        sender: "bot",
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+      setIsTyping(false);
+      setShowFaq(true);
+      
+      const updatedChatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+      localStorage.setItem("chatMessages", JSON.stringify([...updatedChatHistory, botMessage]));
+      
+      inputRef.current?.focus();
+    }, 800);
+  };
+
+  const handleLiveSupport = () => {
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: "I would like to speak with a live support agent.",
+      sender: "user",
+      timestamp: new Date()
+    };
+
     const botMessage: Message = {
       id: Date.now().toString(),
-      text: answer,
+      text: "Connecting you with a live support agent. Please wait a moment while we transfer you to the next available representative.",
       sender: "bot",
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage, botMessage]);
+    setShowFaq(false);
     
-    const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
-    localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage, botMessage]));
+    toast.success("Live support request sent!", {
+      description: "Our team will be with you shortly.",
+    });
   };
 
   const generateBotResponse = (userInput: string): string => {
@@ -331,11 +376,10 @@ const ChatBot: React.FC = () => {
           </div>
         )}
         
-        {messages.length === 1 && (
-          <div className="pt-4 pb-2">
-            <p className="text-sm font-medium mb-2">Frequently Asked Questions:</p>
-            <div className="grid grid-cols-1 gap-2">
-              {faqList.map((faq, index) => (
+        {messages.length > 0 && showFaq && (
+          <div className="pt-2">
+            <div className="flex flex-wrap gap-2">
+              {faqList.slice(0, 3).map((faq, index) => (
                 <button
                   key={index}
                   className="text-left text-xs bg-background border p-2 rounded-md hover:bg-muted transition-colors"
@@ -345,6 +389,19 @@ const ChatBot: React.FC = () => {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+        
+        {messages.length > 0 && (
+          <div className="flex justify-center pt-2">
+            <Button 
+              onClick={handleLiveSupport} 
+              variant="destructive"
+              className="w-full"
+            >
+              <Phone className="mr-2 h-4 w-4" />
+              Connect with Live Support
+            </Button>
           </div>
         )}
         
