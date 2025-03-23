@@ -1,3 +1,4 @@
+
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -47,7 +48,7 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
-  categoryId: string; // Changed from optional to required to match Service interface
+  categoryId: string;
   featured?: boolean;
   type?: ServiceType;
   value?: number;
@@ -55,7 +56,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId: boolean; // Changed from optional to required to fix the TypeScript error
+  requiresId: boolean; // Changed from optional to required for fixed TypeScript error
 }
 
 export interface Subscription {
