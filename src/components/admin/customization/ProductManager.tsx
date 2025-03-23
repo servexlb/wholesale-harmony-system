@@ -44,7 +44,7 @@ const ProductManager = () => {
       availableMonths: service.availableMonths,
       value: service.value,
       minQuantity: service.minQuantity,
-      requiresId: service.requiresId || false // Ensure requiresId is always set
+      requiresId: service.requiresId ?? false // Using nullish coalescing to ensure a boolean value
     }));
     
     // Convert products from data.ts to the expected Product type
@@ -64,7 +64,7 @@ const ProductManager = () => {
       availableMonths: product.availableMonths,
       value: product.value,
       minQuantity: product.minQuantity,
-      requiresId: product.requiresId || false // Ensure requiresId is always set
+      requiresId: product.requiresId ?? false // Using nullish coalescing to ensure a boolean value
     }));
     
     // Combine both product lists with the correct typing
@@ -132,7 +132,7 @@ const ProductManager = () => {
       featured: false,
       type: "subscription",
       deliveryTime: "24 hours",
-      requiresId: false // Add requiresId property with default value
+      requiresId: false // Ensure requiresId is set with default value
     };
     
     // Add it to the list

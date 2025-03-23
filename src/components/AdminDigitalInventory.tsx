@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +106,7 @@ const AdminDigitalInventory: React.FC = () => {
       availableMonths: service.availableMonths,
       value: service.value,
       minQuantity: service.type === "subscription" ? 1 : undefined,
-      requiresId: service.requiresId || false // Added requiresId with default false
+      requiresId: service.requiresId ?? false
     }));
     
     const formattedDataProducts = dataProducts.map(product => {
@@ -129,7 +128,7 @@ const AdminDigitalInventory: React.FC = () => {
         minQuantity: 'minQuantity' in product && product.minQuantity !== undefined 
           ? Number(product.minQuantity) 
           : undefined,
-        requiresId: product.requiresId || false // Added requiresId with default false
+        requiresId: product.requiresId ?? false
       };
     });
     
