@@ -4,11 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Customer } from '@/lib/data';
 import { toast } from 'sonner';
-import { WholesaleOrder, Service, MonthlyPricing } from '@/lib/types';
+import { WholesaleOrder, Service } from '@/lib/types';
 import { Search, Calendar, Zap, Package, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProductSearch from './ProductSearch';
 import PurchaseHistoryList from './PurchaseHistoryList';
+import { checkCredentialAvailability, processOrderWithCredentials } from '@/lib/credentialUtils';
 
 interface PurchaseDialogProps {
   open: boolean;
@@ -204,15 +205,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       ...(product.type === 'subscription' && { 
         durationMonths: parseInt(selectedDuration) 
       }),
-      ...(showCredentials && credentials.email && credentials.password ? { 
-        credentials: credentials
-      } : {})
+      credentials: undefined,
+      credentialStatus: undefined
     };
     
-    onOrderPlaced(newOrder);
+    const processedOrder = processOrderWithCredentials(newOrder) as WholesaleOrder;
+    
+    onOrderPlaced(processedOrder);
     toast.success(`Order placed for ${customers.find(c => c.id === selectedCustomer)?.name}`);
     
-    setPurchaseHistory(prev => [newOrder, ...prev]);
+    setPurchaseHistory(prev => [processedOrder, ...prev]);
     
     setSelectedProduct('');
     setQuantity(1);

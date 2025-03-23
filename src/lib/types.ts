@@ -75,6 +75,7 @@ export interface Service {
   value?: number;
   minQuantity?: number;
   apiUrl?: string;
+  stockAvailable?: number;
 }
 
 export interface Product {
@@ -190,6 +191,7 @@ export interface Order {
     notes?: string;
     [key: string]: any;
   };
+  credentialStatus?: 'available' | 'pending' | 'assigned';
 }
 
 export interface Payment {
@@ -281,4 +283,19 @@ export interface Recharge {
   accountNumber?: string;
   operator?: string;
   receiptId?: string;
+}
+
+export interface CredentialStock {
+  id: string;
+  serviceId: string;
+  credentials: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+  status: 'available' | 'assigned';
+  assignedToOrderId?: string;
+  createdAt: string;
 }

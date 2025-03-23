@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from '@/lib/toast';
 import PurchaseSuccessDialog from './PurchaseSuccessDialog';
+import { checkCredentialAvailability, processOrderWithCredentials } from '@/lib/credentialUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -60,30 +61,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const price = isWholesale ? product.wholesalePrice : product.price;
 
-  // Get current user ID
   const userId = localStorage.getItem('currentUserId') || 'guest';
   
-  // Get user balance from localStorage
   const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
 
-  // Helper to determine if product is a subscription
   const isSubscription = product.type === 'subscription';
-  
-  // Helper to determine if product is a gift card
   const isGiftCard = product.type === 'giftcard';
-
-  // Helper to determine if product is a recharge
   const isRecharge = product.type === 'recharge';
   
-  // Helper to determine if product should use months feature
   const shouldUseMonths = isSubscription || 
     product.category.toLowerCase().includes('streaming') || 
     product.category.toLowerCase().includes('vpn') || 
     product.category.toLowerCase().includes('security') ||
     product.category.toLowerCase().includes('productivity');
-  
-  // Load credential requirement setting from localStorage
+
   useEffect(() => {
     const loadCredentialSetting = () => {
       const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
@@ -96,7 +88,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
     
     loadCredentialSetting();
     
-    // Listen for credential setting changes
     const handleCredentialSettingChanged = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail?.requireCredentials !== undefined) {
@@ -112,15 +103,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
   }, [isSubscription]);
 
-  // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
-    // Reset fields when opening dialog
     setAccountId("");
     setQuantity(1);
     setCustomerName("");
     setCredentials({ email: '', password: '' });
     
-    // Set default duration for subscriptions
     if (shouldUseMonths) {
       setSelectedDuration("1");
     }
@@ -129,7 +117,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const handleBuyNow = () => {
-    // Validate account ID for recharge products
     if (isRecharge && !accountId.trim()) {
       toast.error("Account ID required", {
         description: "Please enter your account ID for this recharge"
@@ -137,7 +124,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
     
-    // Validate customer name if wholesale
     if (isWholesale && !customerName.trim()) {
       toast.error("Customer name required", {
         description: "Please enter the customer name for this order"
@@ -145,7 +131,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
     
-    // Validate credentials if required for subscription
     if (showCredentials && (credentials.email.trim() === '' || credentials.password.trim() === '')) {
       toast.error("Credentials required", {
         description: "Please provide both email and password for this subscription"
@@ -156,33 +141,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
     console.log("Buy now clicked for product:", product);
     setIsPurchasing(true);
     
-    // Calculate final price based on type
     const finalPrice = shouldUseMonths 
       ? price * parseInt(selectedDuration) 
       : price * quantity;
     
-    // Check if user has sufficient balance
     if (userBalance < finalPrice) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
       setIsPurchasing(false);
-      // Redirect to payment page
       navigate("/payment");
       return;
     }
 
-    // Deduct the price from user balance immediately
     const newBalance = userBalance - finalPrice;
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
-    // Check if there are available stock credentials
-    const stockCredentials = checkAvailableCredentials(product.id);
-
-    // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
-      productId: product.id,
+      serviceId: product.id,
       quantity: shouldUseMonths ? 1 : quantity,
       durationMonths: shouldUseMonths ? parseInt(selectedDuration) : undefined,
       accountId: isRecharge ? accountId : undefined,
@@ -190,56 +167,38 @@ const ProductCard: React.FC<ProductCardProps> = ({
       totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
-      ...(showCredentials && credentials.email && credentials.password ? {
-        credentials: credentials
-      } : {}),
-      ...(stockCredentials ? { credentials: stockCredentials } : {})
+      credentials: showCredentials && credentials.email && credentials.password ? credentials : undefined,
+      credentialStatus: undefined,
+      products: [],
+      total: finalPrice
     };
 
-    // Save order to localStorage
+    const processedOrder = processOrderWithCredentials(order);
+
     const orderStorageKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
-    customerOrders.push(order);
+    customerOrders.push(processedOrder);
     localStorage.setItem(orderStorageKey, JSON.stringify(customerOrders));
 
-    // In a real app, you would send this to your backend
-    console.log("Created order:", order);
+    console.log("Created order:", processedOrder);
     
-    // Set purchased order for success dialog
     setPurchasedOrder({
-      id: order.id,
+      id: processedOrder.id,
       serviceId: product.id,
       serviceName: product.name,
       totalPrice: finalPrice,
-      credentials: order.credentials || null,
-      createdAt: order.createdAt
+      credentials: processedOrder.credentials || null,
+      createdAt: processedOrder.createdAt
     });
     
     setIsPurchasing(false);
     setIsConfirmDialogOpen(false);
     
-    // Show success dialog
     setIsSuccessDialogOpen(true);
   };
 
-  // Helper function to check for available credentials in stock
   const checkAvailableCredentials = (productId: string) => {
-    // In a real app, this would check a database
-    // For demo purposes, we'll return mock credentials for some products
-    
-    // Simulate some products having stock credentials
-    if (product.name.toLowerCase().includes('netflix') || 
-        product.name.toLowerCase().includes('disney') || 
-        product.name.toLowerCase().includes('spotify')) {
-      return {
-        email: `user_${Math.floor(1000 + Math.random() * 9000)}@example.com`,
-        password: `Pass${Math.floor(1000 + Math.random() * 9000)}!`,
-        notes: "This account is ready to use immediately."
-      };
-    }
-    
-    // No stock credentials available
-    return null;
+    return checkCredentialAvailability(productId);
   };
 
   const handleAddFunds = () => {
@@ -259,11 +218,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     if (!isNaN(value) && value > 0) {
       setQuantity(value);
     } else if (e.target.value === '') {
-      setQuantity(1); // Reset to 1 if input is cleared
+      setQuantity(1);
     }
   };
 
-  // Handle card click event if onClick prop is provided
   const handleCardClick = () => {
     if (onClick) {
       onClick(product);
@@ -361,7 +319,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </motion.div>
 
-      {/* Purchase Confirmation Dialog */}
       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -387,7 +344,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <span>{product.category}</span>
             </div>
             
-            {/* Customer field for wholesale users */}
             {isWholesale && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -408,7 +364,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
             
-            {/* Subscription credentials if required */}
             {showCredentials && (
               <div className="space-y-2 mb-4 p-3 border rounded-md">
                 <h3 className="text-sm font-medium">Subscription Credentials</h3>
@@ -433,7 +388,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
             
-            {/* Subscription duration for subscription and streaming/vpn/security products */}
             {shouldUseMonths && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -456,7 +410,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
             
-            {/* Account ID for recharge products */}
             {isRecharge && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -472,7 +425,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   This ID is required to process your recharge
                 </p>
                 
-                {/* Add quantity controls for recharge products (if not using months) */}
                 {!shouldUseMonths && (
                   <div className="mt-4">
                     <label className="text-sm font-medium">
@@ -511,7 +463,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
             
-            {/* Show quantity controls for non-monthly products */}
             {!shouldUseMonths && !isRecharge && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Quantity:</span>
@@ -596,7 +547,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Purchase Success Dialog */}
       {purchasedOrder && (
         <PurchaseSuccessDialog
           open={isSuccessDialogOpen}

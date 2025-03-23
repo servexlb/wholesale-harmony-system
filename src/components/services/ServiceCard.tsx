@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus, Gift, Wallet } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus, Gift, Wallet, CheckCircle, HourglassIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { Service } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import PurchaseSuccessDialog from "../PurchaseSuccessDialog";
+import { checkCredentialAvailability, processOrderWithCredentials } from "@/lib/credentialUtils";
 
 interface ServiceCardProps {
   service: Service;
@@ -54,20 +55,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     createdAt: string;
   } | null>(null);
   
-  // Get current user ID
   const userId = localStorage.getItem('currentUserId') || 'guest';
   
-  // Get user-specific balance from localStorage
   const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
   
-  // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
-    // Reset fields
     setAccountId("");
     setQuantity(service.minQuantity || 1);
     
-    // For subscriptions, set default selected duration
     if (service.type === "subscription") {
       if (service.availableMonths && service.availableMonths.length > 0) {
         setSelectedDuration(service.availableMonths[0].toString());
@@ -80,7 +76,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   };
 
   const handleBuyNow = () => {
-    // Validate account ID for topup services that require it
     if (service.type === "topup" && service.requiresId && !accountId.trim()) {
       toast.error("Account ID required", {
         description: "Please enter your account ID for this top-up"
@@ -91,7 +86,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     console.log("Buy now clicked for service:", service);
     setIsPurchasing(true);
     
-    // Calculate final price based on service type
     let finalPrice = 0;
     
     if (service.type === "subscription") {
@@ -100,22 +94,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       finalPrice = service.price * quantity;
     }
     
-    // Check if user has sufficient balance
     if (userBalance < finalPrice) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
       setIsPurchasing(false);
-      // Redirect to payment page
       navigate("/payment");
       return;
     }
 
-    // Deduct the price from user balance immediately
     const newBalance = userBalance - finalPrice;
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
-    // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       serviceId: service.id,
@@ -125,51 +115,38 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
+      credentials: undefined,
+      credentialStatus: undefined
     };
 
-    // Check if there are available stock credentials
-    const stockCredentials = checkAvailableCredentials(service.id);
+    const processedOrder = processOrderWithCredentials(order);
 
-    // If stock credentials available, assign them to the order
-    if (stockCredentials) {
-      order.credentials = stockCredentials;
-    }
-
-    // Save order to user-specific storage
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
-    customerOrders.push(order);
+    customerOrders.push(processedOrder);
     localStorage.setItem(customerOrdersKey, JSON.stringify(customerOrders));
 
-    // In a real app, you would send this to your backend
-    console.log("Created order:", order);
+    console.log("Created order:", processedOrder);
     
     setIsPurchasing(false);
     setIsConfirmDialogOpen(false);
     
-    // Set purchased order for success dialog
     setPurchasedOrder({
-      id: order.id,
+      id: processedOrder.id,
       serviceId: service.id,
       serviceName: service.name,
       totalPrice: finalPrice,
-      credentials: order.credentials || null,
-      createdAt: order.createdAt
+      credentials: processedOrder.credentials || null,
+      createdAt: processedOrder.createdAt
     });
     
-    // Show success dialog
     setIsSuccessDialogOpen(true);
   };
 
-  // Helper function to check for available credentials in stock
   const checkAvailableCredentials = (serviceId: string) => {
-    // In a real app, this would check a database
-    // For demo purposes, we'll return mock credentials for some services
+    const hasStock = checkCredentialAvailability(serviceId);
     
-    // Simulate some services having stock credentials
-    if (service.name.toLowerCase().includes('netflix') || 
-        service.name.toLowerCase().includes('disney') || 
-        service.name.toLowerCase().includes('spotify')) {
+    if (hasStock) {
       return {
         email: `user_${Math.floor(1000 + Math.random() * 9000)}@example.com`,
         password: `Pass${Math.floor(1000 + Math.random() * 9000)}!`,
@@ -177,7 +154,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       };
     }
     
-    // No stock credentials available
     return null;
   };
 
@@ -242,7 +218,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     if (type === "topup") return "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=600&h=400&fit=crop";
     if (type === "subscription") return "https://images.unsplash.com/photo-1589758438368-0ad531db3366?w=600&h=400&fit=crop";
     
-    // Default image with service name
     return `https://placehold.co/600x400/3949ab/ffffff?text=${encodeURIComponent(serviceName)}`;
   }
 
