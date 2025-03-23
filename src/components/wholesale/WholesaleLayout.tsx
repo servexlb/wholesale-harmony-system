@@ -1,12 +1,13 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { MenuIcon, X } from 'lucide-react';
+import { MenuIcon, X, Search } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Header from '@/components/Header';
 import WholesaleSidebar from '@/components/wholesale/WholesaleSidebar';
 import ChatBot from '@/components/ChatBot';
+import CustomerSearchBar from '@/components/customer/CustomerSearchBar';
 
 interface WholesaleLayoutProps {
   sidebarOpen: boolean;
@@ -26,6 +27,8 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
   children
 }) => {
   const isMobile = useIsMobile();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   // Listen for the custom closeSidebar event
   useEffect(() => {
@@ -42,6 +45,18 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
     };
   }, [sidebarOpen, toggleSidebar]);
 
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
+    if (!showSearch) {
+      setTimeout(() => {
+        const searchInput = document.querySelector('input[type="search"]');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }, 100);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -54,7 +69,16 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
           handleLogout={handleLogout}
         />
         
-        <div className="fixed bottom-20 right-4 z-40 md:hidden">
+        {/* Fixed action buttons for mobile */}
+        <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2 md:hidden">
+          <Button 
+            size="icon" 
+            variant="secondary"
+            className="h-12 w-12 rounded-full shadow-md"
+            onClick={toggleSearch}
+          >
+            <Search className="h-6 w-6" />
+          </Button>
           <Button 
             size="icon" 
             className="h-12 w-12 rounded-full shadow-md"
@@ -65,11 +89,48 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
         </div>
 
         <motion.main
-          className={`flex-1 p-4 sm:p-6 pt-6 sm:pt-8 transition-all duration-300 pb-20 ${sidebarOpen && !isMobile ? 'md:ml-[250px]' : ''}`}
+          className={`flex-1 transition-all duration-300 pb-20 ${sidebarOpen && !isMobile ? 'md:ml-[250px]' : ''}`}
           initial={false}
           layout
         >
-          <div className="container mx-auto max-w-6xl">
+          {/* Search bar overlay */}
+          {showSearch && (
+            <div className="fixed inset-0 z-30 flex items-start justify-center pt-20 px-4 bg-background/80 backdrop-blur-sm md:hidden">
+              <div className="w-full max-w-md bg-card rounded-lg shadow-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium">Quick Search</h3>
+                  <Button variant="ghost" size="sm" onClick={toggleSearch}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <CustomerSearchBar 
+                  searchTerm={searchTerm} 
+                  setSearchTerm={setSearchTerm} 
+                />
+                {searchTerm && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Search results will appear in the current tab
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Desktop search bar */}
+          <div className="hidden md:block sticky top-16 z-10 bg-background border-b">
+            <div className="container mx-auto max-w-6xl py-2 px-4">
+              <div className="flex items-center">
+                <div className="w-full max-w-md">
+                  <CustomerSearchBar 
+                    searchTerm={searchTerm} 
+                    setSearchTerm={setSearchTerm} 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="container mx-auto max-w-6xl p-4 sm:p-6 pt-6 sm:pt-8">
             {children}
           </div>
         </motion.main>
