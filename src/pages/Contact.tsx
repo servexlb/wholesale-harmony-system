@@ -226,9 +226,9 @@ const ContactPage: React.FC = () => {
                     <div>
                       <h3 className="font-medium">Headquarters</h3>
                       <p className="text-muted-foreground">
-                        123 Digital Avenue, Suite 456<br />
-                        Tech City, TC 98765<br />
-                        United States
+                        Beirut Downtown, Martyr's Square<br />
+                        Beirut, 0000<br />
+                        Lebanon
                       </p>
                     </div>
                   </div>
