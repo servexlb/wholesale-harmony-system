@@ -65,7 +65,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         // Mark non-service products as subscription type by default
         type: product.type || "subscription" as "subscription",
         // Add required categoryId property from the product's category
-        categoryId: product.category || "uncategorized"
+        categoryId: product.categoryId || product.category || "uncategorized"
       })) as Service[];
       
       console.log('Services count:', servicesList.length);

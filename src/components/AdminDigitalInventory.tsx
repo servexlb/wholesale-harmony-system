@@ -18,7 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Product } from "@/lib/types";
+import { Product, Service } from "@/lib/types";
 import { products as dataProducts } from "@/lib/data";
 import { services } from "@/lib/mockData";
 
@@ -98,6 +98,7 @@ const AdminDigitalInventory: React.FC = () => {
       wholesalePrice: service.wholesalePrice,
       image: service.image,
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+      categoryId: service.categoryId,
       featured: service.featured || false,
       type: service.type,
       deliveryTime: service.deliveryTime || "",
@@ -116,6 +117,7 @@ const AdminDigitalInventory: React.FC = () => {
         wholesalePrice: product.wholesalePrice,
         image: product.image, 
         category: product.category,
+        categoryId: product.categoryId,
         featured: product.featured || false,
         type: product.type,
         deliveryTime: product.deliveryTime || "",

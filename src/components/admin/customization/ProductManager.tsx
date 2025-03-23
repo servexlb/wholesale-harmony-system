@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Trash2 } from "lucide-react";
 import { Product } from "@/lib/types";
 import { products } from "@/lib/data";
 import { services } from "@/lib/mockData";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 import ProductCard from "./ProductCard";
 import ProductForm from "./ProductForm";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const ProductManager = () => {
   // State management
@@ -16,6 +17,8 @@ const ProductManager = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   useEffect(() => {
     // Convert services to the Product type expected by our component
@@ -27,6 +30,7 @@ const ProductManager = () => {
       wholesalePrice: service.wholesalePrice,
       image: service.image,
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+      categoryId: service.categoryId,
       featured: service.featured || false,
       type: service.type,
       deliveryTime: service.deliveryTime || "",
@@ -45,6 +49,7 @@ const ProductManager = () => {
       wholesalePrice: product.wholesalePrice,
       image: product.image,
       category: product.category,
+      categoryId: product.categoryId,
       featured: product.featured || false,
       type: product.type,
       deliveryTime: product.deliveryTime || "",
@@ -74,6 +79,25 @@ const ProductManager = () => {
     setIsDialogOpen(false);
     toast.success("Product updated successfully");
   };
+
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteDialog(true);
+  };
+  
+  const handleDeleteConfirm = () => {
+    if (productToDelete) {
+      // Filter out the product to delete
+      const updatedProducts = productList.filter(
+        product => product.id !== productToDelete.id
+      );
+      
+      setProductList(updatedProducts);
+      setShowDeleteDialog(false);
+      setProductToDelete(null);
+      toast.success(`${productToDelete.name} has been removed`);
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -87,11 +111,23 @@ const ProductManager = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {productList.map((product: Product) => (
-          <ProductCard 
-            key={product.id}
-            product={product} 
-            onClick={handleProductClick}
-          />
+          <div key={product.id} className="relative group">
+            <ProductCard 
+              product={product} 
+              onClick={handleProductClick}
+            />
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(product);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         ))}
       </div>
 
@@ -112,6 +148,24 @@ const ProductManager = () => {
           />
         </DialogContent>
       </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove {productToDelete?.name} from your product list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
