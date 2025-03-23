@@ -56,7 +56,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId?: boolean;
+  requiresId?: boolean; // Added this property to match Service interface
 }
 
 export interface Subscription {

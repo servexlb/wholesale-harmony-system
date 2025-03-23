@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,13 +24,11 @@ const AdminServices = () => {
   const [activeTab, setActiveTab] = useState<ServiceType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Load services from localStorage or mock data on component mount
   useEffect(() => {
     const storedServices = localStorage.getItem("services");
     if (storedServices) {
       setServices(JSON.parse(storedServices));
     } else {
-      // Convert mock services to the new format
       const formattedServices = mockServices.map(service => ({
         ...service,
         type: (service.type as ServiceType) || "subscription"
@@ -41,14 +38,12 @@ const AdminServices = () => {
     }
   }, []);
 
-  // Save services to localStorage whenever they change
   useEffect(() => {
     if (services.length > 0) {
       localStorage.setItem("services", JSON.stringify(services));
     }
   }, [services]);
 
-  // Filter services based on active tab and search query
   const filteredServices = services.filter(service => {
     const matchesTab = activeTab === "all" || service.type === activeTab;
     const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -77,7 +72,6 @@ const AdminServices = () => {
   };
 
   const handleAddNewService = () => {
-    // Create a new service with default values
     const newService: Service = {
       id: `service-${Date.now()}`,
       name: "New Service",
@@ -96,7 +90,6 @@ const AdminServices = () => {
   };
 
   const handleSaveService = (updatedService: Service) => {
-    // Check if this is a new service or an update
     const isNewService = !services.some(service => service.id === updatedService.id);
     
     let updatedServices: Service[];
@@ -179,7 +172,6 @@ const AdminServices = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Service Form Dialog */}
       <ServiceFormDialog 
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -187,7 +179,6 @@ const AdminServices = () => {
         onSave={handleSaveService}
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -211,7 +202,6 @@ const AdminServices = () => {
   );
 };
 
-// Component to display the list of services
 const ServiceList = ({ 
   services, 
   onEdit, 
@@ -295,7 +285,6 @@ const ServiceList = ({
   );
 };
 
-// Service form dialog component
 const ServiceFormDialog = ({ 
   open, 
   onOpenChange, 
@@ -322,7 +311,6 @@ const ServiceFormDialog = ({
     }
   });
 
-  // Update form values when the service changes
   useEffect(() => {
     if (service) {
       form.reset(service);
@@ -337,7 +325,7 @@ const ServiceFormDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{service && services.some(s => s.id === service.id) ? "Edit" : "Add"} Service</DialogTitle>
+          <DialogTitle>{service && service.id ? "Edit" : "Add"} Service</DialogTitle>
           <DialogDescription>
             Fill in the details for this service. Different fields will be available based on the service type.
           </DialogDescription>
@@ -500,7 +488,6 @@ const ServiceFormDialog = ({
               )}
             />
             
-            {/* Subscription-specific fields */}
             {form.watch("type") === "subscription" && (
               <FormField
                 control={form.control}
@@ -529,7 +516,6 @@ const ServiceFormDialog = ({
               />
             )}
             
-            {/* Top-up specific fields */}
             {form.watch("type") === "topup" && (
               <>
                 <FormField
@@ -577,7 +563,6 @@ const ServiceFormDialog = ({
               </>
             )}
             
-            {/* Gift card specific fields */}
             {form.watch("type") === "giftcard" && (
               <FormField
                 control={form.control}
@@ -615,7 +600,6 @@ const ServiceFormDialog = ({
   );
 };
 
-// Helper functions
 const getServiceTypeName = (type: ServiceType): string => {
   switch (type) {
     case "subscription": return "Subscription";
