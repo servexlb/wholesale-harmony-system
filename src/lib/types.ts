@@ -55,7 +55,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId?: boolean; // Explicitly adding requiresId as an optional boolean
+  requiresId: boolean; // Changed from optional to required to fix the TypeScript error
 }
 
 export interface Subscription {

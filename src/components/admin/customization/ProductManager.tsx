@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash2 } from "lucide-react";
@@ -44,7 +45,7 @@ const ProductManager = () => {
       availableMonths: service.availableMonths,
       value: service.value,
       minQuantity: service.minQuantity,
-      requiresId: service.requiresId || false
+      requiresId: service.requiresId || false // Ensure requiresId is always set
     }));
     
     // Convert products from data.ts to the expected Product type
@@ -64,7 +65,7 @@ const ProductManager = () => {
       availableMonths: product.availableMonths,
       value: product.value,
       minQuantity: product.minQuantity,
-      requiresId: product.requiresId || false
+      requiresId: product.requiresId || false // Ensure requiresId is always set
     }));
     
     // Combine both product lists with the correct typing
