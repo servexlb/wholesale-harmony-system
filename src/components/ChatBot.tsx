@@ -2,18 +2,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Bot, User } from "lucide-react";
+import { X, Send, Bot, User, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface Message {
   id: string;
   text: string;
   sender: "user" | "bot";
   timestamp: Date;
-}
-
-interface ChatBotProps {
-  onClose: () => void;
 }
 
 // Knowledge base for the chatbot
@@ -57,25 +54,54 @@ const botKnowledge = {
   wholesale: {
     keywords: ["wholesale", "bulk", "distributor", "reseller", "partner"],
     response: "We offer wholesale solutions for distributors and resellers. Our wholesale platform provides special pricing, bulk ordering capabilities, and dedicated support. If you're interested in becoming a wholesale partner, please contact our sales team."
+  },
+  faq: {
+    keywords: ["faq", "frequently asked", "common questions", "questions"],
+    response: "You can find answers to frequently asked questions on our FAQ page. If you don't find what you're looking for, feel free to ask me directly or contact our support team for more assistance."
+  },
+  payment: {
+    keywords: ["payment", "pay", "method", "credit card", "paypal", "checkout"],
+    response: "We accept various payment methods including credit cards, PayPal, and bank transfers. All payments are processed securely. If you have any questions about payment options, please reach out to our support team."
+  },
+  delivery: {
+    keywords: ["delivery", "receive", "access", "instant", "download", "get my product"],
+    response: "Our digital services are delivered instantly after payment confirmation. You'll receive access credentials via email and can also find them in your account dashboard. If you encounter any delivery issues, please contact our support immediately."
+  },
+  technical: {
+    keywords: ["technical", "specs", "specifications", "requirements", "system", "compatible"],
+    response: "Our services are compatible with most modern web browsers and operating systems. For specific technical requirements or compatibility questions, please check the service details page or contact our technical support team."
   }
 };
 
-const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
+// FAQ list for quick access
+const faqList = [
+  { question: "What services do you offer?", answer: botKnowledge.services.response },
+  { question: "How much do your services cost?", answer: botKnowledge.pricing.response },
+  { question: "How can I contact support?", answer: botKnowledge.support.response },
+  { question: "What is your refund policy?", answer: botKnowledge.refund.response },
+  { question: "How do I access my account?", answer: botKnowledge.subscription.response },
+  { question: "Is my data secure?", answer: botKnowledge.security.response }
+];
+
+const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initial bot greeting
   useEffect(() => {
-    const greeting: Message = {
-      id: Date.now().toString(),
-      text: "Hi there! I'm ServexLB's virtual assistant. How can I help you today?",
-      sender: "bot",
-      timestamp: new Date()
-    };
-    setMessages([greeting]);
-  }, []);
+    if (isOpen && messages.length === 0) {
+      const greeting: Message = {
+        id: Date.now().toString(),
+        text: "Hi there! I'm ServexLB's virtual assistant. How can I help you today? You can ask about our services, pricing, or select from common questions below.",
+        sender: "bot",
+        timestamp: new Date()
+      };
+      setMessages([greeting]);
+    }
+  }, [isOpen, messages.length]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -116,7 +142,31 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
       
       setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
-    }, 1000);
+    }, 800);
+  };
+
+  const handleFaqSelect = (question: string, answer: string) => {
+    // Add user question
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: question,
+      sender: "user",
+      timestamp: new Date()
+    };
+
+    // Add bot answer
+    const botMessage: Message = {
+      id: Date.now().toString(),
+      text: answer,
+      sender: "bot",
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage, botMessage]);
+    
+    // Store messages in localStorage for admin
+    const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+    localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
   };
 
   const generateBotResponse = (userInput: string): string => {
@@ -152,12 +202,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
     return "Thanks for your message. I may not have a specific answer to your question, but our team can assist you. Would you like me to forward your query to a team member who can provide more detailed information?";
   };
 
-  return (
-    <div className="fixed bottom-4 right-4 w-80 h-96 bg-background border rounded-lg shadow-lg flex flex-col z-50">
+  const ChatContent = () => (
+    <div className="flex flex-col h-full">
       {/* Chat header */}
-      <div className="p-3 border-b flex justify-between items-center bg-primary text-primary-foreground rounded-t-lg">
+      <div className="p-3 border-b flex justify-between items-center bg-primary text-primary-foreground">
         <h3 className="font-medium">ServexLB Support</h3>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6 text-primary-foreground hover:text-primary-foreground/80">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setIsOpen(false)} 
+          className="h-6 w-6 text-primary-foreground hover:text-primary-foreground/80"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -170,7 +225,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
             className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-3/4 px-3 py-2 rounded-lg ${
+              className={`max-w-[75%] px-3 py-2 rounded-lg ${
                 message.sender === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted"
@@ -207,6 +262,24 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
           </div>
         )}
         
+        {/* FAQ section */}
+        {messages.length === 1 && (
+          <div className="pt-4 pb-2">
+            <p className="text-sm font-medium mb-2">Frequently Asked Questions:</p>
+            <div className="grid grid-cols-1 gap-2">
+              {faqList.map((faq, index) => (
+                <button
+                  key={index}
+                  className="text-left text-xs bg-background border p-2 rounded-md hover:bg-muted transition-colors"
+                  onClick={() => handleFaqSelect(faq.question, faq.answer)}
+                >
+                  {faq.question}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
       
@@ -223,6 +296,29 @@ const ChatBot: React.FC<ChatBotProps> = ({ onClose }) => {
         </Button>
       </form>
     </div>
+  );
+
+  // Fixed floating button component (not in Sheet)
+  const FloatingButton = () => (
+    <SheetTrigger asChild>
+      <Button
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-50 h-12 w-12 rounded-full shadow-lg"
+        size="icon"
+        onClick={() => setIsOpen(true)}
+      >
+        <MessageCircle className="h-6 w-6" />
+      </Button>
+    </SheetTrigger>
+  );
+
+  // Mobile: sheet based approach for better mobile experience
+  return (
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <FloatingButton />
+      <SheetContent side="right" className="p-0 w-80 sm:max-w-md">
+        <ChatContent />
+      </SheetContent>
+    </Sheet>
   );
 };
 

@@ -5,6 +5,7 @@ import { ShoppingCart, User, Home, Package, LifeBuoy, HelpCircle, Settings } fro
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/Header";
+import ChatBot from "@/components/ChatBot";
 import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
@@ -28,6 +29,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showFooter = true }) 
       <main className="flex-grow pt-20">
         {children}
       </main>
+      
+      {/* Floating Chat Bot */}
+      <ChatBot />
       
       {/* Mobile Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background shadow-top z-40 border-t border-border">
