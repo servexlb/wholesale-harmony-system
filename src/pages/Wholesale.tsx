@@ -96,7 +96,7 @@ const Wholesale = () => {
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
             customers={wholesalerCustomers}
-            products={services as Service[]} // Explicitly cast to Service[]
+            products={services as Service[]} 
             selectedCustomer={selectedCustomerId}
             currentWholesaler={currentWholesaler}
             onOrderPlaced={handleOrderPlaced}
@@ -105,7 +105,7 @@ const Wholesale = () => {
         
         <WholesaleTabContent 
           activeTab={activeTab}
-          products={services as Service[]} // Explicitly cast to Service[]
+          products={services as Service[]}
           customers={customersData}
           wholesalerCustomers={wholesalerCustomers}
           orders={orders}
