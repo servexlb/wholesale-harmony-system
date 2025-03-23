@@ -37,7 +37,7 @@ export interface Service {
   value?: number;
   apiUrl?: string;
   features?: string[];
-  category?: string; // Add optional category to make compatible with Product
+  category?: string; // Optional category to make compatible with Product
 }
 
 export interface Product {

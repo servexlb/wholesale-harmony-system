@@ -3,7 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
 import { Customer } from '@/lib/data';
-import { Subscription, WholesaleOrder, Service } from '@/lib/types';
+import { Subscription, WholesaleOrder, Service, ServiceType } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
