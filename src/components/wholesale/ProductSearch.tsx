@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -20,6 +19,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 }) => {
   const [productSearch, setProductSearch] = useState<string>('');
   const [activeTab, setActiveTab] = useState('all');
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
 
   // Filter products based on search query and active tab
   const filteredProducts = useMemo(() => {
@@ -73,6 +73,23 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   const handleSearchChange = useCallback((value: string) => {
     setProductSearch(value);
+    setIsCommandOpen(true);
+  }, []);
+
+  const handleSelectProduct = useCallback((productId: string) => {
+    onProductSelect(productId);
+    setIsCommandOpen(false);
+  }, [onProductSelect]);
+
+  const handleFocus = useCallback(() => {
+    setIsCommandOpen(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    // Delay hiding the command to allow for product selection
+    setTimeout(() => {
+      setIsCommandOpen(false);
+    }, 200);
   }, []);
 
   return (
@@ -97,37 +114,42 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
             className="pl-10"
             value={productSearch}
             onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
           />
         </div>
         
-        <Command className="rounded-lg border shadow-md absolute bottom-full mb-1 w-full z-10">
-          <CommandList className="max-h-[300px] overflow-auto">
-            <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
-            {Object.keys(productsByCategory).length === 0 ? (
-              <div className="py-6 text-center text-sm">
-                No products found. Try a different category or search term.
-              </div>
-            ) : (
-              Object.entries(productsByCategory).map(([category, categoryProducts]) => (
-                <CommandGroup key={category} heading={category} className="py-2">
-                  {categoryProducts.map((product) => (
-                    <CommandItem
-                      key={product.id}
-                      onSelect={() => onProductSelect(product.id)}
-                      className={`flex items-center gap-2 cursor-pointer ${selectedProductId === product.id ? 'bg-accent text-accent-foreground' : ''}`}
-                    >
-                      {renderProductIcon(product.type)}
-                      <div className="flex flex-col">
-                        <span className="font-medium">{product.name}</span>
-                        <span className="text-xs text-muted-foreground">${product.wholesalePrice.toFixed(2)}</span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ))
-            )}
-          </CommandList>
-        </Command>
+        {isCommandOpen && (
+          <Command className="rounded-lg border shadow-md absolute top-full mt-1 w-full z-10">
+            <CommandList className="max-h-[300px] overflow-auto">
+              <CommandInput placeholder="Search products..." value={productSearch} onValueChange={setProductSearch} className="border-none focus:ring-0" />
+              <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
+              {Object.keys(productsByCategory).length === 0 ? (
+                <div className="py-6 text-center text-sm">
+                  No products found. Try a different category or search term.
+                </div>
+              ) : (
+                Object.entries(productsByCategory).map(([category, categoryProducts]) => (
+                  <CommandGroup key={category} heading={category} className="py-2">
+                    {categoryProducts.map((product) => (
+                      <CommandItem
+                        key={product.id}
+                        onSelect={() => handleSelectProduct(product.id)}
+                        className={`flex items-center gap-2 cursor-pointer ${selectedProductId === product.id ? 'bg-accent text-accent-foreground' : ''}`}
+                      >
+                        {renderProductIcon(product.type)}
+                        <div className="flex flex-col">
+                          <span className="font-medium">{product.name}</span>
+                          <span className="text-xs text-muted-foreground">${product.wholesalePrice.toFixed(2)}</span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ))
+              )}
+            </CommandList>
+          </Command>
+        )}
       </div>
     </div>
   );

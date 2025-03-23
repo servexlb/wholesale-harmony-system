@@ -34,7 +34,6 @@ import { Product, Customer, customers as allCustomers } from '@/lib/data';
 import { Plus, User, ChevronDown } from 'lucide-react';
 import CustomerSubscriptions from './CustomerSubscriptions';
 
-// Updated form validation schema - only name and phone are required
 const newCustomerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(6, "Phone number must be at least 6 characters"),
@@ -44,7 +43,6 @@ const newCustomerSchema = z.object({
 
 type NewCustomerFormValues = z.infer<typeof newCustomerSchema>;
 
-// Form validation schema
 const formSchema = z.object({
   productId: z.string({ required_error: "Please select a product" }),
   customerId: z.string({ required_error: "Please select a customer" }),
@@ -78,7 +76,6 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [includeCredentials, setIncludeCredentials] = useState(false);
 
-  // Main form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -86,9 +83,14 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
     },
   });
 
-  // New customer form
   const newCustomerForm = useForm<NewCustomerFormValues>({
     resolver: zodResolver(newCustomerSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+      company: '',
+    },
   });
 
   const handleSubmit = (values: FormValues) => {
@@ -99,11 +101,10 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       return;
     }
 
-    // In a real app, this would be an API call
     const newOrder: WholesaleOrder = {
       id: `order-${Date.now()}`,
-      userId: wholesalerId, // Use the current wholesaler ID
-      wholesalerId: wholesalerId, // Use the current wholesaler ID
+      userId: wholesalerId,
+      wholesalerId: wholesalerId,
       serviceId: values.productId,
       customerId: values.customerId,
       quantity: values.quantity,
@@ -112,7 +113,6 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       createdAt: new Date().toISOString(),
     };
 
-    // Add credentials if provided
     if (includeCredentials && values.credentials) {
       newOrder.credentials = {
         email: values.credentials.email || '',
@@ -127,29 +127,30 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
   };
 
   const handleAddNewCustomer = (data: NewCustomerFormValues) => {
-    // In a real app, this would be an API call
+    const newCustomerId = `customer-${Date.now()}`;
+    
     const newCustomer: Customer = {
-      id: `customer-${Date.now()}`,
+      id: newCustomerId,
       name: data.name,
-      email: data.email || '', // Handle optional email
+      email: data.email || '',
       phone: data.phone,
-      company: data.company || '', // Handle optional company
-      wholesalerId: wholesalerId, // Assign the customer to the current wholesaler
-      balance: 0, // Initialize the balance to zero for new customers
+      company: data.company || '',
+      wholesalerId: wholesalerId,
+      balance: 0,
     };
 
     setCustomersList(prev => [...prev, newCustomer]);
-    form.setValue('customerId', newCustomer.id);
-    setSelectedCustomerId(newCustomer.id);
+    form.setValue('customerId', newCustomerId);
+    setSelectedCustomerId(newCustomerId);
     setIsNewCustomerDialogOpen(false);
     newCustomerForm.reset();
-    toast.success(`New customer ${data.name} added`);
+    toast.success(`New customer ${data.name} added successfully`);
   };
 
   const handleCustomerChange = (customerId: string) => {
     form.setValue('customerId', customerId);
     setSelectedCustomerId(customerId);
-    setShowSubscriptions(false); // Reset subscriptions view when customer changes
+    setShowSubscriptions(false);
   };
 
   const toggleSubscriptions = () => {

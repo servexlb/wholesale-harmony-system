@@ -14,6 +14,22 @@ import { Search, UserPlus } from 'lucide-react';
 import { Customer, customers as allCustomers } from '@/lib/data';
 import { Subscription } from '@/lib/types';
 import CustomerRow from './customer/CustomerRow';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'sonner';
+
+// Customer form schema
+const customerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  phone: z.string().min(6, "Phone number must be at least 6 characters"),
+  email: z.string().email("Please enter a valid email").optional().or(z.literal('')),
+  company: z.string().optional().or(z.literal('')),
+});
+
+type CustomerFormValues = z.infer<typeof customerSchema>;
 
 interface CustomerTableProps {
   subscriptions?: Subscription[];
@@ -29,8 +45,42 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
   onPurchaseForCustomer
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [customersList, setCustomersList] = useState<Customer[]>(customers);
   
-  const filteredCustomers = customers.filter(customer => 
+  // Setup form
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+      company: '',
+    },
+  });
+
+  const handleAddCustomer = (data: CustomerFormValues) => {
+    // Create a new customer with the form data
+    const newCustomer: Customer = {
+      id: `customer-${Date.now()}`,
+      name: data.name,
+      phone: data.phone,
+      email: data.email || '',
+      company: data.company || '',
+      wholesalerId: wholesalerId,
+      balance: 0
+    };
+    
+    // Add to the customers list
+    setCustomersList(prev => [...prev, newCustomer]);
+    
+    // Reset form and close dialog
+    form.reset();
+    setIsAddDialogOpen(false);
+    toast.success(`Customer ${data.name} added successfully`);
+  };
+  
+  const filteredCustomers = customersList.filter(customer => 
     (customer.wholesalerId === wholesalerId) && 
     (customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone.includes(searchTerm))
@@ -51,10 +101,85 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
             className="pl-10"
           />
         </div>
-        <Button className="subtle-focus-ring">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add Customer
-        </Button>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Button className="subtle-focus-ring" onClick={() => setIsAddDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Customer
+          </Button>
+          
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Customer</DialogTitle>
+            </DialogHeader>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleAddCustomer)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 123-4567" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="john@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="company"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ABC Corp" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Add Customer</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
