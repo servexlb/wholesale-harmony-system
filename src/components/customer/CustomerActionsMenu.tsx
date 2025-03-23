@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, FileText, Edit, Trash2, ShoppingBag } from 'lucide-react';
+import { Settings, FileText, Edit, Trash2, ShoppingBag } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Dialog,
@@ -170,7 +170,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
         data-dropdown-trigger="true"
       >
         <span className="sr-only">Open menu</span>
-        <MoreHorizontal className="h-4 w-4" />
+        <Settings className="h-4 w-4" />
       </Button>
       
       <div 
