@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { MenuIcon, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Header from '@/components/Header';
 import WholesaleSidebar from '@/components/wholesale/WholesaleSidebar';
+import ChatBot from '@/components/ChatBot';
 
 interface WholesaleLayoutProps {
   sidebarOpen: boolean;
@@ -26,6 +27,21 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
 }) => {
   const isMobile = useIsMobile();
 
+  // Listen for the custom closeSidebar event
+  useEffect(() => {
+    const handleCloseSidebar = () => {
+      if (sidebarOpen) {
+        toggleSidebar();
+      }
+    };
+
+    window.addEventListener('closeSidebar', handleCloseSidebar);
+    
+    return () => {
+      window.removeEventListener('closeSidebar', handleCloseSidebar);
+    };
+  }, [sidebarOpen, toggleSidebar]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -38,7 +54,7 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
           handleLogout={handleLogout}
         />
         
-        <div className="fixed bottom-4 right-4 z-40 md:hidden">
+        <div className="fixed bottom-20 right-4 z-40 md:hidden">
           <Button 
             size="icon" 
             className="h-12 w-12 rounded-full shadow-md"
@@ -49,7 +65,7 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
         </div>
 
         <motion.main
-          className={`flex-1 p-4 sm:p-6 pt-6 sm:pt-8 transition-all duration-300 ${sidebarOpen && !isMobile ? 'md:ml-[250px]' : ''}`}
+          className={`flex-1 p-4 sm:p-6 pt-6 sm:pt-8 transition-all duration-300 pb-20 ${sidebarOpen && !isMobile ? 'md:ml-[250px]' : ''}`}
           initial={false}
           layout
         >
@@ -58,6 +74,9 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
           </div>
         </motion.main>
       </div>
+      
+      {/* Include ChatBot for wholesale pages too */}
+      <ChatBot />
     </div>
   );
 };

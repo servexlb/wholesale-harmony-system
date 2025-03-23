@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ShoppingCart, User, Home, Package, LifeBuoy, HelpCircle, Settings } from "lucide-react";
@@ -26,29 +25,53 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showFooter = true }) 
       <Header />
       
       {/* Main Content with top padding for header */}
-      <main className="flex-grow pt-20">
+      <main className="flex-grow pt-20 pb-16 md:pb-0">
         {children}
       </main>
       
-      {/* Floating Chat Bot */}
+      {/* Floating Chat Bot - positioned above mobile navigation */}
       <ChatBot />
       
       {/* Mobile Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background shadow-top z-40 border-t border-border">
         <div className="flex justify-around py-2">
-          <Link to="/" className={cn("flex flex-col items-center p-2", isActive('/') && "text-primary")}>
+          <Link 
+            to="/" 
+            className={cn(
+              "flex flex-col items-center p-2", 
+              isActive('/') && "text-primary"
+            )}
+          >
             <Home className="h-5 w-5" />
             <span className="text-xs mt-1">Home</span>
           </Link>
-          <Link to="/services" className={cn("flex flex-col items-center p-2", isActive('/services') && "text-primary")}>
+          <Link 
+            to="/services" 
+            className={cn(
+              "flex flex-col items-center p-2", 
+              isActive('/services') && "text-primary"
+            )}
+          >
             <Package className="h-5 w-5" />
             <span className="text-xs mt-1">Services</span>
           </Link>
-          <Link to="/account" className={cn("flex flex-col items-center p-2", isActive('/account') && "text-primary")}>
+          <Link 
+            to="/account" 
+            className={cn(
+              "flex flex-col items-center p-2", 
+              isActive('/account') && "text-primary"
+            )}
+          >
             <User className="h-5 w-5" />
             <span className="text-xs mt-1">Account</span>
           </Link>
-          <Link to="/support" className={cn("flex flex-col items-center p-2", isActive('/support') && "text-primary")}>
+          <Link 
+            to="/support" 
+            className={cn(
+              "flex flex-col items-center p-2", 
+              isActive('/support') && "text-primary"
+            )}
+          >
             <HelpCircle className="h-5 w-5" />
             <span className="text-xs mt-1">Support</span>
           </Link>

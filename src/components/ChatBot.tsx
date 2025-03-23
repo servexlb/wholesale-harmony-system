@@ -13,7 +13,7 @@ interface Message {
   timestamp: Date;
 }
 
-// Knowledge base for the chatbot
+// Enhanced knowledge base for more sophisticated responses
 const botKnowledge = {
   about: {
     keywords: ["about", "company", "who are you", "background", "history", "servexlb"],
@@ -70,17 +70,45 @@ const botKnowledge = {
   technical: {
     keywords: ["technical", "specs", "specifications", "requirements", "system", "compatible"],
     response: "Our services are compatible with most modern web browsers and operating systems. For specific technical requirements or compatibility questions, please check the service details page or contact our technical support team."
+  },
+  // Adding new knowledge categories
+  streaming: {
+    keywords: ["streaming", "netflix", "spotify", "disney", "stream", "watch", "music"],
+    response: "We offer premium streaming service accounts at competitive rates. Our streaming services include popular platforms like Netflix, Spotify, Disney+, and more. All accounts come with full warranty and instant delivery."
+  },
+  gaming: {
+    keywords: ["gaming", "game", "playstation", "xbox", "steam", "nintendo"],
+    response: "Our gaming services include game keys, subscription services for PlayStation, Xbox, and other platforms. We provide competitive prices and instant delivery for all gaming products."
+  },
+  social: {
+    keywords: ["social", "instagram", "facebook", "twitter", "tiktok", "followers", "likes"],
+    response: "We provide various social media services including account management, follower growth, and content promotion. Our solutions help businesses and individuals build their online presence effectively."
+  },
+  api: {
+    keywords: ["api", "integration", "developer", "code", "program", "development"],
+    response: "We offer API access to our services for developers who want to integrate our solutions into their applications. Our developer documentation provides all the information needed to get started with our APIs."
+  },
+  mobile: {
+    keywords: ["mobile", "phone", "app", "android", "ios", "smartphone"],
+    response: "Our services are fully compatible with mobile devices. You can access your account and manage your subscriptions from any smartphone or tablet. We also offer dedicated mobile apps for some services."
+  },
+  comparison: {
+    keywords: ["compare", "versus", "vs", "difference", "better", "competitors"],
+    response: "What sets ServexLB apart from competitors is our commitment to quality, customer service, and competitive pricing. We offer 24/7 support, instant delivery, and a satisfaction guarantee on all our services."
   }
 };
 
-// FAQ list for quick access
+// Enhanced FAQ list with more questions
 const faqList = [
   { question: "What services do you offer?", answer: botKnowledge.services.response },
   { question: "How much do your services cost?", answer: botKnowledge.pricing.response },
   { question: "How can I contact support?", answer: botKnowledge.support.response },
   { question: "What is your refund policy?", answer: botKnowledge.refund.response },
   { question: "How do I access my account?", answer: botKnowledge.subscription.response },
-  { question: "Is my data secure?", answer: botKnowledge.security.response }
+  { question: "Is my data secure?", answer: botKnowledge.security.response },
+  { question: "Do you offer streaming services?", answer: botKnowledge.streaming.response },
+  { question: "What gaming services do you provide?", answer: botKnowledge.gaming.response },
+  { question: "How do I become a wholesale partner?", answer: botKnowledge.wholesale.response }
 ];
 
 const ChatBot: React.FC = () => {
@@ -142,6 +170,10 @@ const ChatBot: React.FC = () => {
       
       setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
+      
+      // Store bot response in localStorage for admin
+      const updatedChatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+      localStorage.setItem("chatMessages", JSON.stringify([...updatedChatHistory, botMessage]));
     }, 800);
   };
 
@@ -166,13 +198,59 @@ const ChatBot: React.FC = () => {
     
     // Store messages in localStorage for admin
     const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
-    localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
+    localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage, botMessage]));
   };
 
+  // Enhanced response generation with natural language understanding capabilities
   const generateBotResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
     
-    // Check if the input matches any knowledge base topics
+    // Analyze user intent from input text
+    const isQuestion = input.includes("?") || 
+                      input.startsWith("what") || 
+                      input.startsWith("how") || 
+                      input.startsWith("why") || 
+                      input.startsWith("when") || 
+                      input.startsWith("where") || 
+                      input.startsWith("who") || 
+                      input.startsWith("can") || 
+                      input.startsWith("do");
+    
+    const isGreeting = input.includes("hello") || 
+                      input.includes("hi") || 
+                      input.includes("hey") || 
+                      input.includes("greetings") || 
+                      input.includes("good morning") || 
+                      input.includes("good afternoon") || 
+                      input.includes("good evening");
+    
+    const isThanking = input.includes("thank") || 
+                      input.includes("thanks") || 
+                      input.includes("appreciate") || 
+                      input.includes("grateful");
+    
+    const isComplaining = input.includes("not working") || 
+                          input.includes("issue") || 
+                          input.includes("problem") || 
+                          input.includes("broken") || 
+                          input.includes("error") || 
+                          input.includes("doesn't work") || 
+                          input.includes("failed");
+    
+    // Handle different conversational contexts
+    if (isGreeting) {
+      return "Hello! It's great to chat with you. How can I assist you with our services today?";
+    }
+    
+    if (isThanking) {
+      return "You're welcome! Is there anything else I can help you with?";
+    }
+    
+    if (isComplaining) {
+      return "I'm sorry to hear you're experiencing issues. To help resolve this quickly, please provide more details about the problem, or I can connect you with our support team immediately.";
+    }
+    
+    // Check for specific service inquiries
     for (const category in botKnowledge) {
       const topicData = botKnowledge[category as keyof typeof botKnowledge];
       
@@ -184,22 +262,27 @@ const ChatBot: React.FC = () => {
     // Check for human/agent requests
     if (input.includes("speak") || input.includes("human") || input.includes("agent") || 
         input.includes("person") || input.includes("team") || input.includes("real person")) {
-      return "I'll forward your message to our team. Someone will get back to you soon. Would you like to leave any additional information?";
+      return "I'll connect you with a team member right away. Would you like to leave any additional information about your query to help them assist you better?";
     }
     
     // Website functionality questions
     if (input.includes("website") || input.includes("site") || input.includes("page") || input.includes("navigation")) {
-      return "Our website offers easy navigation to explore our services, learn about our company, contact our team, and access your dashboard. Is there a specific page or feature you're looking for?";
+      return "Our website offers easy navigation to explore our services, learn about our company, contact our team, and access your dashboard. Is there a specific feature or section you're looking for? I'd be happy to guide you.";
     }
     
     // Technical questions
     if (input.includes("load balancing") || input.includes("cdn") || input.includes("content distribution") || 
         input.includes("how does") || input.includes("technical") || input.includes("technology")) {
-      return "Our technical solutions use cutting-edge technology to provide reliable services. For detailed technical information, I recommend checking our Services page or I can connect you with one of our technical specialists.";
+      return "Our technical solutions employ cutting-edge technologies to deliver reliable services. For more detailed information about our technical infrastructure, I recommend checking our Services page or I can connect you with one of our specialists who can provide in-depth explanations.";
     }
     
-    // Default response
-    return "Thanks for your message. I may not have a specific answer to your question, but our team can assist you. Would you like me to forward your query to a team member who can provide more detailed information?";
+    // If we can't determine the intent, offer a helpful general response
+    if (isQuestion) {
+      return "That's a great question. While I don't have the specific answer right now, I can help connect you with someone from our team who can provide you with accurate information. Would you like me to do that for you?";
+    }
+    
+    // Default response with follow-up options
+    return "Thank you for your message. I'm here to help with any questions about our services, pricing, or support options. Could you provide a bit more detail about what you're looking for so I can better assist you?";
   };
 
   const ChatContent = () => (
@@ -290,6 +373,7 @@ const ChatBot: React.FC = () => {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           className="flex-1"
+          autoComplete="off"
         />
         <Button type="submit" size="icon" disabled={!input.trim()}>
           <Send className="h-4 w-4" />
