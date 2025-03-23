@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Bot, User, MessageCircle, Phone } from "lucide-react";
+import { X, Send, Bot, User, MessageCircle, Phone, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThreeDotsLoading } from "@/components/ui/three-dots-loading";
 
 interface Message {
   id: string;
   text: string;
-  sender: "user" | "bot";
+  sender: "user" | "bot" | "admin";
   timestamp: Date;
 }
 
@@ -119,6 +121,8 @@ const ChatBot: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showFaq, setShowFaq] = useState(true);
+  const [liveSupportRequested, setLiveSupportRequested] = useState(false);
+  const [adminJoined, setAdminJoined] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -152,6 +156,32 @@ const ChatBot: React.FC = () => {
     }
   }, [isOpen, isTyping, messages]);
 
+  // Simulate admin joining after some time
+  useEffect(() => {
+    if (liveSupportRequested) {
+      // Simulate admin joining after 5 seconds
+      const timeout = setTimeout(() => {
+        setAdminJoined(true);
+        
+        const adminMessage: Message = {
+          id: Date.now().toString(),
+          text: "Hi, this is Sarah from customer support. I'm here to help you. How can I assist you today?",
+          sender: "admin",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, adminMessage]);
+        
+        toast.success("Support agent has joined the chat!", {
+          description: "Sarah is now available to assist you.",
+        });
+        
+      }, 5000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [liveSupportRequested]);
+
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
@@ -173,21 +203,24 @@ const ChatBot: React.FC = () => {
     localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
 
     setTimeout(() => {
-      const botResponse = generateBotResponse(input);
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        text: botResponse,
-        sender: "bot",
-        timestamp: new Date()
-      };
+      // Only generate bot response if not in live support mode with admin
+      if (!liveSupportRequested) {
+        const botResponse = generateBotResponse(input);
+        const botMessage: Message = {
+          id: Date.now().toString(),
+          text: botResponse,
+          sender: "bot",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+        setShowFaq(true);
+        
+        const updatedChatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+        localStorage.setItem("chatMessages", JSON.stringify([...updatedChatHistory, botMessage]));
+      }
       
-      setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
-      setShowFaq(true);
-      
-      const updatedChatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
-      localStorage.setItem("chatMessages", JSON.stringify([...updatedChatHistory, botMessage]));
-      
       inputRef.current?.focus();
     }, 800);
   };
@@ -243,6 +276,7 @@ const ChatBot: React.FC = () => {
 
     setMessages(prev => [...prev, userMessage, botMessage]);
     setShowFaq(false);
+    setLiveSupportRequested(true);
     
     toast.success("Live support request sent!", {
       description: "Our team will be with you shortly.",
@@ -348,17 +382,21 @@ const ChatBot: React.FC = () => {
               className={`max-w-[75%] px-3 py-2 rounded-lg ${
                 message.sender === "user"
                   ? "bg-primary text-primary-foreground"
+                  : message.sender === "admin" 
+                  ? "bg-green-500 text-white"
                   : "bg-muted"
               }`}
             >
               <div className="flex items-center mb-1">
                 {message.sender === "bot" ? (
                   <Bot className="h-3 w-3 mr-1" />
+                ) : message.sender === "admin" ? (
+                  <Shield className="h-3 w-3 mr-1" />
                 ) : (
                   <User className="h-3 w-3 mr-1" />
                 )}
                 <span className="text-xs opacity-70">
-                  {message.sender === "user" ? "You" : "Bot"}
+                  {message.sender === "user" ? "You" : message.sender === "admin" ? "Support Agent" : "Bot"}
                 </span>
               </div>
               <p className="text-sm">{message.text}</p>
@@ -374,15 +412,27 @@ const ChatBot: React.FC = () => {
                 <span className="text-xs opacity-70">Bot</span>
               </div>
               <div className="flex space-x-1 mt-1">
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                <ThreeDotsLoading />
               </div>
             </div>
           </div>
         )}
         
-        {messages.length > 0 && showFaq && (
+        {liveSupportRequested && !adminJoined && (
+          <div className="flex justify-start">
+            <div className="bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 rounded-lg">
+              <div className="flex items-center text-yellow-600">
+                <Shield className="h-3 w-3 mr-1" />
+                <span className="text-xs">Connecting to support</span>
+              </div>
+              <div className="flex mt-1 text-yellow-600">
+                <ThreeDotsLoading />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {messages.length > 0 && showFaq && !liveSupportRequested && (
           <div className="pt-2">
             <div className="flex flex-wrap gap-2">
               {faqList.slice(0, 5).map((faq, index) => (
@@ -398,7 +448,7 @@ const ChatBot: React.FC = () => {
           </div>
         )}
         
-        {messages.length > 0 && (
+        {messages.length > 0 && !liveSupportRequested && (
           <div className="flex justify-center pt-2">
             <Button 
               onClick={handleLiveSupport} 
