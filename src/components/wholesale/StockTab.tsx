@@ -16,17 +16,25 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
   const navigate = useNavigate();
   const [renewedSubscriptions, setRenewedSubscriptions] = useState<string[]>([]);
   const [safeSubscriptions, setSafeSubscriptions] = useState<Subscription[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Get current wholesaler ID
   const wholesalerId = localStorage.getItem('wholesalerId') || '';
   
   useEffect(() => {
     try {
+      if (!Array.isArray(subscriptions)) {
+        console.error('Subscriptions is not an array:', subscriptions);
+        setSafeSubscriptions([]);
+        return;
+      }
+      
       // Filter out any potentially problematic subscriptions
       const validSubs = subscriptions.filter(sub => {
         // Ensure subscription has all required properties
         return (
           sub && 
+          typeof sub === 'object' &&
           sub.id && 
           sub.userId && 
           sub.serviceId && 
@@ -54,9 +62,18 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
   }, [wholesalerId]);
 
   const handleRenewal = useCallback((subscription: Subscription) => {
+    // Prevent multiple simultaneous renewals
+    if (isProcessing) {
+      toast.info("Please wait while processing the current request");
+      return;
+    }
+    
     try {
+      setIsProcessing(true);
+      
       if (!subscription || !subscription.id || !subscription.serviceId) {
         toast.error("Invalid subscription data");
+        setIsProcessing(false);
         return;
       }
       
@@ -64,6 +81,7 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
       
       if (!product) {
         toast.error("Product not found");
+        setIsProcessing(false);
         return;
       }
       
@@ -78,6 +96,7 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         });
         // Redirect to payment page
         navigate("/payment");
+        setIsProcessing(false);
         return;
       }
       
@@ -92,11 +111,15 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
       toast.success(`Subscription renewed successfully!`, {
         description: `$${renewalPrice.toFixed(2)} has been deducted from your balance.`
       });
+      
+      // Release the lock
+      setIsProcessing(false);
     } catch (error) {
       console.error('Error renewing subscription:', error);
       toast.error('Failed to renew subscription');
+      setIsProcessing(false);
     }
-  }, [getUserBalance, wholesalerId, navigate]);
+  }, [getUserBalance, wholesalerId, navigate, isProcessing]);
 
   return (
     <motion.div

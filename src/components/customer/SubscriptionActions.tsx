@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserCog, CreditCard, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,13 +18,20 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
   customerId,
   hasCredentials
 }) => {
-  const handleFixProfile = async () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleFixProfile = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
     try {
       const customer = getCustomerById(customerId);
       const product = getProductById(serviceId);
       
       if (!customer || !product) {
         toast.error("Customer or product not found");
+        setIsProcessing(false);
         return;
       }
       
@@ -41,16 +48,23 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
     } catch (error) {
       console.error('Error fixing profile:', error);
       toast.error("Failed to submit profile fix request");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleFixPayment = async () => {
+  const handleFixPayment = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
     try {
       const customer = getCustomerById(customerId);
       const product = getProductById(serviceId);
       
       if (!customer || !product) {
         toast.error("Customer or product not found");
+        setIsProcessing(false);
         return;
       }
       
@@ -67,16 +81,23 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
     } catch (error) {
       console.error('Error reporting payment issue:', error);
       toast.error("Failed to report payment issue");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handlePasswordReset = async () => {
+  const handlePasswordReset = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
     try {
       const customer = getCustomerById(customerId);
       const product = getProductById(serviceId);
       
       if (!customer || !product) {
         toast.error("Customer or product not found");
+        setIsProcessing(false);
         return;
       }
       
@@ -93,6 +114,8 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
     } catch (error) {
       console.error('Error resetting password:', error);
       toast.error("Failed to request password reset");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -102,10 +125,8 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         size="sm" 
         variant="outline" 
         className="flex items-center gap-1" 
-        onClick={(e) => {
-          e.stopPropagation();
-          handleFixProfile();
-        }}
+        onClick={handleFixProfile}
+        disabled={isProcessing}
       >
         <UserCog className="h-3 w-3" />
         <span>Fix Profile</span>
@@ -114,10 +135,8 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         size="sm" 
         variant="outline" 
         className="flex items-center gap-1"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleFixPayment();
-        }}
+        onClick={handleFixPayment}
+        disabled={isProcessing}
       >
         <CreditCard className="h-3 w-3" />
         <span>Payment Issue</span>
@@ -127,10 +146,8 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
           size="sm"
           variant="outline" 
           className="flex items-center gap-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            handlePasswordReset();
-          }}
+          onClick={handlePasswordReset}
+          disabled={isProcessing}
         >
           <KeyRound className="h-3 w-3" />
           <span>Reset Password</span>

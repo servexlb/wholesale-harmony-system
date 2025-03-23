@@ -18,9 +18,23 @@ const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = 
 }) => {
   // Filter and validate subscriptions
   const validSubscriptions = useMemo(() => {
-    return subscriptions.filter(sub => 
-      sub && sub.id && sub.serviceId && sub.endDate
-    );
+    try {
+      if (!Array.isArray(subscriptions)) {
+        console.error('subscriptions is not an array:', subscriptions);
+        return [];
+      }
+      
+      return subscriptions.filter(sub => 
+        sub && 
+        typeof sub === 'object' &&
+        sub.id && 
+        sub.serviceId && 
+        sub.endDate
+      );
+    } catch (error) {
+      console.error('Error processing subscriptions:', error);
+      return [];
+    }
   }, [subscriptions]);
 
   if (validSubscriptions.length === 0) {
@@ -107,7 +121,7 @@ const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = 
               </div>
             );
           } catch (error) {
-            console.error(`Error rendering subscription ${sub.id}:`, error);
+            console.error(`Error rendering subscription ${sub?.id || 'unknown'}:`, error);
             return null;
           }
         }).filter(Boolean)}
