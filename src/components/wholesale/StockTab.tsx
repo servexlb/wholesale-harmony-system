@@ -26,38 +26,43 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
   }, [wholesalerId]);
 
   const handleRenewal = useCallback((subscription: Subscription) => {
-    const product = products.find(p => p.id === subscription.serviceId);
-    
-    if (!product) {
-      toast.error("Product not found");
-      return;
-    }
-    
-    // Calculate renewal price (use wholesale price)
-    const renewalPrice = product.wholesalePrice;
-    
-    // Check if user has sufficient balance
-    const currentBalance = getUserBalance();
-    if (currentBalance < renewalPrice) {
-      toast.error("Insufficient balance", {
-        description: "You don't have enough funds to renew this subscription"
+    try {
+      const product = products.find(p => p.id === subscription.serviceId);
+      
+      if (!product) {
+        toast.error("Product not found");
+        return;
+      }
+      
+      // Calculate renewal price (use wholesale price)
+      const renewalPrice = product.wholesalePrice || 0;
+      
+      // Check if user has sufficient balance
+      const currentBalance = getUserBalance();
+      if (currentBalance < renewalPrice) {
+        toast.error("Insufficient balance", {
+          description: "You don't have enough funds to renew this subscription"
+        });
+        // Redirect to payment page
+        navigate("/payment");
+        return;
+      }
+      
+      // Deduct the price from user balance
+      const newBalance = currentBalance - renewalPrice;
+      localStorage.setItem(`userBalance_${wholesalerId}`, newBalance.toString());
+      
+      // Add subscription to renewed list
+      setRenewedSubscriptions(prev => [...prev, subscription.id]);
+      
+      // Update UI with success message
+      toast.success(`Subscription renewed successfully!`, {
+        description: `$${renewalPrice.toFixed(2)} has been deducted from your balance.`
       });
-      // Redirect to payment page
-      navigate("/payment");
-      return;
+    } catch (error) {
+      console.error('Error renewing subscription:', error);
+      toast.error('Failed to renew subscription');
     }
-    
-    // Deduct the price from user balance
-    const newBalance = currentBalance - renewalPrice;
-    localStorage.setItem(`userBalance_${wholesalerId}`, newBalance.toString());
-    
-    // Add subscription to renewed list
-    setRenewedSubscriptions(prev => [...prev, subscription.id]);
-    
-    // Update UI with success message
-    toast.success(`Subscription renewed successfully!`, {
-      description: `$${renewalPrice.toFixed(2)} has been deducted from your balance.`
-    });
   }, [getUserBalance, wholesalerId, navigate]);
 
   return (

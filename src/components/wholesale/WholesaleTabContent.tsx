@@ -7,6 +7,7 @@ import { Subscription, WholesaleOrder } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
+import StockTab from './StockTab';
 import { services } from '@/lib/mockData';
 import { toast } from '@/lib/toast';
 
@@ -112,6 +113,12 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
           <SalesTab 
             orders={orders}
             customers={wholesalerCustomers}
+          />
+        </TabsContent>
+        
+        <TabsContent value="stock" className="h-full">
+          <StockTab 
+            subscriptions={subscriptions}
           />
         </TabsContent>
         

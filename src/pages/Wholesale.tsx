@@ -43,13 +43,17 @@ const Wholesale = () => {
   // Listen for purchase dialog events
   useEffect(() => {
     const handleOpenPurchaseDialog = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail?.customerId) {
-        setSelectedCustomerId(customEvent.detail.customerId);
-      } else {
-        setSelectedCustomerId('');
+      try {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail?.customerId) {
+          setSelectedCustomerId(customEvent.detail.customerId);
+        } else {
+          setSelectedCustomerId('');
+        }
+        setPurchaseDialogOpen(true);
+      } catch (error) {
+        console.error('Error opening purchase dialog:', error);
       }
-      setPurchaseDialogOpen(true);
     };
 
     window.addEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
@@ -61,8 +65,12 @@ const Wholesale = () => {
 
   // Purchase for customer handler
   const handlePurchaseForCustomer = (customerId: string) => {
-    setSelectedCustomerId(customerId);
-    setPurchaseDialogOpen(true);
+    try {
+      setSelectedCustomerId(customerId);
+      setPurchaseDialogOpen(true);
+    } catch (error) {
+      console.error('Error handling purchase for customer:', error);
+    }
   };
 
   // If not authenticated, show login screen
