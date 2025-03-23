@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import MainLayout from "@/components/MainLayout";
@@ -98,8 +97,8 @@ const ContactPage: React.FC = () => {
                   <p className="text-muted-foreground mb-4">
                     Available Monday-Friday, 9AM-6PM EST
                   </p>
-                  <a href="tel:+1234567890" className="text-primary hover:underline">
-                    +1 (234) 567-890
+                  <a href="tel:+96178991908" className="text-primary hover:underline">
+                    +961 78 991 908
                   </a>
                 </div>
               </Card>
@@ -249,8 +248,8 @@ const ContactPage: React.FC = () => {
                     <div>
                       <h3 className="font-medium">Phone</h3>
                       <p className="text-muted-foreground">
-                        Support: +1 (234) 567-890<br />
-                        Sales: +1 (234) 567-891
+                        Support: +961 78 991 908<br />
+                        Sales: +961 78 991 908
                       </p>
                     </div>
                   </div>

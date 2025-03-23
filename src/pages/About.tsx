@@ -99,7 +99,7 @@ const AboutPage: React.FC = () => {
         {/* Team */}
         <div className="mb-20">
           <h2 className="text-3xl font-bold text-center mb-12">Our Leadership Team</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -135,6 +135,18 @@ const AboutPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-semibold">David Rodriguez</h3>
               <p className="text-muted-foreground">Head of Operations</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.0 }}
+              className="text-center"
+            >
+              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-16 w-16 text-primary/60" />
+              </div>
+              <h3 className="text-xl font-semibold">Salim Hage</h3>
+              <p className="text-muted-foreground">Chief Marketing Officer</p>
             </motion.div>
           </div>
         </div>
