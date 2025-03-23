@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye, ImageIcon, Minus, Plus } from 'lucide-react';
+import { CreditCard, Eye, ImageIcon, Minus, Plus, User } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -14,13 +15,6 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from '@/lib/toast';
 
 interface ProductCardProps {
@@ -44,6 +38,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [selectedDuration, setSelectedDuration] = useState("1");
   const [accountId, setAccountId] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const navigate = useNavigate();
 
   const price = isWholesale ? product.wholesalePrice : product.price;
@@ -76,6 +71,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     // Reset fields when opening dialog
     setAccountId("");
     setQuantity(1);
+    setCustomerName("");
     
     // Set default duration for subscriptions
     if (shouldUseMonths) {
@@ -90,6 +86,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
     if (isRecharge && !accountId.trim()) {
       toast.error("Account ID required", {
         description: "Please enter your account ID for this recharge"
+      });
+      return;
+    }
+    
+    // Validate customer name if wholesale
+    if (isWholesale && !customerName.trim()) {
+      toast.error("Customer name required", {
+        description: "Please enter the customer name for this order"
       });
       return;
     }
@@ -124,6 +128,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       quantity: shouldUseMonths ? 1 : quantity,
       durationMonths: shouldUseMonths ? parseInt(selectedDuration) : undefined,
       accountId: isRecharge ? accountId : undefined,
+      customerName: isWholesale ? customerName : undefined,
       totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -305,6 +310,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <span className="font-medium">Category:</span>
               <span>{product.category}</span>
             </div>
+            
+            {/* Customer field for wholesale users */}
+            {isWholesale && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Customer Name <span className="text-red-500">*</span>
+                </label>
+                <div className="flex">
+                  <Input 
+                    placeholder="Enter customer name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter the name of the customer for this order
+                </p>
+              </div>
+            )}
             
             {/* Subscription duration for subscription and streaming/vpn/security products */}
             {shouldUseMonths && (
