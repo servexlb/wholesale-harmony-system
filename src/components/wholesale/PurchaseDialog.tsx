@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,7 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customers: Customer[];
-  products: Service[]; // Now correctly typed as Service[]
+  products: Service[];
   selectedCustomer?: string;
   currentWholesaler: string;
   onOrderPlaced: (order: WholesaleOrder) => void;
@@ -44,6 +43,14 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   }>({ email: '', password: '' });
   
   const [showCredentials, setShowCredentials] = useState(false);
+  const [requireCredentials, setRequireCredentials] = useState(true);
+  
+  useEffect(() => {
+    const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
+    if (savedSetting !== null) {
+      setRequireCredentials(savedSetting === "true");
+    }
+  }, []);
   
   useEffect(() => {
     if (!open) {
@@ -62,8 +69,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   
   useEffect(() => {
     const product = products.find(p => p.id === selectedProduct);
-    setShowCredentials(product?.type === 'subscription');
-  }, [selectedProduct, products]);
+    setShowCredentials(requireCredentials && product?.type === 'subscription');
+  }, [selectedProduct, products, requireCredentials]);
   
   const selectedProductData = useMemo(() => 
     products.find(p => p.id === selectedProduct),
@@ -82,46 +89,38 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const handleProductSelect = useCallback((productId: string) => {
     setSelectedProduct(productId);
-    // Reset selected duration when product changes
     setSelectedDuration("1");
   }, []);
 
-  // Get available durations for selected product
   const availableDurations = useMemo(() => {
     if (!selectedProductData || selectedProductData.type !== 'subscription') return [];
     
-    // Use monthly pricing if available
     if (selectedProductData.monthlyPricing && selectedProductData.monthlyPricing.length > 0) {
       return selectedProductData.monthlyPricing
         .sort((a, b) => a.months - b.months)
         .map(p => p.months.toString());
     }
     
-    // Fall back to available months
     if (selectedProductData.availableMonths && selectedProductData.availableMonths.length > 0) {
       return selectedProductData.availableMonths
         .sort((a, b) => a - b)
         .map(m => m.toString());
     }
     
-    // Default durations
     return ["1", "3", "6", "12"];
   }, [selectedProductData]);
 
   useEffect(() => {
-    // Set the first available duration when product changes
     if (availableDurations.length > 0 && selectedProductData?.type === 'subscription') {
       setSelectedDuration(availableDurations[0]);
     }
   }, [availableDurations, selectedProductData]);
 
-  // Get pricing for selected duration
   const getSubscriptionPrice = useCallback((isWholesale: boolean): number => {
     if (!selectedProductData) return 0;
     
     const durationMonths = parseInt(selectedDuration);
     
-    // Check if we have custom monthly pricing
     if (selectedProductData.monthlyPricing && selectedProductData.monthlyPricing.length > 0) {
       const pricing = selectedProductData.monthlyPricing.find(p => p.months === durationMonths);
       if (pricing) {
@@ -129,7 +128,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       }
     }
     
-    // Fall back to base price * duration
     const basePrice = isWholesale ? selectedProductData.wholesalePrice : selectedProductData.price;
     return basePrice * durationMonths;
   }, [selectedProductData, selectedDuration]);
@@ -182,9 +180,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       ...(product.type === 'subscription' && { 
         durationMonths: parseInt(selectedDuration) 
       }),
-      ...(showCredentials && { 
+      ...(showCredentials && credentials.email && credentials.password ? { 
         credentials: credentials
-      })
+      } : {})
     };
     
     onOrderPlaced(newOrder);
