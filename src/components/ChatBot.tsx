@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,6 @@ interface Message {
   timestamp: Date;
 }
 
-// Enhanced knowledge base for more sophisticated responses
 const botKnowledge = {
   about: {
     keywords: ["about", "company", "who are you", "background", "history", "servexlb"],
@@ -71,7 +69,6 @@ const botKnowledge = {
     keywords: ["technical", "specs", "specifications", "requirements", "system", "compatible"],
     response: "Our services are compatible with most modern web browsers and operating systems. For specific technical requirements or compatibility questions, please check the service details page or contact our technical support team."
   },
-  // Adding new knowledge categories
   streaming: {
     keywords: ["streaming", "netflix", "spotify", "disney", "stream", "watch", "music"],
     response: "We offer premium streaming service accounts at competitive rates. Our streaming services include popular platforms like Netflix, Spotify, Disney+, and more. All accounts come with full warranty and instant delivery."
@@ -98,7 +95,6 @@ const botKnowledge = {
   }
 };
 
-// Enhanced FAQ list with more questions
 const faqList = [
   { question: "What services do you offer?", answer: botKnowledge.services.response },
   { question: "How much do your services cost?", answer: botKnowledge.pricing.response },
@@ -117,8 +113,8 @@ const ChatBot: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Initial bot greeting
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const greeting: Message = {
@@ -131,16 +127,22 @@ const ChatBot: React.FC = () => {
     }
   }, [isOpen, messages.length]);
 
-  // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       text: input,
@@ -151,14 +153,11 @@ const ChatBot: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     
-    // Show bot is typing
     setIsTyping(true);
 
-    // Store message in localStorage for admin
     const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
     localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
 
-    // Simulate bot response after a short delay
     setTimeout(() => {
       const botResponse = generateBotResponse(input);
       const botMessage: Message = {
@@ -171,14 +170,14 @@ const ChatBot: React.FC = () => {
       setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
       
-      // Store bot response in localStorage for admin
       const updatedChatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
       localStorage.setItem("chatMessages", JSON.stringify([...updatedChatHistory, botMessage]));
+      
+      inputRef.current?.focus();
     }, 800);
   };
 
   const handleFaqSelect = (question: string, answer: string) => {
-    // Add user question
     const userMessage: Message = {
       id: Date.now().toString(),
       text: question,
@@ -186,7 +185,6 @@ const ChatBot: React.FC = () => {
       timestamp: new Date()
     };
 
-    // Add bot answer
     const botMessage: Message = {
       id: Date.now().toString(),
       text: answer,
@@ -196,16 +194,13 @@ const ChatBot: React.FC = () => {
 
     setMessages(prev => [...prev, userMessage, botMessage]);
     
-    // Store messages in localStorage for admin
     const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
     localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage, botMessage]));
   };
 
-  // Enhanced response generation with natural language understanding capabilities
   const generateBotResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
     
-    // Analyze user intent from input text
     const isQuestion = input.includes("?") || 
                       input.startsWith("what") || 
                       input.startsWith("how") || 
@@ -237,7 +232,6 @@ const ChatBot: React.FC = () => {
                           input.includes("doesn't work") || 
                           input.includes("failed");
     
-    // Handle different conversational contexts
     if (isGreeting) {
       return "Hello! It's great to chat with you. How can I assist you with our services today?";
     }
@@ -250,7 +244,6 @@ const ChatBot: React.FC = () => {
       return "I'm sorry to hear you're experiencing issues. To help resolve this quickly, please provide more details about the problem, or I can connect you with our support team immediately.";
     }
     
-    // Check for specific service inquiries
     for (const category in botKnowledge) {
       const topicData = botKnowledge[category as keyof typeof botKnowledge];
       
@@ -259,35 +252,29 @@ const ChatBot: React.FC = () => {
       }
     }
     
-    // Check for human/agent requests
     if (input.includes("speak") || input.includes("human") || input.includes("agent") || 
         input.includes("person") || input.includes("team") || input.includes("real person")) {
       return "I'll connect you with a team member right away. Would you like to leave any additional information about your query to help them assist you better?";
     }
     
-    // Website functionality questions
     if (input.includes("website") || input.includes("site") || input.includes("page") || input.includes("navigation")) {
       return "Our website offers easy navigation to explore our services, learn about our company, contact our team, and access your dashboard. Is there a specific feature or section you're looking for? I'd be happy to guide you.";
     }
     
-    // Technical questions
     if (input.includes("load balancing") || input.includes("cdn") || input.includes("content distribution") || 
         input.includes("how does") || input.includes("technical") || input.includes("technology")) {
       return "Our technical solutions employ cutting-edge technologies to deliver reliable services. For more detailed information about our technical infrastructure, I recommend checking our Services page or I can connect you with one of our specialists who can provide in-depth explanations.";
     }
     
-    // If we can't determine the intent, offer a helpful general response
     if (isQuestion) {
       return "That's a great question. While I don't have the specific answer right now, I can help connect you with someone from our team who can provide you with accurate information. Would you like me to do that for you?";
     }
     
-    // Default response with follow-up options
     return "Thank you for your message. I'm here to help with any questions about our services, pricing, or support options. Could you provide a bit more detail about what you're looking for so I can better assist you?";
   };
 
   const ChatContent = () => (
     <div className="flex flex-col h-full">
-      {/* Chat header */}
       <div className="p-3 border-b flex justify-between items-center bg-primary text-primary-foreground">
         <h3 className="font-medium">ServexLB Support</h3>
         <Button 
@@ -300,7 +287,6 @@ const ChatBot: React.FC = () => {
         </Button>
       </div>
       
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((message) => (
           <div
@@ -345,7 +331,6 @@ const ChatBot: React.FC = () => {
           </div>
         )}
         
-        {/* FAQ section */}
         {messages.length === 1 && (
           <div className="pt-4 pb-2">
             <p className="text-sm font-medium mb-2">Frequently Asked Questions:</p>
@@ -366,14 +351,15 @@ const ChatBot: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input */}
       <form onSubmit={handleSendMessage} className="p-3 border-t flex gap-2">
         <Input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           className="flex-1"
           autoComplete="off"
+          autoFocus={isOpen}
         />
         <Button type="submit" size="icon" disabled={!input.trim()}>
           <Send className="h-4 w-4" />
@@ -382,7 +368,6 @@ const ChatBot: React.FC = () => {
     </div>
   );
 
-  // Fixed floating button component (not in Sheet)
   const FloatingButton = () => (
     <SheetTrigger asChild>
       <Button
@@ -395,7 +380,6 @@ const ChatBot: React.FC = () => {
     </SheetTrigger>
   );
 
-  // Mobile: sheet based approach for better mobile experience
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <FloatingButton />
