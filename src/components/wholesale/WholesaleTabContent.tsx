@@ -41,7 +41,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   const allProducts = React.useMemo(() => {
     try {
       // Convert services to the Product format expected by ProductCard
-      const servicesAsProducts: Product[] = services.map(service => ({
+      const servicesAsProducts = services.map(service => ({
         id: service.id,
         name: service.name,
         description: service.description,
@@ -55,19 +55,23 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         apiUrl: service.apiUrl,
         availableMonths: service.availableMonths,
         value: service.value,
-      }));
+      })) as Product[];
       
       // Make sure products have the right type
-      const typedProducts: Product[] = products.map(product => ({
+      const typedProducts = products.map(product => ({
         ...product,
         // Mark non-service products as subscription type by default
         type: product.type || "subscription" as "subscription"
-      }));
+      })) as Product[];
       
       console.log('Services count:', servicesAsProducts.length);
       console.log('Products count:', typedProducts.length);
       
-      return [...typedProducts, ...servicesAsProducts];
+      // Create a combined array of both products and services
+      const combined = [...typedProducts, ...servicesAsProducts];
+      console.log('Combined products and services count:', combined.length);
+      
+      return combined;
     } catch (error) {
       console.error('Error combining products and services:', error);
       toast.error('Error loading products');

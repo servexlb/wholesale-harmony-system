@@ -1,7 +1,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Search, Filter } from 'lucide-react';
+import { ShoppingBag, Search, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ProductCard from '@/components/ProductCard';
@@ -29,7 +29,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   useEffect(() => {
     console.log('Products in ProductsTab:', products);
     console.log('Products with type "service":', products.filter(p => p.type === 'service').length);
-    console.log('Products with type "product" or "subscription":', products.filter(p => !p.type || p.type !== 'service').length);
+    console.log('Products with type "product" or "subscription":', products.filter(p => p.type !== 'service').length);
   }, [products]);
 
   // Filter products based on search query and filters
@@ -77,8 +77,13 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     setSearchQuery('');
   };
   
-  // Determine if products or services have been passed
-  const productsCount = products.filter(p => !p.type || p.type !== 'service').length;
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+  
+  // Count products and services for display
+  const productsCount = products.filter(p => p.type !== 'service').length;
   const servicesCount = products.filter(p => p.type === 'service').length;
   
   return (
@@ -105,8 +110,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
             placeholder="Search products and services..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2"
+            className="pl-10 pr-10 py-2"
           />
+          {searchQuery && (
+            <button 
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              onClick={handleClearSearch}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <div className="flex gap-2">
           <Button 
@@ -131,7 +144,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           </Button>
           {(showServicesOnly || showProductsOnly || searchQuery) && (
             <Button variant="ghost" size="sm" onClick={handleResetFilters}>
-              Reset
+              Reset Filters
             </Button>
           )}
         </div>
