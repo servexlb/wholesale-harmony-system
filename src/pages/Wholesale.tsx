@@ -31,7 +31,8 @@ const Wholesale = () => {
     customersData,
     wholesalerCustomers,
     handleOrderPlaced,
-    handleAddCustomer
+    handleAddCustomer,
+    handleUpdateCustomer
   } = useWholesaleData(currentWholesaler);
 
   // If not authenticated, show login screen
@@ -58,6 +59,7 @@ const Wholesale = () => {
         currentWholesaler={currentWholesaler}
         handleOrderPlaced={handleOrderPlaced}
         onAddCustomer={handleAddCustomer}
+        onUpdateCustomer={handleUpdateCustomer}
       />
     </WholesaleLayout>
   );

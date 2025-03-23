@@ -82,12 +82,23 @@ export function useWholesaleData(currentWholesaler: string) {
     setCustomersData(prev => [...prev, newCustomer]);
   };
 
+  const handleUpdateCustomer = (customerId: string, updatedCustomer: Partial<Customer>) => {
+    setCustomersData(prev => 
+      prev.map(customer => 
+        customer.id === customerId 
+          ? { ...customer, ...updatedCustomer } 
+          : customer
+      )
+    );
+  };
+
   return {
     orders,
     subscriptions: filteredSubscriptions,
     customersData,
     wholesalerCustomers,
     handleOrderPlaced,
-    handleAddCustomer
+    handleAddCustomer,
+    handleUpdateCustomer
   };
 }

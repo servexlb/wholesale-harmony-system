@@ -12,6 +12,7 @@ interface CustomerTableProps {
   wholesalerId?: string;
   onPurchaseForCustomer?: (customerId: string) => void;
   onAddCustomer?: (customer: Customer) => void;
+  onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
 }
 
 const CustomerTable: React.FC<CustomerTableProps> = ({ 
@@ -19,7 +20,8 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
   customers = allCustomers,
   wholesalerId = '',
   onPurchaseForCustomer,
-  onAddCustomer
+  onAddCustomer,
+  onUpdateCustomer
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [customersList, setCustomersList] = useState<Customer[]>(customers);
@@ -36,6 +38,20 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
     // Pass the new customer to the parent component if onAddCustomer is provided
     if (onAddCustomer) {
       onAddCustomer(newCustomer);
+    }
+  };
+
+  const handleUpdateCustomer = (customerId: string, updatedCustomer: Partial<Customer>) => {
+    // Update the local state first
+    setCustomersList(prev => prev.map(customer => 
+      customer.id === customerId 
+        ? { ...customer, ...updatedCustomer } 
+        : customer
+    ));
+    
+    // Pass the update to the parent component if onUpdateCustomer is provided
+    if (onUpdateCustomer) {
+      onUpdateCustomer(customerId, updatedCustomer);
     }
   };
 
@@ -58,6 +74,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
         searchTerm={searchTerm}
         wholesalerId={wholesalerId}
         onPurchaseForCustomer={onPurchaseForCustomer}
+        onUpdateCustomer={handleUpdateCustomer}
       />
     </div>
   );

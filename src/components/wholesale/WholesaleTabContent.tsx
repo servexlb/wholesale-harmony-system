@@ -1,12 +1,11 @@
 
 import React from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { TabsContent } from '@/components/ui/tabs';
+import CustomerTable from '@/components/CustomerTable';
 import { Customer, Product } from '@/lib/data';
 import { Subscription, WholesaleOrder } from '@/lib/types';
 import ProductsTab from './ProductsTab';
-import CustomersTab from './CustomersTab';
 import SalesTab from './SalesTab';
-import StockTab from './StockTab';
 import SettingsTab from './SettingsTab';
 
 interface WholesaleTabContentProps {
@@ -18,10 +17,11 @@ interface WholesaleTabContentProps {
   subscriptions: Subscription[];
   currentWholesaler: string;
   handleOrderPlaced: (order: WholesaleOrder) => void;
-  onAddCustomer?: (customer: Customer) => void;
+  onAddCustomer: (customer: Customer) => void;
+  onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
 }
 
-const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
+const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({ 
   activeTab,
   products,
   customers,
@@ -30,62 +30,45 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   subscriptions,
   currentWholesaler,
   handleOrderPlaced,
-  onAddCustomer
+  onAddCustomer,
+  onUpdateCustomer
 }) => {
-  // Helper function to render the active tab content
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'products':
-        return (
-          <ProductsTab
-            products={products}
-            customers={wholesalerCustomers}
-            onOrderPlaced={handleOrderPlaced}
-          />
-        );
-      case 'customers':
-        return (
-          <CustomersTab
-            customers={wholesalerCustomers}
-            subscriptions={subscriptions}
-            wholesalerId={currentWholesaler}
-            onPurchaseForCustomer={(customerId) => {
-              // Dispatch a custom event to open the purchase dialog
-              const event = new CustomEvent('openPurchaseDialog', { detail: { customerId } });
-              window.dispatchEvent(event);
-            }}
-            onAddCustomer={onAddCustomer}
-          />
-        );
-      case 'sales':
-        return (
-          <SalesTab
-            orders={orders}
-            customers={wholesalerCustomers}
-          />
-        );
-      case 'stock':
-        return <StockTab subscriptions={subscriptions} />;
-      case 'settings':
-        return <SettingsTab />;
-      default:
-        return <div>Select a tab</div>;
-    }
-  };
-
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.2 }}
-      >
-        {renderTabContent()}
-      </motion.div>
-    </AnimatePresence>
+    <div className="h-full">
+      <TabsContent value="dashboard" className="h-full">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Dashboard content */}
+          <h2>Dashboard content</h2>
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="products" className="h-full">
+        <ProductsTab products={products} />
+      </TabsContent>
+      
+      <TabsContent value="customers" className="h-full">
+        <CustomerTable 
+          customers={customers} 
+          wholesalerId={currentWholesaler}
+          subscriptions={subscriptions}
+          onAddCustomer={onAddCustomer}
+          onUpdateCustomer={onUpdateCustomer}
+        />
+      </TabsContent>
+      
+      <TabsContent value="sales" className="h-full">
+        <SalesTab 
+          orders={orders}
+          customers={wholesalerCustomers}
+          products={products}
+        />
+      </TabsContent>
+      
+      <TabsContent value="settings" className="h-full">
+        <SettingsTab />
+      </TabsContent>
+    </div>
   );
 };
 
-export default React.memo(WholesaleTabContent);
+export default WholesaleTabContent;

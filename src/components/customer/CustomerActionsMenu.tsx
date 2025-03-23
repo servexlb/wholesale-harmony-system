@@ -37,12 +37,14 @@ interface CustomerActionsMenuProps {
   customerId: string;
   onPurchaseForCustomer?: (customerId: string) => void;
   customer?: Customer;
+  onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
 }
 
 const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   customerId,
   onPurchaseForCustomer,
-  customer
+  customer,
+  onUpdateCustomer
 }) => {
   const { toast } = useToast();
   
@@ -133,17 +135,17 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     e.stopPropagation();
     console.log("Edit submitted for customer:", customerId, "Updated data:", editedCustomer);
     
-    // Here you would typically call an API or update a state in a parent component
-    // For demonstration, we're just showing a toast message
+    // Call the onUpdateCustomer prop if provided
+    if (onUpdateCustomer) {
+      onUpdateCustomer(customerId, editedCustomer);
+    }
+    
     setEditSheetOpen(false);
     
     toast({
       title: "Customer updated",
       description: `Customer ${editedCustomer.name} has been updated successfully`,
     });
-    
-    // In a real application, you would pass the updated customer back to a parent component:
-    // onUpdateCustomer && onUpdateCustomer(customerId, editedCustomer);
   };
   
   // Handle input change for the edit form

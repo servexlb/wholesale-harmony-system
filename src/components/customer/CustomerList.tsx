@@ -1,69 +1,58 @@
 
 import React from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableRow 
-} from '@/components/ui/table';
 import { Customer } from '@/lib/data';
-import { Subscription } from '@/lib/types';
 import CustomerRow from './CustomerRow';
 import CustomerTableHeader from './CustomerTableHeader';
+import { Subscription } from '@/lib/types';
 
 interface CustomerListProps {
   customers: Customer[];
-  subscriptions: Subscription[];
+  subscriptions?: Subscription[];
   searchTerm: string;
-  wholesalerId: string;
+  wholesalerId?: string;
   onPurchaseForCustomer?: (customerId: string) => void;
+  onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
 }
 
-const CustomerList: React.FC<CustomerListProps> = ({ 
-  customers, 
-  subscriptions, 
-  searchTerm, 
+const CustomerList: React.FC<CustomerListProps> = ({
+  customers,
+  subscriptions = [],
+  searchTerm,
   wholesalerId,
-  onPurchaseForCustomer 
+  onPurchaseForCustomer,
+  onUpdateCustomer
 }) => {
-  const filteredCustomers = customers.filter(customer => 
-    (customer.wholesalerId === wholesalerId) && 
-    (customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm))
-  );
-
-  // Make sure the function is properly passed down
-  const handlePurchaseForCustomer = (customerId: string) => {
-    console.log("CustomerList: Handling purchase for customer", customerId);
-    if (onPurchaseForCustomer) {
-      onPurchaseForCustomer(customerId);
-    }
-  };
+  // Filter customers based on search term and wholesalerId
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = searchTerm === '' || 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (customer.company && customer.company.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesWholesaler = !wholesalerId || customer.wholesalerId === wholesalerId;
+    
+    return matchesSearch && matchesWholesaler;
+  });
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm overflow-hidden relative z-10">
-      <div className="overflow-x-auto">
-        <Table>
-          <CustomerTableHeader />
-          <TableBody>
-            {filteredCustomers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No customers found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCustomers.map((customer) => (
-                <CustomerRow 
-                  key={customer.id} 
-                  customer={customer} 
-                  subscriptions={subscriptions.filter(sub => sub.userId === customer.id)}
-                  onPurchaseForCustomer={handlePurchaseForCustomer}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
+    <div className="border rounded-md overflow-hidden">
+      <CustomerTableHeader />
+      <div className="divide-y">
+        {filteredCustomers.length > 0 ? (
+          filteredCustomers.map(customer => (
+            <CustomerRow
+              key={customer.id}
+              customer={customer}
+              subscriptions={subscriptions.filter(s => s.userId === customer.id)}
+              onPurchaseForCustomer={onPurchaseForCustomer}
+              onUpdateCustomer={onUpdateCustomer}
+            />
+          ))
+        ) : (
+          <div className="py-6 text-center text-muted-foreground">
+            No customers found
+          </div>
+        )}
       </div>
     </div>
   );
