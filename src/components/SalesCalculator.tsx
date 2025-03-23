@@ -20,20 +20,20 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
   const {
     totalSales,
     totalCustomers,
-    totalProducts,
+    totalServices,
     averageOrderValue,
     salesByCustomer,
-    salesByProduct,
+    salesByService,
     monthlySalesData
   } = useMemo(() => {
     // Initialize default values
     const result = {
       totalSales: 0,
       totalCustomers: 0,
-      totalProducts: 0,
+      totalServices: 0,
       averageOrderValue: 0,
       salesByCustomer: [] as { name: string; value: number }[],
-      salesByProduct: [] as { name: string; value: number }[],
+      salesByService: [] as { name: string; value: number }[],
       monthlySalesData: [] as { month: string; total: number }[]
     };
 
@@ -60,9 +60,9 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
     const uniqueCustomers = new Set(orders.map(order => order.customerId).filter(Boolean));
     result.totalCustomers = uniqueCustomers.size;
 
-    // Calculate unique products count
-    const uniqueProducts = new Set(orders.map(order => order.serviceId).filter(Boolean));
-    result.totalProducts = uniqueProducts.size;
+    // Calculate unique services count
+    const uniqueServices = new Set(orders.map(order => order.serviceId).filter(Boolean));
+    result.totalServices = uniqueServices.size;
 
     // Calculate average order value
     result.averageOrderValue = result.totalSales / orders.length;
@@ -93,26 +93,26 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
-    // Calculate sales by product
-    const productSales = new Map<string, number>();
+    // Calculate sales by service
+    const serviceSales = new Map<string, number>();
     orders.forEach(order => {
       if (order.serviceId) {
-        const currentTotal = productSales.get(order.serviceId) || 0;
-        productSales.set(order.serviceId, currentTotal + order.totalPrice);
+        const currentTotal = serviceSales.get(order.serviceId) || 0;
+        serviceSales.set(order.serviceId, currentTotal + order.totalPrice);
       }
     });
 
-    // Convert map to array and use product IDs as names for now
-    const productSalesArray: { name: string; value: number }[] = [];
-    productSales.forEach((value, productId) => {
-      productSalesArray.push({
-        name: productId,
+    // Convert map to array and use service IDs as names for now
+    const serviceSalesArray: { name: string; value: number }[] = [];
+    serviceSales.forEach((value, serviceId) => {
+      serviceSalesArray.push({
+        name: serviceId,
         value
       });
     });
 
     // Sort by value and take top 5
-    result.salesByProduct = productSalesArray
+    result.salesByService = serviceSalesArray
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
@@ -152,7 +152,7 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
       <SalesSummaryStats 
         totalSales={totalSales}
         totalCustomers={totalCustomers}
-        totalProducts={totalProducts}
+        totalServices={totalServices}
         averageOrderValue={averageOrderValue}
       />
 
@@ -160,7 +160,7 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
         <MonthlySalesChart monthlySalesData={monthlySalesData} />
         <SalesDistributionChart 
           salesByCustomer={salesByCustomer} 
-          salesByProduct={salesByProduct} 
+          salesByService={salesByService} 
         />
       </div>
     </motion.div>

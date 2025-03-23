@@ -28,28 +28,12 @@ export interface Service {
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge" | "giftcard" | "service";
+  type?: "subscription" | "recharge" | "service";
   availableMonths?: number[];
   apiUrl?: string;
   features?: string[];
   value?: number;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  wholesalePrice: number;
-  category: string;
-  image: string;
-  deliveryTime: string;
-  featured: boolean;
-  type?: "subscription" | "recharge" | "giftcard" | "service";
-  availableMonths?: number[];
-  apiUrl?: string;
-  value?: number;
-  minQuantity?: number; // Added minQuantity field
+  minQuantity?: number;
 }
 
 export interface Subscription {

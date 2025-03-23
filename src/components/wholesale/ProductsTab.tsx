@@ -1,10 +1,12 @@
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import ProductCard from '@/components/ProductCard';
-import { Product, Customer } from '@/lib/data';
+import ServiceCard from '@/components/ServiceCard';
+import { Customer } from '@/lib/data';
+import { Service } from '@/lib/types';
 import { WholesaleOrder } from '@/lib/types';
 import { toast } from '@/lib/toast';
 import {
@@ -16,76 +18,72 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-interface ExtendedProduct extends Product {
-  minQuantity?: number;
-}
-
-interface ProductsTabProps {
-  products: Product[];
+interface ServicesTabProps {
+  services: Service[];
   customers: Customer[];
   onOrderPlaced: (order: WholesaleOrder) => void;
 }
 
-const ProductsTab: React.FC<ProductsTabProps> = ({ 
-  products, 
+const ServicesTab: React.FC<ServicesTabProps> = ({ 
+  services, 
   customers, 
   onOrderPlaced 
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
-  const [showServicesOnly, setShowServicesOnly] = useState(false);
-  const [showProductsOnly, setShowProductsOnly] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ExtendedProduct | null>(null);
-  const [productDetailOpen, setProductDetailOpen] = useState(false);
+  const [filteredServices, setFilteredServices] = useState<Service[]>(services);
+  const [showSubscriptionsOnly, setShowSubscriptionsOnly] = useState(false);
+  const [showRechargesOnly, setShowRechargesOnly] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [serviceDetailOpen, setServiceDetailOpen] = useState(false);
 
   useEffect(() => {
-    console.log('Products in ProductsTab:', products);
-    console.log('Products with type "service":', products.filter(p => p.type === 'service').length);
-    console.log('Products with type "product" or "subscription":', products.filter(p => p.type !== 'service').length);
-  }, [products]);
+    console.log('Services in ServicesTab:', services);
+    console.log('Services with type "subscription":', services.filter(s => s.type === 'subscription').length);
+    console.log('Services with type "recharge":', services.filter(s => s.type === 'recharge').length);
+  }, [services]);
 
   useEffect(() => {
     try {
-      let filtered = [...products];
+      let filtered = [...services];
       
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(product => 
-          product.name.toLowerCase().includes(query) || 
-          (product.description && product.description.toLowerCase().includes(query))
+        filtered = filtered.filter(service => 
+          service.name.toLowerCase().includes(query) || 
+          (service.description && service.description.toLowerCase().includes(query))
         );
       }
       
-      if (showServicesOnly) {
-        filtered = filtered.filter(product => product.type === 'service');
-      } else if (showProductsOnly) {
-        filtered = filtered.filter(product => product.type !== 'service');
+      if (showSubscriptionsOnly) {
+        filtered = filtered.filter(service => service.type === 'subscription');
+      } else if (showRechargesOnly) {
+        filtered = filtered.filter(service => service.type === 'recharge');
       }
       
-      setFilteredProducts(filtered);
+      setFilteredServices(filtered);
     } catch (error) {
-      console.error('Error filtering products:', error);
-      toast.error('Error filtering products');
-      setFilteredProducts(products);
+      console.error('Error filtering services:', error);
+      toast.error('Error filtering services');
+      setFilteredServices(services);
     }
-  }, [searchQuery, products, showServicesOnly, showProductsOnly]);
+  }, [searchQuery, services, showSubscriptionsOnly, showRechargesOnly]);
 
-  const handleProductClick = useCallback((product: Product) => {
-    console.log("Product clicked:", product.name, product.id, product.type);
+  const handleServiceClick = useCallback((service: Service) => {
+    console.log("Service clicked:", service.name, service.id, service.type);
     window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
-      detail: { productId: product.id }
+      detail: { serviceId: service.id }
     }));
   }, []);
 
-  const handleViewDetails = useCallback((product: Product, e: React.MouseEvent) => {
+  const handleViewDetails = useCallback((service: Service, e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedProduct(product);
-    setProductDetailOpen(true);
+    setSelectedService(service);
+    setServiceDetailOpen(true);
   }, []);
 
   const handleResetFilters = () => {
-    setShowServicesOnly(false);
-    setShowProductsOnly(false);
+    setShowSubscriptionsOnly(false);
+    setShowRechargesOnly(false);
     setSearchQuery('');
   };
 
@@ -93,8 +91,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     setSearchQuery('');
   };
 
-  const productsCount = products.filter(p => p.type !== 'service').length;
-  const servicesCount = products.filter(p => p.type === 'service').length;
+  const subscriptionsCount = services.filter(s => s.type === 'subscription').length;
+  const rechargesCount = services.filter(s => s.type === 'recharge').length;
+  const regularServicesCount = services.filter(s => !s.type || s.type === 'service').length;
 
   return (
     <motion.div
@@ -104,7 +103,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       className="min-h-screen"
     >
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Wholesale Products</h1>
+        <h1 className="text-3xl font-bold">Wholesale Services</h1>
         <Button onClick={() => window.dispatchEvent(new CustomEvent('openPurchaseDialog'))}>
           <ShoppingBag className="mr-2 h-4 w-4" />
           Quick Purchase
@@ -116,7 +115,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search products and services..."
+            placeholder="Search services and subscriptions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 pr-10 py-2"
@@ -132,26 +131,26 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         </div>
         <div className="flex gap-2">
           <Button 
-            variant={showServicesOnly ? "default" : "outline"} 
+            variant={showSubscriptionsOnly ? "default" : "outline"} 
             size="sm"
             onClick={() => {
-              setShowServicesOnly(!showServicesOnly);
-              setShowProductsOnly(false);
+              setShowSubscriptionsOnly(!showSubscriptionsOnly);
+              setShowRechargesOnly(false);
             }}
           >
-            Services Only
+            Subscriptions Only
           </Button>
           <Button 
-            variant={showProductsOnly ? "default" : "outline"} 
+            variant={showRechargesOnly ? "default" : "outline"} 
             size="sm"
             onClick={() => {
-              setShowProductsOnly(!showProductsOnly);
-              setShowServicesOnly(false);
+              setShowRechargesOnly(!showRechargesOnly);
+              setShowSubscriptionsOnly(false);
             }}
           >
-            Products Only
+            Recharges Only
           </Button>
-          {(showServicesOnly || showProductsOnly || searchQuery) && (
+          {(showSubscriptionsOnly || showRechargesOnly || searchQuery) && (
             <Button variant="ghost" size="sm" onClick={handleResetFilters}>
               Reset Filters
             </Button>
@@ -160,13 +159,13 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       </div>
       
       <div className="mb-4">
-        <p>Showing {filteredProducts.length} items ({productsCount} products and {servicesCount} services)</p>
+        <p>Showing {filteredServices.length} items ({subscriptionsCount} subscriptions, {rechargesCount} recharges, and {regularServicesCount} regular services)</p>
       </div>
       
-      {filteredProducts.length === 0 ? (
-        searchQuery || showServicesOnly || showProductsOnly ? (
+      {filteredServices.length === 0 ? (
+        searchQuery || showSubscriptionsOnly || showRechargesOnly ? (
           <div className="text-center py-16">
-            <p className="text-gray-500">No products or services found matching your criteria</p>
+            <p className="text-gray-500">No services found matching your criteria</p>
             <Button variant="outline" className="mt-4" onClick={handleResetFilters}>
               Reset Filters
             </Button>
@@ -180,39 +179,39 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => (
+          {filteredServices.map((service) => (
             <div 
-              key={product.id} 
+              key={service.id} 
               className="cursor-pointer h-full" 
-              onClick={() => handleProductClick(product)}
+              onClick={() => handleServiceClick(service)}
               style={{ display: 'block', height: '100%' }}
             >
-              <ProductCard 
-                product={product} 
+              <ServiceCard 
+                service={service} 
                 isWholesale={true}
-                onClick={() => handleProductClick(product)}
-                onViewDetails={(e) => handleViewDetails(product, e)}
+                onClick={() => handleServiceClick(service)}
+                onViewDetails={(e) => handleViewDetails(service, e)}
               />
             </div>
           ))}
         </div>
       )}
 
-      <Dialog open={productDetailOpen} onOpenChange={setProductDetailOpen}>
-        {selectedProduct && (
+      <Dialog open={serviceDetailOpen} onOpenChange={setServiceDetailOpen}>
+        {selectedService && (
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">{selectedProduct.name}</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">{selectedService.name}</DialogTitle>
               <DialogDescription>
-                Product ID: {selectedProduct.id}
+                Service ID: {selectedService.id}
               </DialogDescription>
             </DialogHeader>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
               <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
                 <img 
-                  src={selectedProduct.image} 
-                  alt={selectedProduct.name} 
+                  src={selectedService.image} 
+                  alt={selectedService.name} 
                   className="object-cover w-full h-full"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -224,7 +223,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium mb-1">Description</h3>
-                  <p className="text-gray-600">{selectedProduct.description || "No description available."}</p>
+                  <p className="text-gray-600">{selectedService.description || "No description available."}</p>
                 </div>
                 
                 <div className="pt-2">
@@ -232,28 +231,28 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Category:</span>
-                      <span className="font-medium">{selectedProduct.category}</span>
+                      <span className="font-medium">{selectedService.categoryId}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Type:</span>
-                      <span className="font-medium capitalize">{selectedProduct.type || "Standard"}</span>
+                      <span className="font-medium capitalize">{selectedService.type || "Standard"}</span>
                     </div>
-                    {selectedProduct.deliveryTime && (
+                    {selectedService.deliveryTime && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Delivery Time:</span>
-                        <span className="font-medium">{selectedProduct.deliveryTime}</span>
+                        <span className="font-medium">{selectedService.deliveryTime}</span>
                       </div>
                     )}
-                    {selectedProduct?.minQuantity && (
+                    {selectedService?.minQuantity && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Minimum Quantity:</span>
-                        <span className="font-medium">{selectedProduct.minQuantity}</span>
+                        <span className="font-medium">{selectedService.minQuantity}</span>
                       </div>
                     )}
-                    {selectedProduct.value && (
+                    {selectedService.value && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Value:</span>
-                        <span className="font-medium">${selectedProduct.value.toFixed(2)}</span>
+                        <span className="font-medium">${selectedService.value.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -264,16 +263,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Retail Price:</span>
-                      <span className="font-medium">${selectedProduct.price.toFixed(2)}</span>
+                      <span className="font-medium">${selectedService.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Wholesale Price:</span>
-                      <span className="font-medium">${selectedProduct.wholesalePrice.toFixed(2)}</span>
+                      <span className="font-medium">${selectedService.wholesalePrice.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Profit Margin:</span>
                       <span className="font-medium">
-                        {((1 - (selectedProduct.wholesalePrice / selectedProduct.price)) * 100).toFixed(2)}%
+                        {((1 - (selectedService.wholesalePrice / selectedService.price)) * 100).toFixed(2)}%
                       </span>
                     </div>
                   </div>
@@ -282,14 +281,14 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
             </div>
             
             <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => setProductDetailOpen(false)}>
+              <Button variant="outline" onClick={() => setServiceDetailOpen(false)}>
                 Close
               </Button>
               <Button 
                 onClick={() => {
-                  setProductDetailOpen(false);
+                  setServiceDetailOpen(false);
                   window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
-                    detail: { productId: selectedProduct.id }
+                    detail: { serviceId: selectedService.id }
                   }));
                 }}
               >
@@ -304,4 +303,4 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   );
 };
 
-export default ProductsTab;
+export default ServicesTab;

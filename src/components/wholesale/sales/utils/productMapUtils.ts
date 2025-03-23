@@ -2,24 +2,14 @@
 import { products } from '@/lib/data';
 import { services } from '@/lib/mockData';
 
-// Create a memoized product/service lookup map for better performance
-export const createProductMap = () => {
-  const productMap = new Map();
+// Create a memoized service lookup map for better performance
+export const createServiceMap = () => {
+  const serviceMap = new Map();
   
-  // Add products to map
-  products.forEach(product => {
-    productMap.set(product.id, {
-      id: product.id,
-      name: product.name,
-      type: product.type || 'product',
-      price: product.wholesalePrice
-    });
-  });
-  
-  // Add services to map if they exist
+  // Add services to map
   if (services && Array.isArray(services)) {
     services.forEach(service => {
-      productMap.set(service.id, {
+      serviceMap.set(service.id, {
         id: service.id,
         name: service.name,
         type: service.type || 'service',
@@ -29,36 +19,35 @@ export const createProductMap = () => {
   }
   
   // If map is empty, add fallback items to prevent errors
-  if (productMap.size === 0) {
-    // Add fallback products to ensure the UI doesn't break
-    products.forEach(product => {
-      productMap.set(product.id, {
-        id: product.id,
-        name: product.name,
-        type: product.type || 'product',
-        price: product.wholesalePrice
-      });
+  if (serviceMap.size === 0) {
+    console.warn('No services found in the system');
+    // Add a dummy service to prevent UI errors
+    serviceMap.set('service-fallback', {
+      id: 'service-fallback',
+      name: 'Unknown Service',
+      type: 'service',
+      price: 0
     });
   }
   
-  return productMap;
+  return serviceMap;
 };
 
-// Helper function to get a product by ID, with fallback handling
-export const getProductById = (productMap, productId) => {
-  if (!productId) return null;
+// Helper function to get a service by ID, with fallback handling
+export const getServiceById = (serviceMap, serviceId) => {
+  if (!serviceId) return null;
   
-  const product = productMap.get(productId);
+  const service = serviceMap.get(serviceId);
   
-  if (!product) {
-    console.warn(`Product not found for ID: ${productId}`);
+  if (!service) {
+    console.warn(`Service not found for ID: ${serviceId}`);
     return {
-      id: productId,
-      name: 'Unknown Product',
-      type: 'product',
+      id: serviceId,
+      name: 'Unknown Service',
+      type: 'service',
       price: 0
     };
   }
   
-  return product;
+  return service;
 };

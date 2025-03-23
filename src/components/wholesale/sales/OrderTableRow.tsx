@@ -8,18 +8,18 @@ import { WholesaleOrder } from '@/lib/types';
 interface OrderTableRowProps {
   order: WholesaleOrder;
   customer: Customer | undefined;
-  product: { id: string, name: string, type?: string } | undefined;
+  service: { id: string, name: string, type?: string } | undefined;
 }
 
-const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, product }) => {
+const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service }) => {
   return (
     <TableRow>
       <TableCell className="font-mono text-xs">{order.id}</TableCell>
       <TableCell>{customer?.name || "Unknown"}</TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          {product?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
-          {product?.name || "Unknown Product"}
+          {service?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
+          {service?.name || "Unknown Service"}
         </div>
       </TableCell>
       <TableCell>{order.quantity}</TableCell>

@@ -85,7 +85,7 @@ const SalesTab: React.FC<SalesTabProps> = ({
         OrderID: order.id,
         Date: new Date(order.createdAt).toLocaleString(),
         Customer: customer?.name || 'Unknown',
-        Product: order.serviceId || 'Unknown',
+        Service: order.serviceId || 'Unknown',
         Quantity: order.quantity || 1,
         Price: `$${order.totalPrice.toFixed(2)}`,
         Status: order.status || 'Completed'
