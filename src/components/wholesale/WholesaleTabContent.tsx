@@ -8,6 +8,7 @@ import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
 import { services } from '@/lib/mockData';
+import { toast } from '@/lib/toast';
 
 interface WholesaleTabContentProps {
   activeTab: string;
@@ -38,34 +39,40 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
 }) => {
   // Combine products and services for the ProductsTab
   const allProducts = React.useMemo(() => {
-    // Convert services to the Product format expected by ProductCard
-    const servicesAsProducts: Product[] = services.map(service => ({
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
-      image: service.image || '/placeholder.svg', // Fallback image
-      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      featured: service.featured || false,
-      type: 'service' as const, // Use 'as const' to narrow the type
-      deliveryTime: service.deliveryTime || "",
-      apiUrl: service.apiUrl,
-      availableMonths: service.availableMonths,
-      value: service.value,
-    }));
-    
-    // Make sure products have the right type
-    const typedProducts: Product[] = products.map(product => ({
-      ...product,
-      // Mark non-service products as subscription type by default
-      type: product.type || 'subscription' as const
-    }));
-    
-    console.log('Services count:', servicesAsProducts.length);
-    console.log('Products count:', typedProducts.length);
-    
-    return [...typedProducts, ...servicesAsProducts];
+    try {
+      // Convert services to the Product format expected by ProductCard
+      const servicesAsProducts: Product[] = services.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        price: service.price,
+        wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
+        image: service.image || '/placeholder.svg', // Fallback image
+        category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+        featured: service.featured || false,
+        type: "service" as "service", // Use explicit type assertion
+        deliveryTime: service.deliveryTime || "",
+        apiUrl: service.apiUrl,
+        availableMonths: service.availableMonths,
+        value: service.value,
+      }));
+      
+      // Make sure products have the right type
+      const typedProducts: Product[] = products.map(product => ({
+        ...product,
+        // Mark non-service products as subscription type by default
+        type: product.type || "subscription" as "subscription"
+      }));
+      
+      console.log('Services count:', servicesAsProducts.length);
+      console.log('Products count:', typedProducts.length);
+      
+      return [...typedProducts, ...servicesAsProducts];
+    } catch (error) {
+      console.error('Error combining products and services:', error);
+      toast.error('Error loading products');
+      return products;
+    }
   }, [products]);
 
   return (
