@@ -12,7 +12,7 @@ import AdminChatInterface from "@/components/admin/AdminChatInterface";
 interface ChatMessage {
   id: string;
   text: string;
-  sender: "user" | "bot";
+  sender: "user" | "bot" | "admin";
   timestamp: Date;
   responded?: boolean;
   response?: string;
@@ -44,13 +44,25 @@ const AdminChatMessages: React.FC = () => {
       return;
     }
 
+    // Create admin response message
+    const adminResponse: ChatMessage = {
+      id: Date.now().toString(),
+      text: responses[id],
+      sender: "admin",
+      timestamp: new Date()
+    };
+
     // Update the message with a response
     const updatedMessages = messages.map(msg => 
       msg.id === id ? { ...msg, responded: true, response: responses[id] } : msg
     );
     
     setMessages(updatedMessages);
-    localStorage.setItem("chatMessages", JSON.stringify(updatedMessages));
+    
+    // Add the admin response to chat history
+    const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
+    const updatedChatHistory = [...chatHistory, adminResponse];
+    localStorage.setItem("chatMessages", JSON.stringify(updatedChatHistory));
     
     toast.success("Response sent to customer");
     

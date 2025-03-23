@@ -14,7 +14,7 @@ interface ChatSession {
   messages: Message[];
   active: boolean;
   timestamp: Date;
-  agentId?: string;
+  agentJoined?: boolean;
 }
 
 interface Message {
@@ -24,53 +24,61 @@ interface Message {
   timestamp: Date;
 }
 
-const mockChatSessions: ChatSession[] = [
-  {
-    id: "session-1",
-    userId: "user-123",
-    active: true,
-    timestamp: new Date(),
-    messages: [
-      {
-        id: "msg-1",
-        text: "I'm having trouble with my streaming subscription",
-        sender: "user",
-        timestamp: new Date(Date.now() - 300000)
-      },
-      {
-        id: "msg-2",
-        text: "I would like to speak with a live support agent.",
-        sender: "user",
-        timestamp: new Date(Date.now() - 120000)
-      },
-      {
-        id: "msg-3",
-        text: "Connecting you with a live support agent. Please wait a moment while we transfer you to the next available representative.",
-        sender: "bot",
-        timestamp: new Date(Date.now() - 115000)
-      }
-    ]
-  }
-];
-
 const AdminChatInterface: React.FC = () => {
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>(mockChatSessions);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [response, setResponse] = useState("");
   const [joined, setJoined] = useState(false);
 
+  // Load chat sessions from localStorage
+  useEffect(() => {
+    const loadSessions = () => {
+      const sessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+      if (sessions.length > 0) {
+        setChatSessions(sessions);
+      }
+    };
+
+    loadSessions();
+
+    // Set up an interval to check for new sessions
+    const interval = setInterval(loadSessions, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Set up interval to check for new messages in the current session
+  useEffect(() => {
+    if (currentSession) {
+      const checkForNewMessages = setInterval(() => {
+        const sessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+        const updatedSession = sessions.find((s: ChatSession) => s.id === currentSession.id);
+        
+        if (updatedSession && updatedSession.messages.length > currentSession.messages.length) {
+          setCurrentSession(updatedSession);
+        }
+      }, 2000);
+      
+      return () => clearInterval(checkForNewMessages);
+    }
+  }, [currentSession]);
+
   const handleJoinChat = (sessionId: string) => {
-    const updatedSessions = chatSessions.map(session => 
-      session.id === sessionId ? { ...session, agentId: "admin-1" } : session
-    );
+    const sessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+    const sessionIndex = sessions.findIndex((s: ChatSession) => s.id === sessionId);
     
-    setChatSessions(updatedSessions);
-    setCurrentSession(updatedSessions.find(s => s.id === sessionId) || null);
-    setJoined(true);
-    
-    toast.success("You've joined the chat session", {
-      description: "The customer has been notified that you've joined.",
-    });
+    if (sessionIndex !== -1) {
+      // Mark the session as joined by an agent
+      sessions[sessionIndex].agentJoined = true;
+      localStorage.setItem("adminChatSessions", JSON.stringify(sessions));
+      
+      setCurrentSession(sessions[sessionIndex]);
+      setChatSessions(sessions);
+      setJoined(true);
+      
+      toast.success("You've joined the chat session", {
+        description: "The customer has been notified that you've joined.",
+      });
+    }
   };
 
   const handleSendMessage = () => {
@@ -83,16 +91,24 @@ const AdminChatInterface: React.FC = () => {
       timestamp: new Date()
     };
     
+    // Update the local state
     const updatedSession = {
       ...currentSession,
       messages: [...currentSession.messages, newMessage]
     };
     
-    setChatSessions(prev => 
-      prev.map(session => session.id === currentSession.id ? updatedSession : session)
-    );
-    
     setCurrentSession(updatedSession);
+    
+    // Update the localStorage
+    const sessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+    const sessionIndex = sessions.findIndex((s: ChatSession) => s.id === currentSession.id);
+    
+    if (sessionIndex !== -1) {
+      sessions[sessionIndex] = updatedSession;
+      localStorage.setItem("adminChatSessions", JSON.stringify(sessions));
+      setChatSessions(sessions);
+    }
+    
     setResponse("");
   };
 
@@ -126,33 +142,35 @@ const AdminChatInterface: React.FC = () => {
           <h3 className="text-lg font-medium">Waiting for Support</h3>
           
           {chatSessions.map(session => (
-            <Card key={session.id} className={session.agentId ? "border-green-500" : "border-yellow-500"}>
+            <Card key={session.id} className={session.agentJoined ? "border-green-500" : "border-yellow-500"}>
               <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-base flex items-center gap-2">
                     <User className="h-4 w-4" />
                     <span>User {session.userId.split('-')[1]}</span>
                   </CardTitle>
-                  <Badge variant={session.agentId ? "outline" : "secondary"}>
-                    {session.agentId ? "Joined" : "Waiting"}
+                  <Badge variant={session.agentJoined ? "outline" : "secondary"}>
+                    {session.agentJoined ? "Joined" : "Waiting"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Started {formatDate(session.timestamp)}
+                  Started {formatDate(new Date(session.timestamp))}
                 </p>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-sm line-clamp-2 mb-3">
-                  {session.messages[session.messages.length - 2]?.text}
+                  {session.messages[session.messages.length - 2]?.text || "New support request"}
                 </p>
                 <Button 
-                  variant={session.agentId ? "outline" : "default"}
+                  variant={session.agentJoined ? "outline" : "default"}
                   size="sm" 
                   className="w-full"
                   onClick={() => handleJoinChat(session.id)}
-                  disabled={!!session.agentId}
+                  disabled={session.agentJoined && currentSession?.id !== session.id}
                 >
-                  {session.agentId ? "Already Joined" : "Join Chat"}
+                  {session.agentJoined ? (
+                    currentSession?.id === session.id ? "Currently Active" : "Already Joined"
+                  ) : "Join Chat"}
                 </Button>
               </CardContent>
             </Card>
@@ -253,3 +271,4 @@ const AdminChatInterface: React.FC = () => {
 };
 
 export default AdminChatInterface;
+

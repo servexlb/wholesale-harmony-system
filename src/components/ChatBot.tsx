@@ -125,6 +125,7 @@ const ChatBot: React.FC = () => {
   const [adminJoined, setAdminJoined] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sessionIdRef = useRef<string>(Date.now().toString());
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -156,29 +157,36 @@ const ChatBot: React.FC = () => {
     }
   }, [isOpen, isTyping, messages]);
 
-  // Simulate admin joining after some time
+  // Check localStorage for admin join status
   useEffect(() => {
     if (liveSupportRequested) {
-      // Simulate admin joining after 5 seconds
-      const timeout = setTimeout(() => {
-        setAdminJoined(true);
+      const checkAdminJoined = setInterval(() => {
+        const chatSessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+        const currentSession = chatSessions.find(
+          (session: any) => session.id === sessionIdRef.current
+        );
         
-        const adminMessage: Message = {
-          id: Date.now().toString(),
-          text: "Hi, this is Sarah from customer support. I'm here to help you. How can I assist you today?",
-          sender: "admin",
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, adminMessage]);
-        
-        toast.success("Support agent has joined the chat!", {
-          description: "Sarah is now available to assist you.",
-        });
-        
-      }, 5000);
+        if (currentSession?.agentJoined) {
+          setAdminJoined(true);
+          
+          const adminMessage: Message = {
+            id: Date.now().toString(),
+            text: "Hi, this is a support agent from ServexLB. I'm here to help you with your inquiry. How can I assist you today?",
+            sender: "admin",
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, adminMessage]);
+          
+          toast.success("Support agent has joined the chat!", {
+            description: "A live agent is now available to assist you.",
+          });
+          
+          clearInterval(checkAdminJoined);
+        }
+      }, 2000);
       
-      return () => clearTimeout(timeout);
+      return () => clearInterval(checkAdminJoined);
     }
   }, [liveSupportRequested]);
 
@@ -199,11 +207,29 @@ const ChatBot: React.FC = () => {
     setIsTyping(true);
     setShowFaq(false);
 
+    // Save to localStorage for regular chat history
     const chatHistory = JSON.parse(localStorage.getItem("chatMessages") || "[]");
     localStorage.setItem("chatMessages", JSON.stringify([...chatHistory, userMessage]));
 
+    // If in live support mode, also add to admin chat sessions
+    if (liveSupportRequested) {
+      const adminChatSessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+      const sessionIndex = adminChatSessions.findIndex(
+        (session: any) => session.id === sessionIdRef.current
+      );
+      
+      if (sessionIndex >= 0) {
+        adminChatSessions[sessionIndex].messages.push(userMessage);
+        localStorage.setItem("adminChatSessions", JSON.stringify(adminChatSessions));
+      }
+      
+      setIsTyping(false);
+      inputRef.current?.focus();
+      return;
+    }
+
     setTimeout(() => {
-      // Only generate bot response if not in live support mode with admin
+      // Only generate bot response if not in live support mode
       if (!liveSupportRequested) {
         const botResponse = generateBotResponse(input);
         const botMessage: Message = {
@@ -277,6 +303,19 @@ const ChatBot: React.FC = () => {
     setMessages(prev => [...prev, userMessage, botMessage]);
     setShowFaq(false);
     setLiveSupportRequested(true);
+    
+    // Create a new chat session in localStorage for admin to pick up
+    const newSession = {
+      id: sessionIdRef.current,
+      userId: `user-${Math.floor(Math.random() * 1000)}`,
+      active: true,
+      agentJoined: false,
+      timestamp: new Date(),
+      messages: [...messages, userMessage, botMessage]
+    };
+    
+    const existingSessions = JSON.parse(localStorage.getItem("adminChatSessions") || "[]");
+    localStorage.setItem("adminChatSessions", JSON.stringify([...existingSessions, newSession]));
     
     toast.success("Live support request sent!", {
       description: "Our team will be with you shortly.",
@@ -504,3 +543,4 @@ const ChatBot: React.FC = () => {
 };
 
 export default ChatBot;
+
