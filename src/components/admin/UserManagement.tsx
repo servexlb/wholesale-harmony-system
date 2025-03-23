@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Table, 
@@ -17,7 +18,10 @@ import {
   Ban, 
   User as UserIcon,
   Mail,
-  AlertTriangle
+  AlertTriangle,
+  Wallet,
+  Plus,
+  Minus
 } from "lucide-react";
 import { 
   AlertDialog, 
@@ -29,6 +33,15 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface User {
   id: string;
@@ -36,6 +49,7 @@ interface User {
   name: string;
   registrationDate: string;
   isActive: boolean;
+  balance: number;
 }
 
 const UserManagement: React.FC = () => {
@@ -44,31 +58,42 @@ const UserManagement: React.FC = () => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showBalanceDialog, setShowBalanceDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [balanceAmount, setBalanceAmount] = useState<number>(0);
+  const [balanceAction, setBalanceAction] = useState<"add" | "remove">("add");
 
   // Get user data from localStorage
   useEffect(() => {
     const loadUsers = () => {
       const usersList: User[] = [];
       const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
-      const userIds = Object.values(userEmailToId) as string[]; // Cast to string[] to fix type error
+      const userIds = Object.values(userEmailToId) as string[];
       const registeredUsers = JSON.parse(localStorage.getItem('users') || '[]');
       
       registeredUsers.forEach((user: any, index: number) => {
         const userId = userIds[index] || `unknown_${index}`;
         const userProfileData = localStorage.getItem(`userProfile_${userId}`);
+        const userBalanceData = localStorage.getItem(`userBalance_${userId}`);
         let name = "Unknown";
+        let balance = 0;
         
         if (userProfileData) {
           const profile = JSON.parse(userProfileData);
           name = profile.name || "Unknown";
         }
         
+        if (userBalanceData) {
+          balance = parseFloat(userBalanceData);
+        }
+        
         usersList.push({
           id: userId,
           email: user.email,
           name: name,
-          registrationDate: new Date().toISOString(), // In a real app, this would be stored
-          isActive: true
+          registrationDate: new Date().toISOString(),
+          isActive: true,
+          balance: balance
         });
       });
       
@@ -146,6 +171,47 @@ const UserManagement: React.FC = () => {
     toast.success(`User ${user.email} has been ${user.isActive ? 'deactivated' : 'activated'}`);
   };
 
+  const openBalanceDialog = (user: User, action: "add" | "remove") => {
+    setSelectedUser(user);
+    setBalanceAction(action);
+    setBalanceAmount(0);
+    setShowBalanceDialog(true);
+  };
+
+  const handleBalanceUpdate = () => {
+    if (!selectedUser || balanceAmount <= 0) return;
+    
+    const updatedUsers = users.map(user => {
+      if (user.id === selectedUser.id) {
+        const newBalance = balanceAction === "add" 
+          ? user.balance + balanceAmount 
+          : Math.max(0, user.balance - balanceAmount);
+        
+        // Update balance in localStorage
+        localStorage.setItem(`userBalance_${user.id}`, newBalance.toString());
+        
+        return { ...user, balance: newBalance };
+      }
+      return user;
+    });
+    
+    setUsers(updatedUsers);
+    setFilteredUsers(updatedUsers.filter(u => 
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ));
+    
+    toast.success(
+      balanceAction === "add"
+        ? `Added $${balanceAmount.toFixed(2)} to ${selectedUser.name}'s balance`
+        : `Removed $${balanceAmount.toFixed(2)} from ${selectedUser.name}'s balance`
+    );
+    
+    setShowBalanceDialog(false);
+    setSelectedUser(null);
+    setBalanceAmount(0);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -178,6 +244,7 @@ const UserManagement: React.FC = () => {
                     <TableHead>User</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Registration Date</TableHead>
+                    <TableHead>Balance</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -196,6 +263,10 @@ const UserManagement: React.FC = () => {
                       <TableCell>
                         {new Date(user.registrationDate).toLocaleDateString()}
                       </TableCell>
+                      <TableCell className="flex items-center gap-1">
+                        <Wallet className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">${user.balance.toFixed(2)}</span>
+                      </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           user.isActive 
@@ -207,6 +278,23 @@ const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openBalanceDialog(user, "add")}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Funds
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openBalanceDialog(user, "remove")}
+                            disabled={user.balance <= 0}
+                          >
+                            <Minus className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -251,6 +339,69 @@ const UserManagement: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Balance Management Dialog */}
+      <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {balanceAction === "add" ? "Add Funds" : "Remove Funds"}
+            </DialogTitle>
+            <DialogDescription>
+              {balanceAction === "add" 
+                ? "Add funds to the user's account balance" 
+                : "Remove funds from the user's account balance"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">{selectedUser.name}</div>
+                <div className="text-sm text-muted-foreground">{selectedUser.email}</div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm">Current Balance:</div>
+                <div className="font-medium">${selectedUser.balance.toFixed(2)}</div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input 
+                  id="amount" 
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={balanceAmount || ''}
+                  onChange={(e) => setBalanceAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="Enter amount"
+                />
+                
+                {balanceAction === "remove" && balanceAmount > selectedUser.balance && (
+                  <p className="text-sm text-red-500">
+                    Cannot remove more than the current balance (${selectedUser.balance.toFixed(2)})
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowBalanceDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBalanceUpdate}
+              disabled={!balanceAmount || balanceAmount <= 0 || (balanceAction === "remove" && selectedUser && balanceAmount > selectedUser.balance)}
+            >
+              {balanceAction === "add" ? "Add Funds" : "Remove Funds"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
