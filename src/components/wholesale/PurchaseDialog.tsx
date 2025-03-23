@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -215,23 +214,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               {isSubscription ? (
                 <div>
                   <label className="text-sm font-medium mb-1 block">Duration</label>
-                  <Select 
-                    value={selectedDuration} 
-                    onValueChange={setSelectedDuration}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent 
-                      className="bg-background border border-border shadow-md z-[100] w-full" 
-                      position="item-aligned"
-                    >
-                      <SelectItem value="1">1 month</SelectItem>
-                      <SelectItem value="3">3 months</SelectItem>
-                      <SelectItem value="6">6 months</SelectItem>
-                      <SelectItem value="12">12 months</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2 flex-wrap">
+                    {["1", "3", "6", "12"].map((duration) => (
+                      <Button 
+                        key={duration}
+                        type="button"
+                        variant={selectedDuration === duration ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedDuration(duration)}
+                        className="flex-1 min-w-[70px]"
+                      >
+                        {duration} {parseInt(duration) === 1 ? 'month' : 'months'}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -319,3 +315,4 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 };
 
 export default PurchaseDialog;
+
