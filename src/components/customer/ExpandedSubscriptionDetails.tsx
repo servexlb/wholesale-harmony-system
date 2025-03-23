@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Calendar, Key } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Subscription } from '@/lib/types';
@@ -16,11 +16,29 @@ const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = 
   subscriptions,
   customerId
 }) => {
+  // Filter and validate subscriptions
+  const validSubscriptions = useMemo(() => {
+    return subscriptions.filter(sub => 
+      sub && sub.id && sub.serviceId && sub.endDate
+    );
+  }, [subscriptions]);
+
+  if (validSubscriptions.length === 0) {
+    return (
+      <div className="p-4">
+        <h4 className="font-medium mb-2">Subscription Details</h4>
+        <div className="p-4 bg-muted/30 rounded-md text-center">
+          <p className="text-muted-foreground">No active subscriptions</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
       <h4 className="font-medium mb-2">Subscription Details</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {subscriptions.map((sub) => {
+        {validSubscriptions.map((sub) => {
           try {
             const product = products.find(p => p.id === sub.serviceId);
             

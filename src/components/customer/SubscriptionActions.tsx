@@ -19,10 +19,15 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
   hasCredentials
 }) => {
   const handleFixProfile = async () => {
-    const customer = getCustomerById(customerId);
-    const product = getProductById(serviceId);
-    
-    if (customer && product) {
+    try {
+      const customer = getCustomerById(customerId);
+      const product = getProductById(serviceId);
+      
+      if (!customer || !product) {
+        toast.error("Customer or product not found");
+        return;
+      }
+      
       await fixSubscriptionProfile(
         subscriptionId, 
         customerId, 
@@ -33,14 +38,22 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
       toast.success("Profile fix request submitted", {
         description: "Our team will review and fix the profile within 24 hours."
       });
+    } catch (error) {
+      console.error('Error fixing profile:', error);
+      toast.error("Failed to submit profile fix request");
     }
   };
 
   const handleFixPayment = async () => {
-    const customer = getCustomerById(customerId);
-    const product = getProductById(serviceId);
-    
-    if (customer && product) {
+    try {
+      const customer = getCustomerById(customerId);
+      const product = getProductById(serviceId);
+      
+      if (!customer || !product) {
+        toast.error("Customer or product not found");
+        return;
+      }
+      
       await reportPaymentIssue(
         subscriptionId, 
         customerId, 
@@ -51,14 +64,22 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
       toast.success("Payment issue reported", {
         description: "Our team will contact you shortly to resolve the payment issue."
       });
+    } catch (error) {
+      console.error('Error reporting payment issue:', error);
+      toast.error("Failed to report payment issue");
     }
   };
 
   const handlePasswordReset = async () => {
-    const customer = getCustomerById(customerId);
-    const product = getProductById(serviceId);
-    
-    if (customer && product) {
+    try {
+      const customer = getCustomerById(customerId);
+      const product = getProductById(serviceId);
+      
+      if (!customer || !product) {
+        toast.error("Customer or product not found");
+        return;
+      }
+      
       await reportPasswordIssue(
         subscriptionId, 
         customerId, 
@@ -69,6 +90,9 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
       toast.success("Password reset requested", {
         description: "Our team will reset the password and provide new credentials soon."
       });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error("Failed to request password reset");
     }
   };
 
@@ -100,7 +124,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
       </Button>
       {hasCredentials && (
         <Button 
-          size="sm" 
+          size="sm"
           variant="outline" 
           className="flex items-center gap-1"
           onClick={(e) => {

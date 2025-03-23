@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import StockSubscriptions from '@/components/StockSubscriptions';
 import { Subscription } from '@/lib/types';
@@ -15,18 +15,51 @@ interface StockTabProps {
 const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
   const navigate = useNavigate();
   const [renewedSubscriptions, setRenewedSubscriptions] = useState<string[]>([]);
+  const [safeSubscriptions, setSafeSubscriptions] = useState<Subscription[]>([]);
 
   // Get current wholesaler ID
   const wholesalerId = localStorage.getItem('wholesalerId') || '';
   
+  useEffect(() => {
+    try {
+      // Filter out any potentially problematic subscriptions
+      const validSubs = subscriptions.filter(sub => {
+        // Ensure subscription has all required properties
+        return (
+          sub && 
+          sub.id && 
+          sub.userId && 
+          sub.serviceId && 
+          sub.startDate && 
+          sub.endDate
+        );
+      });
+      
+      setSafeSubscriptions(validSubs);
+    } catch (error) {
+      console.error('Error processing subscriptions:', error);
+      setSafeSubscriptions([]);
+    }
+  }, [subscriptions]);
+  
   // Get wholesaler balance from localStorage
   const getUserBalance = useCallback(() => {
-    const userBalanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
-    return userBalanceStr ? parseFloat(userBalanceStr) : 0;
+    try {
+      const userBalanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
+      return userBalanceStr ? parseFloat(userBalanceStr) : 0;
+    } catch (error) {
+      console.error('Error getting user balance:', error);
+      return 0;
+    }
   }, [wholesalerId]);
 
   const handleRenewal = useCallback((subscription: Subscription) => {
     try {
+      if (!subscription || !subscription.id || !subscription.serviceId) {
+        toast.error("Invalid subscription data");
+        return;
+      }
+      
       const product = products.find(p => p.id === subscription.serviceId);
       
       if (!product) {
@@ -89,12 +122,18 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         )}
       </div>
 
-      <StockSubscriptions 
-        subscriptions={subscriptions}
-        allowRenewal={true}
-        onRenew={handleRenewal}
-        renewedSubscriptions={renewedSubscriptions}
-      />
+      {safeSubscriptions.length > 0 ? (
+        <StockSubscriptions 
+          subscriptions={safeSubscriptions}
+          allowRenewal={true}
+          onRenew={handleRenewal}
+          renewedSubscriptions={renewedSubscriptions}
+        />
+      ) : (
+        <div className="text-center p-6 bg-muted/30 rounded-lg">
+          <p className="text-muted-foreground">No active subscriptions found</p>
+        </div>
+      )}
     </motion.div>
   );
 };
