@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Briefcase, Settings, User, ShoppingBag, MessageCircle, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Briefcase, Settings, User, ShoppingBag, MessageCircle, LogOut, LogIn } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 interface NavigationLinksProps {
   isAdminAuthenticated: boolean;
@@ -10,13 +10,27 @@ interface NavigationLinksProps {
 
 const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isWholesaleAuthenticated, setIsWholesaleAuthenticated] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
-    // Check if user is logged in
-    const userId = localStorage.getItem('currentUserId');
-    const wholesalerAuth = localStorage.getItem('wholesaleAuthenticated');
+    const checkAuth = () => {
+      const userId = localStorage.getItem('currentUserId');
+      const wholesalerAuth = localStorage.getItem('wholesaleAuthenticated');
+      
+      setIsAuthenticated(!!(userId));
+      setIsWholesaleAuthenticated(wholesalerAuth === 'true');
+    };
+
+    checkAuth();
     
-    setIsAuthenticated(!!(userId || wholesalerAuth === 'true'));
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('authStateChanged', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('authStateChanged', checkAuth);
+    };
   }, []);
 
   const handleWhatsAppRedirect = () => {
@@ -24,8 +38,24 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated 
   };
 
   const handleLogout = () => {
+    const userId = localStorage.getItem('currentUserId');
+    
     localStorage.removeItem('currentUserId');
-    window.location.href = '/';
+    
+    if (userId) {
+      localStorage.removeItem(`userBalance_${userId}`);
+      localStorage.removeItem(`userProfile_${userId}`);
+      localStorage.removeItem(`transactionHistory_${userId}`);
+      localStorage.removeItem(`customerOrders_${userId}`);
+    }
+    
+    window.dispatchEvent(new Event('authStateChanged'));
+    
+    toast({
+      description: "You have been signed out successfully.",
+    });
+    
+    navigate('/login?logout=true');
   };
 
   return (
@@ -40,12 +70,23 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated 
         <MessageCircle className="h-5 w-5" />
       </Button>
       
-      <Link to="/wholesale">
-        <Button variant="outline" size="sm" className="flex gap-2 items-center">
-          <Briefcase className="h-4 w-4" />
-          <span>Wholesale</span>
-        </Button>
-      </Link>
+      {isWholesaleAuthenticated ? (
+        <>
+          <Link to="/wholesale">
+            <Button variant="outline" size="sm" className="flex gap-2 items-center">
+              <Briefcase className="h-4 w-4" />
+              <span>Wholesale Portal</span>
+            </Button>
+          </Link>
+        </>
+      ) : (
+        <Link to="/wholesale">
+          <Button variant="outline" size="sm" className="flex gap-2 items-center">
+            <Briefcase className="h-4 w-4" />
+            <span>Wholesale</span>
+          </Button>
+        </Link>
+      )}
       
       {isAdminAuthenticated ? (
         <Link to="/admin">
@@ -64,12 +105,21 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({ isAdminAuthenticated 
               <span>Account</span>
             </Button>
           </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex gap-2 items-center"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
         </>
       ) : (
         <>
           <Link to="/login">
             <Button variant="outline" size="sm" className="flex gap-2 items-center">
-              <User className="h-4 w-4" />
+              <LogIn className="h-4 w-4" />
               <span>Login</span>
             </Button>
           </Link>

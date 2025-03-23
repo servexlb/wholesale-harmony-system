@@ -1,9 +1,18 @@
-
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Search } from 'lucide-react';
-import { Input } from "@/components/ui/input";
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { 
+  Home, 
+  User, 
+  ShoppingBag, 
+  Settings, 
+  Briefcase, 
+  MessageCircle, 
+  LogOut,
+  LogIn
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from "@/hooks/use-toast";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -11,90 +20,163 @@ interface MobileMenuProps {
   isAdminAuthenticated: boolean;
 }
 
-const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, isAdminAuthenticated }) => {
-  const location = useLocation();
+const MobileMenu: React.FC<MobileMenuProps> = ({ 
+  isOpen, 
+  onClose,
+  isAdminAuthenticated
+}) => {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isWholesaleAuthenticated, setIsWholesaleAuthenticated] = useState(false);
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  useEffect(() => {
+    const checkAuth = () => {
+      const userId = localStorage.getItem('currentUserId');
+      const wholesalerAuth = localStorage.getItem('wholesaleAuthenticated');
+      
+      setIsAuthenticated(!!(userId));
+      setIsWholesaleAuthenticated(wholesalerAuth === 'true');
+    };
+
+    checkAuth();
+    
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('authStateChanged', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('authStateChanged', checkAuth);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    const userId = localStorage.getItem('currentUserId');
+    
+    localStorage.removeItem('currentUserId');
+    
+    if (userId) {
+      localStorage.removeItem(`userBalance_${userId}`);
+      localStorage.removeItem(`userProfile_${userId}`);
+      localStorage.removeItem(`transactionHistory_${userId}`);
+      localStorage.removeItem(`customerOrders_${userId}`);
+    }
+    
+    window.dispatchEvent(new Event('authStateChanged'));
+    
+    toast({
+      description: "You have been signed out successfully.",
+    });
+    
+    onClose();
+    navigate('/login?logout=true');
   };
 
-  if (!isOpen) return null;
+  const handleWhatsAppRedirect = () => {
+    window.open(`https://wa.me/96178991908`, '_blank');
+    onClose();
+  };
 
   return (
-    <div className="md:hidden absolute top-full left-0 right-0 bg-background shadow-md animate-fade-in">
-      <div className="p-4 relative">
-        <Input
-          type="search"
-          placeholder="Search for services..."
-          className="pl-10 pr-4 py-2 w-full mb-4"
-        />
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-      </div>
-      <nav className="flex flex-col p-4 space-y-2">
-        <Link 
-          to="/" 
-          className={cn(
-            "px-3 py-2 rounded-md text-base font-medium transition-colors",
-            isActive('/') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-          )}
-          onClick={onClose}
-        >
-          Home
-        </Link>
-        <Link 
-          to="/services" 
-          className={cn(
-            "px-3 py-2 rounded-md text-base font-medium transition-colors",
-            isActive('/services') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-          )}
-          onClick={onClose}
-        >
-          Services
-        </Link>
-        <Link 
-          to="/wholesale" 
-          className={cn(
-            "px-3 py-2 rounded-md text-base font-medium transition-colors",
-            isActive('/wholesale') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-          )}
-          onClick={onClose}
-        >
-          Wholesale
-        </Link>
-        {isAdminAuthenticated ? (
-          <Link 
-            to="/admin" 
-            className={cn(
-              "px-3 py-2 rounded-md text-base font-medium transition-colors",
-              isActive('/admin') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-            )}
-            onClick={onClose}
-          >
-            Admin
-          </Link>
-        ) : null}
-        <Link 
-          to="/login" 
-          className={cn(
-            "px-3 py-2 rounded-md text-base font-medium transition-colors",
-            isActive('/login') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-          )}
-          onClick={onClose}
-        >
-          Login
-        </Link>
-        <Link 
-          to="/register" 
-          className={cn(
-            "px-3 py-2 rounded-md text-base font-medium transition-colors",
-            isActive('/register') ? "bg-primary/10 text-primary" : "hover:bg-primary/5"
-          )}
-          onClick={onClose}
-        >
-          Register
-        </Link>
-      </nav>
-    </div>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent side="right" className="w-[80vw] sm:max-w-md p-0">
+        <div className="flex flex-col h-full">
+          <nav className="flex-1 px-2 py-4">
+            <div className="space-y-1 mb-4">
+              <Link 
+                to="/" 
+                onClick={onClose}
+                className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              >
+                <Home className="mr-3 h-5 w-5" />
+                Home
+              </Link>
+
+              <Link 
+                to="/checkout" 
+                onClick={onClose}
+                className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              >
+                <ShoppingBag className="mr-3 h-5 w-5" />
+                Cart
+              </Link>
+              
+              {isAuthenticated ? (
+                <>
+                  <Link 
+                    to="/account" 
+                    onClick={onClose}
+                    className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+                  >
+                    <User className="mr-3 h-5 w-5" />
+                    Account
+                  </Link>
+                  
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+                  >
+                    <LogOut className="mr-3 h-5 w-5" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/login" 
+                    onClick={onClose}
+                    className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+                  >
+                    <LogIn className="mr-3 h-5 w-5" />
+                    Login
+                  </Link>
+                  
+                  <Link 
+                    to="/register" 
+                    onClick={onClose}
+                    className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+                  >
+                    <User className="mr-3 h-5 w-5" />
+                    Register
+                  </Link>
+                </>
+              )}
+              
+              <Link 
+                to="/wholesale" 
+                onClick={onClose}
+                className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              >
+                <Briefcase className="mr-3 h-5 w-5" />
+                Wholesale
+              </Link>
+
+              {isAdminAuthenticated && (
+                <Link 
+                  to="/admin" 
+                  onClick={onClose}
+                  className="flex items-center px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+                >
+                  <Settings className="mr-3 h-5 w-5" />
+                  Admin Panel
+                </Link>
+              )}
+            </div>
+          </nav>
+
+          <div className="border-t p-4">
+            <Button
+              variant="outline" 
+              size="sm"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleWhatsAppRedirect}
+            >
+              <MessageCircle className="h-4 w-4 text-green-500" />
+              <span>Contact us on WhatsApp</span>
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

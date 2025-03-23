@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, Info } from "lucide-react";
@@ -23,6 +22,7 @@ const Login: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const [wasLoggedOut, setWasLoggedOut] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -71,6 +71,13 @@ const Login: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const logoutParam = new URLSearchParams(window.location.search).get('logout');
+    if (logoutParam === 'true') {
+      setWasLoggedOut(true);
+    }
+  }, []);
+
   const onGoogleLoginSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
@@ -118,7 +125,9 @@ const Login: React.FC = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              {wasLoggedOut 
+                ? "You've been signed out successfully. Sign in again to continue."
+                : "Enter your credentials to access your account"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

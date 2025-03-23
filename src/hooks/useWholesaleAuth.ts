@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 export function useWholesaleAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
   const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
   
   useEffect(() => {
@@ -12,6 +13,7 @@ export function useWholesaleAuth() {
     if (wholesaleAuth === 'true' && wholesalerId) {
       setIsAuthenticated(true);
       setCurrentWholesaler(wholesalerId);
+      setIsLoggedOut(false);
     }
   }, []);
 
@@ -20,6 +22,7 @@ export function useWholesaleAuth() {
     localStorage.setItem('wholesaleAuthenticated', 'true');
     localStorage.setItem('wholesalerId', username);
     setCurrentWholesaler(username);
+    setIsLoggedOut(false);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -31,6 +34,7 @@ export function useWholesaleAuth() {
     localStorage.removeItem('wholesaleAuthenticated');
     localStorage.removeItem('wholesalerId');
     setCurrentWholesaler('');
+    setIsLoggedOut(true);
     
     // Clear any wholesaler-specific data
     if (wholesalerId) {
@@ -43,6 +47,7 @@ export function useWholesaleAuth() {
   return {
     isAuthenticated,
     currentWholesaler,
+    isLoggedOut,
     handleLoginSuccess,
     handleLogout
   };
