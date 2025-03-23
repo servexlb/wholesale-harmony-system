@@ -26,8 +26,12 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
   const [expanded, setExpanded] = useState(false);
 
   const handleRowClick = (e: React.MouseEvent) => {
-    // Don't expand if clicking on a menu item or action button
-    if ((e.target as HTMLElement).closest('.dropdown-action')) {
+    // Skip expansion when clicking on dropdown elements
+    if (
+      (e.target as HTMLElement).closest('.dropdown-action') || 
+      (e.target as HTMLElement).closest('[role="menuitem"]') ||
+      (e.target as HTMLElement).closest('[data-radix-menu-content]')
+    ) {
       return;
     }
     setExpanded(!expanded);
@@ -83,7 +87,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
                           {product?.name || 'Unknown'}
                         </Badge>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="z-50">
+                      <TooltipContent side="top" className="z-[90]">
                         <div className="space-y-1">
                           <p className="font-medium">{product?.name || 'Unknown'}</p>
                           <p>Expires: {new Date(sub.endDate).toLocaleDateString()}</p>
@@ -116,7 +120,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
           )}
         </TableCell>
         <TableCell className="text-right">
-          <div className="z-50 relative dropdown-action" onClick={(e) => e.stopPropagation()}>
+          <div className="z-[100] relative dropdown-action" onClick={(e) => e.stopPropagation()}>
             <CustomerActionsMenu 
               customerId={customer.id} 
               onPurchaseForCustomer={onPurchaseForCustomer} 

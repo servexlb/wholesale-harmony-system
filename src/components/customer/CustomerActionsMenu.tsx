@@ -22,6 +22,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 }) => {
   // Handle purchase action
   const handlePurchase = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     console.log("Purchase clicked for customer:", customerId);
     if (onPurchaseForCustomer) {
@@ -31,6 +32,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 
   // Handle view orders action
   const handleViewOrders = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     console.log("View orders clicked for customer:", customerId);
     // Add actual implementation later
@@ -38,6 +40,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 
   // Handle edit customer action
   const handleEditCustomer = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     console.log("Edit clicked for customer:", customerId);
     // Add actual implementation later
@@ -45,9 +48,15 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 
   // Handle delete customer action
   const handleDeleteCustomer = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     console.log("Delete clicked for customer:", customerId);
     // Add actual implementation later
+  };
+
+  const handleMenuOpen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   return (
@@ -57,10 +66,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
           variant="ghost" 
           size="sm" 
           className="h-8 w-8 p-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
+          onClick={handleMenuOpen}
         >
           <span className="sr-only">Open menu</span>
           <MoreHorizontal className="h-4 w-4" />
@@ -68,7 +74,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="z-50 bg-popover shadow-md"
+        className="z-[100] bg-white border shadow-md"
         onClick={(e) => e.stopPropagation()}
         onPointerDownOutside={(e) => e.preventDefault()}
       >
@@ -77,28 +83,28 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
         <DropdownMenuItem 
           onClick={handlePurchase}
           disabled={!onPurchaseForCustomer}
-          className="cursor-pointer hover:bg-accent focus:bg-accent"
+          className="cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
         >
           <ShoppingBag className="h-4 w-4 mr-2" />
           Purchase for Customer
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={handleViewOrders}
-          className="cursor-pointer hover:bg-accent focus:bg-accent"
+          className="cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
         >
           <FileText className="h-4 w-4 mr-2" />
           View Orders
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={handleEditCustomer}
-          className="cursor-pointer hover:bg-accent focus:bg-accent"
+          className="cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
         >
           <Edit className="h-4 w-4 mr-2" />
           Edit Customer
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
-          className="text-destructive cursor-pointer hover:bg-accent focus:bg-accent"
+          className="text-destructive cursor-pointer hover:bg-accent focus:bg-accent flex items-center"
           onClick={handleDeleteCustomer}
         >
           <Trash2 className="h-4 w-4 mr-2" />
