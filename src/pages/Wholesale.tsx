@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { MenuIcon, X } from 'lucide-react';
-import { products, customers } from '@/lib/data';
+import { products, customers as defaultCustomers } from '@/lib/data';
 import { WholesaleOrder, Subscription } from '@/lib/types';
 import { useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -72,13 +72,48 @@ const Wholesale = () => {
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions);
   const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
+  const [customersData, setCustomersData] = useState(defaultCustomers);
   const location = useLocation();
   const isMobile = useIsMobile();
 
+  // Load saved data from localStorage on component mount
+  useEffect(() => {
+    const savedOrders = localStorage.getItem('wholesaleOrders');
+    const savedSubscriptions = localStorage.getItem('wholesaleSubscriptions');
+    const savedCustomers = localStorage.getItem('wholesaleCustomers');
+    
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders));
+    }
+    
+    if (savedSubscriptions) {
+      setSubscriptions(JSON.parse(savedSubscriptions));
+    }
+    
+    if (savedCustomers) {
+      setCustomersData(JSON.parse(savedCustomers));
+    }
+  }, []);
+  
+  // Save orders, subscriptions and customers to localStorage whenever they change
+  useEffect(() => {
+    if (orders.length > 0) {
+      localStorage.setItem('wholesaleOrders', JSON.stringify(orders));
+    }
+    
+    if (subscriptions.length > 0) {
+      localStorage.setItem('wholesaleSubscriptions', JSON.stringify(subscriptions));
+    }
+    
+    if (customersData.length > 0) {
+      localStorage.setItem('wholesaleCustomers', JSON.stringify(customersData));
+    }
+  }, [orders, subscriptions, customersData]);
+
   const wholesalerCustomers = useMemo(() => {
     if (!currentWholesaler) return [];
-    return customers.filter(customer => customer.wholesalerId === currentWholesaler);
-  }, [currentWholesaler]);
+    return customersData.filter(customer => customer.wholesalerId === currentWholesaler);
+  }, [currentWholesaler, customersData]);
   
   const filteredSubscriptions = useMemo(() => {
     if (!wholesalerCustomers.length) return [];
@@ -139,6 +174,10 @@ const Wholesale = () => {
     }
   }, []);
 
+  const handleAddCustomer = useCallback((newCustomer) => {
+    setCustomersData(prev => [...prev, newCustomer]);
+  }, []);
+
   const toggleSidebar = useCallback(() => {
     setSidebarOpen(prev => !prev);
   }, []);
@@ -191,12 +230,13 @@ const Wholesale = () => {
             <WholesaleTabContent 
               activeTab={activeTab}
               products={products}
-              customers={customers}
+              customers={customersData}
               wholesalerCustomers={wholesalerCustomers}
               orders={orders}
               subscriptions={filteredSubscriptions}
               currentWholesaler={currentWholesaler}
               handleOrderPlaced={handleOrderPlaced}
+              onAddCustomer={handleAddCustomer}
             />
           </div>
         </motion.main>

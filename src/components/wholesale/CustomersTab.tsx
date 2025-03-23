@@ -11,13 +11,15 @@ interface CustomersTabProps {
   subscriptions: Subscription[];
   wholesalerId: string;
   onPurchaseForCustomer: (customerId: string) => void;
+  onAddCustomer?: (customer: Customer) => void;
 }
 
 const CustomersTab: React.FC<CustomersTabProps> = ({ 
   customers, 
   subscriptions, 
   wholesalerId, 
-  onPurchaseForCustomer 
+  onPurchaseForCustomer,
+  onAddCustomer
 }) => {
   // Prepare export data - memoized to prevent recalculation on every render
   const exportData = useMemo(() => {
@@ -68,6 +70,7 @@ const CustomersTab: React.FC<CustomersTabProps> = ({
         customers={customers} 
         wholesalerId={wholesalerId}
         onPurchaseForCustomer={handlePurchaseForCustomer}
+        onAddCustomer={onAddCustomer}
       />
     </motion.div>
   );

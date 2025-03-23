@@ -36,13 +36,15 @@ interface CustomerTableProps {
   customers?: Customer[];
   wholesalerId?: string;
   onPurchaseForCustomer?: (customerId: string) => void;
+  onAddCustomer?: (customer: Customer) => void;
 }
 
 const CustomerTable: React.FC<CustomerTableProps> = ({ 
   subscriptions = [], 
   customers = allCustomers,
   wholesalerId = '',
-  onPurchaseForCustomer
+  onPurchaseForCustomer,
+  onAddCustomer
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -78,6 +80,11 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
     
     // Add to the customers list
     setCustomersList(prev => [...prev, newCustomer]);
+    
+    // Pass the new customer to the parent component if onAddCustomer is provided
+    if (onAddCustomer) {
+      onAddCustomer(newCustomer);
+    }
     
     // Reset form and close dialog
     form.reset();
