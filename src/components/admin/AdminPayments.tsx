@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -39,7 +38,6 @@ import { format } from "date-fns";
 import { useFirestore } from "@/hooks/useFirestore";
 import { toast } from "@/lib/toast";
 
-// Mock data for payments
 const mockPayments: Payment[] = [
   {
     id: "pmt-1",
@@ -98,7 +96,7 @@ const mockPayments: Payment[] = [
     userEmail: "mike.wilson@example.com",
     userName: "Mike Wilson",
     amount: 320.00,
-    method: "wish",
+    method: "wish_money",
     status: "pending",
     createdAt: new Date(Date.now() - 21600000).toISOString(),
     transactionId: "tx_wish123",
@@ -117,20 +115,16 @@ const AdminPayments: React.FC = () => {
   const { updateDocument } = useFirestore("payments");
 
   useEffect(() => {
-    // This would normally fetch from your backend/Firestore
-    // For now using mock data
     setPayments(mockPayments);
   }, []);
 
   useEffect(() => {
     let filtered = payments;
     
-    // Filter by status
     if (filterStatus !== "all") {
       filtered = filtered.filter(payment => payment.status === filterStatus);
     }
     
-    // Filter by payment method
     if (filterMethod !== "all") {
       filtered = filtered.filter(payment => payment.method === filterMethod);
     }
@@ -146,7 +140,6 @@ const AdminPayments: React.FC = () => {
 
   const handleStatusChange = async (paymentId: string, newStatus: PaymentStatus) => {
     try {
-      // In a real app, this would update the database
       const updatedPayments = payments.map(payment => 
         payment.id === paymentId 
           ? { 
@@ -160,19 +153,10 @@ const AdminPayments: React.FC = () => {
       
       setPayments(updatedPayments);
       
-      // This would normally call your backend or Firestore
-      // await updateDocument(paymentId, { 
-      //   status: newStatus, 
-      //   reviewedAt: new Date().toISOString(),
-      //   notes 
-      // });
-      
       toast.success(`Payment ${newStatus === "approved" ? "approved" : "rejected"} successfully`);
       setDetailsOpen(false);
       
-      // If payment is approved, update user balance
       if (newStatus === "approved" && selectedPayment) {
-        // In a real app, this would update the user's balance in the database
         toast.success(`Added $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.userName}'s balance`);
       }
     } catch (error) {
@@ -210,8 +194,8 @@ const AdminPayments: React.FC = () => {
         return "PayPal";
       case "usdt":
         return "USDT";
-      case "wish":
-        return "Wish Pay";
+      case "wish_money":
+        return "Wish Money";
       case "balance":
         return "Account Balance";
       default:
@@ -229,8 +213,8 @@ const AdminPayments: React.FC = () => {
         return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-300">PayPal</Badge>;
       case "usdt":
         return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-300">USDT</Badge>;
-      case "wish":
-        return <Badge variant="outline" className="bg-pink-50 text-pink-600 border-pink-300">Wish Pay</Badge>;
+      case "wish_money":
+        return <Badge variant="outline" className="bg-pink-50 text-pink-600 border-pink-300">Wish Money</Badge>;
       case "balance":
         return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-300">Account Balance</Badge>;
       default:
@@ -259,7 +243,7 @@ const AdminPayments: React.FC = () => {
               <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
               <SelectItem value="paypal">PayPal</SelectItem>
               <SelectItem value="usdt">USDT</SelectItem>
-              <SelectItem value="wish">Wish Pay</SelectItem>
+              <SelectItem value="wish_money">Wish Money</SelectItem>
               <SelectItem value="balance">Account Balance</SelectItem>
             </SelectContent>
           </Select>
@@ -324,7 +308,6 @@ const AdminPayments: React.FC = () => {
           </Table>
         )}
         
-        {/* Payment Details Dialog */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           {selectedPayment && (
             <DialogContent className="sm:max-w-md">

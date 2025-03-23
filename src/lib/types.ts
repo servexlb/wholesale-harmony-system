@@ -183,7 +183,7 @@ export interface Payment {
   id: string;
   orderId: string;
   amount: number;
-  method: 'credit_card' | 'paypal' | 'bank_transfer' | 'balance' | 'usdt' | 'wish';
+  method: 'credit_card' | 'paypal' | 'bank_transfer' | 'balance' | 'usdt' | 'wish_money';
   status: PaymentStatus;
   createdAt: string;
   transactionId?: string;
