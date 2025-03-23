@@ -21,6 +21,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { products } from '@/lib/data';
 
 interface CustomerActionsMenuProps {
   customerId: string;
@@ -38,16 +41,33 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   const [ordersSheetOpen, setOrdersSheetOpen] = useState(false);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Product selection state
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [quantity, setQuantity] = useState<number>(1);
 
   // Handle purchase action
   const handlePurchase = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Purchase clicked for customer:", customerId);
+    console.log("Purchase clicked for customer:", customerId, "Product:", selectedProduct, "Quantity:", quantity);
     
-    if (onPurchaseForCustomer) {
+    if (onPurchaseForCustomer && selectedProduct) {
       setPurchaseDialogOpen(false);
+      setSelectedProduct('');
+      setQuantity(1);
       onPurchaseForCustomer(customerId);
+      
+      toast({
+        title: "Purchase initiated",
+        description: `Purchase for customer ${customerId} has been initiated`,
+      });
+    } else if (!selectedProduct) {
+      toast({
+        title: "Product selection required",
+        description: "Please select a product before proceeding",
+        variant: "destructive",
+      });
     } else {
       toast({
         title: "Action unavailable",
@@ -198,21 +218,75 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
         </div>
       </div>
       
-      {/* Purchase Confirmation Dialog */}
+      {/* Purchase Dialog with Product Selection */}
       <Dialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Purchase for Customer</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p>Are you sure you want to purchase for this customer?</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              You will be redirected to the purchase form.
-            </p>
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Select Product</label>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      <div className="flex flex-col">
+                        <span>{product.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ${product.wholesalePrice?.toFixed(2) || "0.00"}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block">Quantity</label>
+              <Input 
+                type="number" 
+                min="1"
+                value={quantity.toString()}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              />
+            </div>
+            
+            {selectedProduct && (
+              <div className="p-4 bg-muted/40 rounded-md">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Product:</span>
+                  <span className="font-medium">
+                    {products.find(p => p.id === selectedProduct)?.name || 'Unknown Product'}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Price per unit:</span>
+                  <span className="font-medium">
+                    ${products.find(p => p.id === selectedProduct)?.wholesalePrice?.toFixed(2) || "0.00"}
+                  </span>
+                </div>
+                <div className="flex justify-between font-medium">
+                  <span>Total price:</span>
+                  <span className="text-primary">
+                    ${((products.find(p => p.id === selectedProduct)?.wholesalePrice || 0) * quantity).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPurchaseDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handlePurchase}>Continue</Button>
+            <Button 
+              onClick={handlePurchase}
+              disabled={!selectedProduct}
+            >
+              Continue
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
