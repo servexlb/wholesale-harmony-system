@@ -1,6 +1,6 @@
 
 import { Subscription } from '@/lib/types';
-import { Alert, Clock, CheckCircle } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle } from 'lucide-react';
 import React from 'react';
 
 export const getSubscriptionStatus = (subscription: Subscription) => {
@@ -12,7 +12,7 @@ export const getSubscriptionStatus = (subscription: Subscription) => {
     return { 
       label: 'Expired', 
       variant: 'destructive', 
-      icon: React.createElement(Alert, { className: "h-3 w-3 mr-1" })
+      icon: React.createElement(AlertCircle, { className: "h-3 w-3 mr-1" })
     };
   }
   
@@ -29,4 +29,43 @@ export const getSubscriptionStatus = (subscription: Subscription) => {
     variant: 'success', 
     icon: React.createElement(CheckCircle, { className: "h-3 w-3 mr-1" })
   };
+};
+
+// Add the missing isSubscriptionEndingSoon function
+export const isSubscriptionEndingSoon = (subscription: Subscription, daysThreshold: number = 7): boolean => {
+  const now = new Date();
+  const endDate = new Date(subscription.endDate);
+  const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  
+  return daysLeft > 0 && daysLeft <= daysThreshold;
+};
+
+// Add the missing filterSubscriptions function
+export const filterSubscriptions = (
+  subscriptions: Subscription[], 
+  searchTerm: string, 
+  category: string
+): Subscription[] => {
+  if (!Array.isArray(subscriptions)) return [];
+  
+  let filtered = [...subscriptions];
+  
+  // Apply category filter
+  if (category && category !== 'all') {
+    if (category === 'ending-soon') {
+      filtered = filtered.filter(sub => isSubscriptionEndingSoon(sub, 5));
+    }
+  }
+  
+  // Apply search term filter if provided
+  if (searchTerm.trim()) {
+    const searchLower = searchTerm.toLowerCase();
+    filtered = filtered.filter(sub => {
+      // We can add more search criteria here if needed
+      return sub.id.toLowerCase().includes(searchLower) || 
+             sub.serviceId.toLowerCase().includes(searchLower);
+    });
+  }
+  
+  return filtered;
 };

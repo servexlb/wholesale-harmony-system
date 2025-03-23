@@ -7,7 +7,7 @@ export interface Product {
   image: string;
   category: string;
   categoryId?: string;
-  type?: "subscription" | "recharge" | "giftcard" | "service";
+  type?: "subscription" | "recharge" | "giftcard" | "service" | "topup";
   value?: number;
   deliveryTime?: string;
   featured?: boolean;
@@ -49,6 +49,13 @@ export interface Subscription {
   endDate: string;
   status: "active" | "expired" | "cancelled";
   price: number;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
 }
 
 import { 

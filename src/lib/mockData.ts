@@ -96,7 +96,7 @@ export const serviceCategories: ServiceCategory[] = [
   },
 ];
 
-// Mock data for services - Rename products to services
+// Update the services array to include the required 'category' property
 export const services: Service[] = [
   {
     id: "service1",
@@ -105,6 +105,7 @@ export const services: Service[] = [
     price: 19.99,
     wholesalePrice: 15.99,
     categoryId: "category1",
+    category: "Streaming Services",
     image: "/images/netflix.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -117,6 +118,7 @@ export const services: Service[] = [
     price: 14.99,
     wholesalePrice: 11.99,
     categoryId: "category1",
+    category: "Streaming Services",
     image: "/images/prime-video.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -129,6 +131,7 @@ export const services: Service[] = [
     price: 12.99,
     wholesalePrice: 9.99,
     categoryId: "category1",
+    category: "Streaming Services",
     image: "/images/disney-plus.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -141,6 +144,7 @@ export const services: Service[] = [
     price: 10.99,
     wholesalePrice: 8.99,
     categoryId: "category1",
+    category: "Streaming Services",
     image: "/images/spotify.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -153,6 +157,7 @@ export const services: Service[] = [
     price: 11.99,
     wholesalePrice: 9.99,
     categoryId: "category1",
+    category: "Streaming Services",
     image: "/images/youtube.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -165,6 +170,7 @@ export const services: Service[] = [
     price: 15.99,
     wholesalePrice: 12.99,
     categoryId: "category1",
+    category: "Streaming Services",
     image: "/images/hbo-max.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -177,6 +183,7 @@ export const services: Service[] = [
     price: 59.99,
     wholesalePrice: 49.99,
     categoryId: "category2",
+    category: "Gaming",
     image: "/images/ps-plus.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -189,6 +196,7 @@ export const services: Service[] = [
     price: 14.99,
     wholesalePrice: 12.99,
     categoryId: "category2",
+    category: "Gaming",
     image: "/images/xbox-gamepass.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -201,6 +209,7 @@ export const services: Service[] = [
     price: 25.00,
     wholesalePrice: 22.50,
     categoryId: "category3",
+    category: "Gift Cards",
     image: "/images/google-play.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -213,6 +222,7 @@ export const services: Service[] = [
     price: 25.00,
     wholesalePrice: 22.50,
     categoryId: "category3",
+    category: "Gift Cards",
     image: "/images/itunes.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -225,6 +235,7 @@ export const services: Service[] = [
     price: 25.00,
     wholesalePrice: 22.50,
     categoryId: "category3",
+    category: "Gift Cards",
     image: "/images/steam.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -237,6 +248,7 @@ export const services: Service[] = [
     price: 89.99,
     wholesalePrice: 79.99,
     categoryId: "category4",
+    category: "VPN & Security",
     image: "/images/nordvpn.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -249,6 +261,7 @@ export const services: Service[] = [
     price: 99.99,
     wholesalePrice: 89.99,
     categoryId: "category4",
+    category: "VPN & Security",
     image: "/images/expressvpn.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -261,6 +274,7 @@ export const services: Service[] = [
     price: 69.99,
     wholesalePrice: 59.99,
     categoryId: "category5",
+    category: "Productivity",
     image: "/images/microsoft-365.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -273,6 +287,7 @@ export const services: Service[] = [
     price: 239.99,
     wholesalePrice: 219.99,
     categoryId: "category5",
+    category: "Productivity",
     image: "/images/adobe-cc.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -285,6 +300,7 @@ export const services: Service[] = [
     price: 10.99,
     wholesalePrice: 9.50,
     categoryId: "category6",
+    category: "Game Recharges",
     image: "/images/pubg-mobile.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -298,6 +314,7 @@ export const services: Service[] = [
     price: 9.99,
     wholesalePrice: 8.75,
     categoryId: "category6",
+    category: "Game Recharges",
     image: "/images/free-fire.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -311,6 +328,7 @@ export const services: Service[] = [
     price: 7.99,
     wholesalePrice: 6.99,
     categoryId: "category6",
+    category: "Game Recharges",
     image: "/images/soulchill.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -324,6 +342,7 @@ export const services: Service[] = [
     price: 5.99,
     wholesalePrice: 4.99,
     categoryId: "category6",
+    category: "Game Recharges",
     image: "/images/bingo.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -337,6 +356,7 @@ export const services: Service[] = [
     price: 12.99,
     wholesalePrice: 11.50,
     categoryId: "category6",
+    category: "Game Recharges",
     image: "/images/valorant.jpg",
     deliveryTime: "Instant",
     featured: true,
@@ -350,6 +370,7 @@ export const services: Service[] = [
     price: 8.99,
     wholesalePrice: 7.99,
     categoryId: "category6",
+    category: "Game Recharges",
     image: "/images/mobile-legends.jpg",
     deliveryTime: "Instant",
     featured: false,
@@ -358,7 +379,7 @@ export const services: Service[] = [
   },
 ];
 
-// Mock data for subscriptions
+// Update the subscriptions to match the Subscription interface
 export const subscriptions: Subscription[] = [
   {
     id: "sub1",
@@ -397,10 +418,14 @@ export const subscriptions: Subscription[] = [
       new Date().setDate(new Date().getDate() + 90)
     ).toISOString(),
     status: "active",
+    credentials: {
+      email: "emily.white@example.com",
+      password: "password789",
+    },
   },
 ];
 
-// Mock data for orders
+// Update the orders to match the Order interface
 export const orders: Order[] = [
   {
     id: "order1",
@@ -411,6 +436,8 @@ export const orders: Order[] = [
     status: "completed",
     createdAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
+    products: [],
+    total: 9.99
   },
   {
     id: "order2",
@@ -420,6 +447,8 @@ export const orders: Order[] = [
     totalPrice: 49.99,
     status: "processing",
     createdAt: new Date().toISOString(),
+    products: [],
+    total: 49.99
   },
   {
     id: "order3",
@@ -429,6 +458,8 @@ export const orders: Order[] = [
     totalPrice: 79.99,
     status: "pending",
     createdAt: new Date().toISOString(),
+    products: [],
+    total: 79.99
   },
 ];
 
@@ -463,7 +494,7 @@ export const supportTickets: SupportTicket[] = [
   },
 ];
 
-// Mock data for ticket responses
+// Update ticket responses to include the sentBy property
 export const ticketResponses: TicketResponse[] = [
   {
     id: "response1",
@@ -471,6 +502,7 @@ export const ticketResponses: TicketResponse[] = [
     userId: "user3",
     message: "We are looking into your hosting issue.",
     createdAt: new Date().toISOString(),
+    sentBy: "admin"
   },
   {
     id: "response2",
@@ -478,6 +510,7 @@ export const ticketResponses: TicketResponse[] = [
     userId: "user3",
     message: "Here are some tips to improve engagement.",
     createdAt: new Date().toISOString(),
+    sentBy: "admin"
   },
   {
     id: "response3",
@@ -485,6 +518,7 @@ export const ticketResponses: TicketResponse[] = [
     userId: "user3",
     message: "Please provide specific feedback for revisions.",
     createdAt: new Date().toISOString(),
+    sentBy: "admin"
   },
 ];
 
@@ -518,17 +552,19 @@ export const getUserById = (id: string): User | undefined => {
   return users.find((user) => user.id === id);
 };
 
-// Mock customers for wholesale
+// Update simple customers to include the email property
 export const simpleCustomers: SimpleCustomer[] = [
   {
     id: "customer1",
     name: "Acme Corp",
     phone: "555-123-4567",
+    email: "info@acmecorp.com"
   },
   {
     id: "customer2",
     name: "Beta Industries",
     phone: "555-987-6543",
+    email: "sales@betaindustries.com"
   },
 ];
 
@@ -620,7 +656,7 @@ export const reportPasswordIssue = async (
   console.log("Password reset requested", subscriptionId);
 };
 
-// Mock admin notifications
+// Update admin notifications to include subscriptionId property
 let adminNotifications: AdminNotification[] = [
   {
     id: "notification1",
@@ -635,6 +671,7 @@ let adminNotifications: AdminNotification[] = [
   {
     id: "notification2",
     type: "payment_issue",
+    subscriptionId: "sub2",
     orderId: "order2",
     userId: "user2",
     customerName: "Alice Smith",
@@ -655,6 +692,7 @@ let adminNotifications: AdminNotification[] = [
   {
     id: "notification4",
     type: "new_order",
+    subscriptionId: "sub1",
     orderId: "order1",
     userId: "user1",
     customerName: "John Doe",
