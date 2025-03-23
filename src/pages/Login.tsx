@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,6 +12,7 @@ import MainLayout from "@/components/MainLayout";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GoogleLogin } from '@react-oauth/google';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +25,12 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [wasLoggedOut, setWasLoggedOut] = useState(false);
+  
+  // Reset password states
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -71,6 +79,65 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleResetPassword = () => {
+    if (!resetEmail) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setResetSubmitting(true);
+
+    // Check if email exists
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const userExists = users.some((u: any) => u.email === resetEmail);
+
+    if (!userExists) {
+      setTimeout(() => {
+        setResetSubmitting(false);
+        toast({
+          title: "Email not found",
+          description: "No account exists with this email address",
+          variant: "destructive"
+        });
+      }, 1000);
+      return;
+    }
+
+    // In a real app, you would send a password reset email here
+    // For this demo, we'll just simulate it
+    setTimeout(() => {
+      setResetSubmitting(false);
+      setResetSent(true);
+      
+      // Close dialog after showing success message for a few seconds
+      setTimeout(() => {
+        setShowResetDialog(false);
+        setResetSent(false);
+        setResetEmail("");
+      }, 3000);
+      
+      toast({
+        title: "Reset link sent",
+        description: "Check your email for password reset instructions",
+      });
+    }, 1500);
+  };
+
   useEffect(() => {
     const logoutParam = new URLSearchParams(window.location.search).get('logout');
     if (logoutParam === 'true') {
@@ -82,22 +149,57 @@ const Login: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    // Generate a temporary user ID for Google users if they haven't logged in before
-    const googleUserId = `google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('currentUserId', googleUserId);
+    // In a real app, you would decode the JWT to get user info
+    // For this demo, we'll generate a consistent ID for the Google user
+    const googleId = credentialResponse.credential || Date.now().toString();
+    const googleEmail = `google_user_${googleId}@gmail.com`; // Placeholder
     
-    // Initialize user data if it doesn't exist
-    if (!localStorage.getItem(`userProfile_${googleUserId}`)) {
-      const userProfile = {
-        name: "",
-        email: "",
-        phone: ""
-      };
-      localStorage.setItem(`userProfile_${googleUserId}`, JSON.stringify(userProfile));
-      localStorage.setItem(`userBalance_${googleUserId}`, "0");
-      localStorage.setItem(`transactionHistory_${googleUserId}`, JSON.stringify([]));
-      localStorage.setItem(`customerOrders_${googleUserId}`, JSON.stringify([]));
+    // Check if this Google user has registered before
+    const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
+    const userId = userEmailToId[googleEmail];
+    
+    if (userId) {
+      // User exists, log them in
+      localStorage.setItem('currentUserId', userId);
+      toast({
+        title: "Welcome back!",
+        description: "You've been logged in with Google.",
+      });
+      navigate("/dashboard");
+      return;
     }
+    
+    // New Google user, create an account for them
+    const newUserId = `google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('currentUserId', newUserId);
+    
+    // Initialize user data
+    const userProfile = {
+      name: "",
+      email: googleEmail,
+      phone: ""
+    };
+    localStorage.setItem(`userProfile_${newUserId}`, JSON.stringify(userProfile));
+    
+    // Store credentials
+    const userCredentials = {
+      email: googleEmail,
+      password: `google_auth_${googleId}` // Not used for login
+    };
+    
+    // Add to users registry
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    existingUsers.push(userCredentials);
+    localStorage.setItem('users', JSON.stringify(existingUsers));
+    
+    // Map email to ID
+    userEmailToId[googleEmail] = newUserId;
+    localStorage.setItem('userEmailToId', JSON.stringify(userEmailToId));
+    
+    // Initialize other user data
+    localStorage.setItem(`userBalance_${newUserId}`, "0");
+    localStorage.setItem(`transactionHistory_${newUserId}`, JSON.stringify([]));
+    localStorage.setItem(`customerOrders_${newUserId}`, JSON.stringify([]));
     
     toast({
       title: "Success!",
@@ -196,9 +298,13 @@ const Login: React.FC = () => {
                       <Lock className="h-4 w-4 text-muted-foreground" />
                       Password
                     </Label>
-                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                    <Button 
+                      variant="link" 
+                      className="text-xs p-0 h-auto" 
+                      onClick={() => setShowResetDialog(true)}
+                    >
                       Forgot password?
-                    </Link>
+                    </Button>
                   </div>
                   <div className="relative">
                     <Input 
@@ -239,6 +345,59 @@ const Login: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset your password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {resetSent ? (
+              <Alert className="border-green-500 text-green-800 dark:text-green-200 bg-green-50 dark:bg-green-900/20">
+                <AlertDescription>
+                  Password reset link has been sent to your email.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="resetEmail" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  Email Address
+                </Label>
+                <Input 
+                  id="resetEmail" 
+                  type="email" 
+                  placeholder="Enter your email" 
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              onClick={() => setShowResetDialog(false)}
+              disabled={resetSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleResetPassword}
+              disabled={resetSubmitting || resetSent}
+            >
+              {resetSubmitting ? "Sending..." : "Send Reset Link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 };

@@ -33,8 +33,33 @@ const Register: React.FC = () => {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
+  // Validate email format
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Check if email already exists
+  const isEmailRegistered = (email: string) => {
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    return existingUsers.some((user: any) => user.email === email);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    
+    // Validate email format
+    if (!isValidEmail(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+    
+    // Check if email is already registered
+    if (isEmailRegistered(formData.email)) {
+      setError("This email is already registered. Please use a different email or log in.");
+      return;
+    }
     
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -42,6 +67,11 @@ const Register: React.FC = () => {
         description: "Please make sure your passwords match.",
         variant: "destructive"
       });
+      return;
+    }
+    
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
     
@@ -60,6 +90,8 @@ const Register: React.FC = () => {
     localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
     
     // Store user credentials for login
+    // In a real application, you would hash the password first
+    // For demonstration, we'll store it as-is
     const userCredentials = {
       email: formData.email,
       password: formData.password
@@ -99,6 +131,28 @@ const Register: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
+    // In a real application, you would decode the JWT and extract the email
+    // For now, we'll create a unique identifier based on the credential
+    const googleId = credentialResponse.credential || Date.now().toString();
+    const googleEmail = `google_user_${googleId}@gmail.com`; // Placeholder
+    
+    // Check if this Google account is already registered
+    if (isEmailRegistered(googleEmail)) {
+      // Instead of showing an error, we'll just log them in
+      const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
+      const userId = userEmailToId[googleEmail];
+      
+      if (userId) {
+        localStorage.setItem('currentUserId', userId);
+        toast({
+          title: "Welcome back!",
+          description: "You've been logged in with your Google account.",
+        });
+        navigate("/dashboard");
+        return;
+      }
+    }
+    
     // Generate a unique user ID for the Google user
     const userId = `google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     localStorage.setItem('currentUserId', userId);
@@ -106,10 +160,26 @@ const Register: React.FC = () => {
     // Set initial user profile with empty fields
     const userProfile = {
       name: "",
-      email: "",
+      email: googleEmail,
       phone: ""
     };
     localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
+    
+    // Store credentials for future login
+    const userCredentials = {
+      email: googleEmail,
+      password: `google_auth_${googleId}` // Not used for login, just for record
+    };
+    
+    // Store in registry
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    existingUsers.push(userCredentials);
+    localStorage.setItem('users', JSON.stringify(existingUsers));
+    
+    // Map email to ID
+    const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
+    userEmailToId[googleEmail] = userId;
+    localStorage.setItem('userEmailToId', JSON.stringify(userEmailToId));
     
     // Initialize user balance to 0
     localStorage.setItem(`userBalance_${userId}`, "0");
@@ -243,10 +313,11 @@ const Register: React.FC = () => {
                     <Input 
                       id="password" 
                       type={showPassword ? "text" : "password"} 
-                      placeholder="Create a password"
+                      placeholder="Create a password (min. 8 characters)"
                       value={formData.password}
                       onChange={handleInputChange}
                       required
+                      minLength={8}
                       className="pr-10"
                     />
                     <button
@@ -275,6 +346,7 @@ const Register: React.FC = () => {
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       required
+                      minLength={8}
                       className="pr-10"
                     />
                     <button

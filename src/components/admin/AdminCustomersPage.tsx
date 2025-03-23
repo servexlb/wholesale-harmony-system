@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WholesaleUserManagement from "./WholesaleUserManagement";
 import RegularCustomerManagement from "./RegularCustomerManagement";
+import UserManagement from "./UserManagement";
 
 const AdminCustomersPage = () => {
   const [activeTab, setActiveTab] = useState("regular");
@@ -14,9 +15,10 @@ const AdminCustomersPage = () => {
       </div>
       
       <Tabs defaultValue="regular" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="regular">Regular Customers</TabsTrigger>
           <TabsTrigger value="wholesale">Wholesale Users</TabsTrigger>
+          <TabsTrigger value="users">User Accounts</TabsTrigger>
         </TabsList>
         
         <TabsContent value="regular" className="mt-6">
@@ -25,6 +27,10 @@ const AdminCustomersPage = () => {
         
         <TabsContent value="wholesale" className="mt-6">
           <WholesaleUserManagement />
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-6">
+          <UserManagement />
         </TabsContent>
       </Tabs>
     </div>
