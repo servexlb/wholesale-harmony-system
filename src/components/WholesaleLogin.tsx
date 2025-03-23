@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, MessageCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -124,12 +124,15 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut 
         </form>
       </CardContent>
       <CardFooter className="flex flex-col space-y-2">
-        <div className="text-sm text-muted-foreground text-center">
-          <p>For demo purposes:</p>
-          <p>Username: <code className="bg-muted px-1 py-0.5 rounded">wholesaler1</code> Password: <code className="bg-muted px-1 py-0.5 rounded">password123</code></p>
-          <p>Or</p>
-          <p>Username: <code className="bg-muted px-1 py-0.5 rounded">admin</code> Password: <code className="bg-muted px-1 py-0.5 rounded">admin123</code></p>
-        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full flex items-center justify-center gap-2"
+          onClick={() => window.open(`https://wa.me/96178991908`, '_blank')}
+        >
+          <MessageCircle className="h-4 w-4 text-green-500" />
+          <span>Contact Wholesale Support</span>
+        </Button>
       </CardFooter>
     </Card>
   );
