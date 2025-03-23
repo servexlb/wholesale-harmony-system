@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash2, AlertTriangle, ImageIcon } from "lucide-react";
-import { Product, ServiceType } from "@/lib/types";
-import { products } from "@/lib/data";
-import { services } from "@/lib/mockData";
+import { Product } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import ProductCard from "./ProductCard";
 import ProductForm from "./ProductForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { 
+  loadProducts, 
+  addProduct, 
+  updateProduct, 
+  deleteProduct, 
+  initProductManager, 
+  PRODUCT_EVENTS
+} from "@/lib/productManager";
 
 const ProductManager = () => {
   // State management
@@ -17,64 +23,27 @@ const ProductManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [showImageManager, setShowImageManager] = useState(false);
   const [errorLogs, setErrorLogs] = useState<any[]>([]);
 
-  // Load products from localStorage or default data
+  // Initialize product manager and load products
   useEffect(() => {
-    // Check localStorage first
-    const storedProducts = localStorage.getItem("products");
-    if (storedProducts) {
-      setProductList(JSON.parse(storedProducts));
-      return;
-    }
+    initProductManager();
+    setProductList(loadProducts());
     
-    // Convert services to the Product type expected by our component
-    const servicesAsProducts: Product[] = services.map(service => ({
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      price: service.price,
-      wholesalePrice: service.wholesalePrice,
-      image: service.image,
-      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      categoryId: service.categoryId || 'uncategorized', // Ensure categoryId is always set
-      featured: service.featured || false,
-      type: service.type as ServiceType,
-      deliveryTime: service.deliveryTime || "",
-      apiUrl: service.apiUrl,
-      availableMonths: service.availableMonths,
-      value: service.value,
-      minQuantity: service.minQuantity,
-      requiresId: service.requiresId ?? false // Explicitly set requiresId with a default value
-    }));
+    // Listen for product update events
+    const handleProductUpdated = () => {
+      setProductList(loadProducts());
+    };
     
-    // Convert products from data.ts to the expected Product type
-    const formattedProducts: Product[] = products.map(product => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      wholesalePrice: product.wholesalePrice,
-      image: product.image,
-      category: product.category,
-      categoryId: product.categoryId || product.category || 'uncategorized', // Use category as fallback
-      featured: product.featured || false,
-      type: (product.type || "subscription") as ServiceType,
-      deliveryTime: product.deliveryTime || "",
-      apiUrl: product.apiUrl,
-      availableMonths: product.availableMonths,
-      value: product.value,
-      minQuantity: product.minQuantity,
-      requiresId: product.requiresId ?? false // Using nullish coalescing to ensure a boolean value
-    }));
+    window.addEventListener(PRODUCT_EVENTS.PRODUCT_UPDATED, handleProductUpdated);
+    window.addEventListener(PRODUCT_EVENTS.PRODUCT_ADDED, handleProductUpdated);
+    window.addEventListener(PRODUCT_EVENTS.PRODUCT_DELETED, handleProductUpdated);
     
-    // Combine both product lists with the correct typing
-    const combinedProducts = [...formattedProducts, ...servicesAsProducts];
-    setProductList(combinedProducts);
-    
-    // Store in localStorage
-    localStorage.setItem("products", JSON.stringify(combinedProducts));
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.PRODUCT_UPDATED, handleProductUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.PRODUCT_ADDED, handleProductUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.PRODUCT_DELETED, handleProductUpdated);
+    };
   }, []);
 
   // Check for image errors in localStorage
@@ -94,28 +63,14 @@ const ProductManager = () => {
     }
   }, []);
 
-  // Save products to localStorage whenever they change
-  useEffect(() => {
-    if (productList.length > 0) {
-      localStorage.setItem("products", JSON.stringify(productList));
-    }
-  }, [productList]);
-
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setIsDialogOpen(true);
   };
 
   const handleFormSubmit = (data: Product) => {
-    // In a real app, we would save this to the database
-    // For now, we'll just update the local state
-    const updatedProducts = productList.map(product => 
-      product.id === data.id ? { ...product, ...data } : product
-    );
-    
-    setProductList(updatedProducts);
+    updateProduct(data);
     setIsDialogOpen(false);
-    toast.success("Product updated successfully");
   };
 
   const handleDeleteClick = (product: Product) => {
@@ -125,15 +80,9 @@ const ProductManager = () => {
   
   const handleDeleteConfirm = () => {
     if (productToDelete) {
-      // Filter out the product to delete
-      const updatedProducts = productList.filter(
-        product => product.id !== productToDelete.id
-      );
-      
-      setProductList(updatedProducts);
+      deleteProduct(productToDelete.id);
       setShowDeleteDialog(false);
       setProductToDelete(null);
-      toast.success(`${productToDelete.name} has been removed`);
     }
   };
   
@@ -151,16 +100,13 @@ const ProductManager = () => {
       featured: false,
       type: "subscription",
       deliveryTime: "24 hours",
-      requiresId: false // Ensure requiresId is explicitly set with default value
+      requiresId: false
     };
-    
-    // Add it to the list
-    setProductList([...productList, newProduct]);
     
     // Select it for editing
     setSelectedProduct(newProduct);
     setIsDialogOpen(true);
-    toast.success("New product added. Please edit the details.");
+    toast.success("Enter product details and click save to add it to the catalog.");
   };
 
   const handleFixImages = () => {

@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
@@ -17,6 +16,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { 
+  loadServices, 
+  PRODUCT_EVENTS, 
+  initProductManager 
+} from '@/lib/productManager';
 
 interface ServicesTabProps {
   services: Service[];
@@ -25,11 +29,12 @@ interface ServicesTabProps {
 }
 
 const ServicesTab: React.FC<ServicesTabProps> = ({ 
-  services, 
+  services: initialServices, 
   customers, 
   onOrderPlaced 
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [services, setServices] = useState<Service[]>(initialServices);
   const [filteredServices, setFilteredServices] = useState<Service[]>(services);
   const [showSubscriptionsOnly, setShowSubscriptionsOnly] = useState(false);
   const [showRechargesOnly, setShowRechargesOnly] = useState(false);
@@ -37,10 +42,24 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   const [serviceDetailOpen, setServiceDetailOpen] = useState(false);
 
   useEffect(() => {
-    console.log('Services in ServicesTab:', services);
-    console.log('Services with type "subscription":', services.filter(s => s.type === 'subscription').length);
-    console.log('Services with type "recharge":', services.filter(s => s.type === 'recharge').length);
-  }, [services]);
+    initProductManager();
+    const loadServiceData = () => {
+      const serviceData = loadServices();
+      setServices(serviceData);
+    };
+    
+    loadServiceData();
+    
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, loadServiceData);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, loadServiceData);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, loadServiceData);
+    
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, loadServiceData);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, loadServiceData);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, loadServiceData);
+    };
+  }, []);
 
   useEffect(() => {
     try {

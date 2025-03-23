@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
-import { products, Product } from '@/lib/data';
 import { Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { 
@@ -14,22 +12,41 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Product } from '@/lib/types';
+import { loadProducts, PRODUCT_EVENTS, initProductManager } from '@/lib/productManager';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('all');
   const [sortBy, setSortBy] = useState('default');
-  
+  const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   
-  // Get unique categories from products
+  useEffect(() => {
+    initProductManager();
+    const loadProductData = () => {
+      const productData = loadProducts();
+      setProducts(productData);
+    };
+    
+    loadProductData();
+    
+    window.addEventListener(PRODUCT_EVENTS.PRODUCT_UPDATED, loadProductData);
+    window.addEventListener(PRODUCT_EVENTS.PRODUCT_ADDED, loadProductData);
+    window.addEventListener(PRODUCT_EVENTS.PRODUCT_DELETED, loadProductData);
+    
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.PRODUCT_UPDATED, loadProductData);
+      window.removeEventListener(PRODUCT_EVENTS.PRODUCT_ADDED, loadProductData);
+      window.removeEventListener(PRODUCT_EVENTS.PRODUCT_DELETED, loadProductData);
+    };
+  }, []);
+  
   const categories = ['all', ...new Set(products.map(p => p.category.toLowerCase()))];
   
-  // Filter and sort products
   useEffect(() => {
     let result = [...products];
     
-    // Filter by search term
     if (searchTerm) {
       result = result.filter(p => 
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,14 +55,12 @@ const Index = () => {
       );
     }
     
-    // Filter by category
     if (category !== 'all') {
       result = result.filter(p => 
         p.category.toLowerCase() === category.toLowerCase()
       );
     }
     
-    // Sort products
     if (sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price-desc') {
@@ -55,14 +70,13 @@ const Index = () => {
     }
     
     setFilteredProducts(result);
-  }, [searchTerm, category, sortBy]);
+  }, [searchTerm, category, sortBy, products]);
   
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-24 px-6 container mx-auto max-w-7xl">
-        {/* Hero Section */}
         <motion.section 
           className="py-16 md:py-24 text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -89,7 +103,6 @@ const Index = () => {
           </div>
         </motion.section>
         
-        {/* Filters */}
         <section className="mb-12">
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,7 +147,6 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Products Grid */}
         <section className="mb-20">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.length === 0 ? (
@@ -161,7 +173,6 @@ const Index = () => {
         </section>
       </main>
       
-      {/* Footer */}
       <footer className="bg-white border-t">
         <div className="container mx-auto max-w-7xl px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

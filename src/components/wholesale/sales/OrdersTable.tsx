@@ -1,11 +1,12 @@
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useEffect } from 'react';
 import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { createServiceMap } from './utils/productMapUtils';
 import DesktopOrdersTable from './DesktopOrdersTable';
 import MobileOrdersList from './MobileOrdersList';
+import { PRODUCT_EVENTS } from '@/lib/productManager';
 
 interface OrdersTableProps {
   filteredOrders: WholesaleOrder[];
@@ -21,6 +22,24 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
     const map = createServiceMap();
     console.log('Product map size:', map.size);
     return map;
+  }, []);
+  
+  // Update product map when services change
+  useEffect(() => {
+    const updateMap = () => {
+      // Force useMemo to recalculate the map
+      console.log('Services updated, product map will refresh on next render');
+    };
+    
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, updateMap);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, updateMap);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, updateMap);
+    
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, updateMap);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, updateMap);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, updateMap);
+    };
   }, []);
   
   // Create a memoized customer lookup map

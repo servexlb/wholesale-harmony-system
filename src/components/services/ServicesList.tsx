@@ -1,8 +1,9 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import ServiceCard from "./ServiceCard";
 import { Service, ServiceCategory } from "@/lib/types";
+import { loadServices, PRODUCT_EVENTS, initProductManager } from "@/lib/productManager";
 
 interface ServicesListProps {
   filteredServices: Service[];
@@ -14,13 +15,55 @@ interface ServicesListProps {
 }
 
 const ServicesList: React.FC<ServicesListProps> = ({
-  filteredServices,
+  filteredServices: initialFilteredServices,
   serviceCategories,
   searchQuery,
   setSearchQuery,
   selectedCategory,
   setSelectedCategory
 }) => {
+  const [filteredServices, setFilteredServices] = useState<Service[]>(initialFilteredServices);
+
+  // Initialize and listen for service changes
+  useEffect(() => {
+    initProductManager();
+    
+    // Update filtered services when props change
+    setFilteredServices(initialFilteredServices);
+    
+    // Listen for service changes and apply current filters
+    const handleServiceUpdated = () => {
+      const services = loadServices();
+      let filtered = services;
+      
+      // Apply current category filter
+      if (selectedCategory) {
+        filtered = filtered.filter(service => service.categoryId === selectedCategory);
+      }
+      
+      // Apply current search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(service => 
+          service.name.toLowerCase().includes(query) || 
+          service.description.toLowerCase().includes(query)
+        );
+      }
+      
+      setFilteredServices(filtered);
+    };
+    
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
+    
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
+    };
+  }, [initialFilteredServices, searchQuery, selectedCategory]);
+
   // Find the selected category name if one is selected
   const selectedCategoryName = selectedCategory 
     ? serviceCategories.find(cat => cat.id === selectedCategory)?.name 

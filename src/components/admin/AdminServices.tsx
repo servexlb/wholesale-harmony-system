@@ -8,16 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useForm } from "react-hook-form";
-import { Service, ServiceType, MonthlyPricing } from "@/lib/types";
-import { services as mockServices } from "@/lib/mockData";
+import { Service, ServiceType } from "@/lib/types";
 import { toast } from "sonner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ProductForm from "../admin/customization/ProductForm";
+import { 
+  loadServices, 
+  addService, 
+  updateService, 
+  deleteService, 
+  productToService, 
+  initProductManager, 
+  PRODUCT_EVENTS 
+} from "@/lib/productManager";
 
 const AdminServices = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -28,24 +30,24 @@ const AdminServices = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const storedServices = localStorage.getItem("services");
-    if (storedServices) {
-      setServices(JSON.parse(storedServices));
-    } else {
-      const formattedServices = mockServices.map(service => ({
-        ...service,
-        type: (service.type as ServiceType) || "subscription"
-      }));
-      setServices(formattedServices);
-      localStorage.setItem("services", JSON.stringify(formattedServices));
-    }
+    initProductManager();
+    setServices(loadServices());
+    
+    // Listen for service update events
+    const handleServiceUpdated = () => {
+      setServices(loadServices());
+    };
+    
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
+    
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
+    };
   }, []);
-
-  useEffect(() => {
-    if (services.length > 0) {
-      localStorage.setItem("services", JSON.stringify(services));
-    }
-  }, [services]);
 
   const filteredServices = services.filter(service => {
     const matchesTab = activeTab === "all" || service.type === activeTab;
@@ -66,9 +68,7 @@ const AdminServices = () => {
 
   const confirmDeleteService = () => {
     if (selectedService) {
-      const updatedServices = services.filter(service => service.id !== selectedService.id);
-      setServices(updatedServices);
-      toast.success(`${selectedService.name} has been deleted`);
+      deleteService(selectedService.id);
       setIsDeleteDialogOpen(false);
       setSelectedService(null);
     }
@@ -92,21 +92,18 @@ const AdminServices = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveService = (updatedService: Service) => {
-    const isNewService = !services.some(service => service.id === updatedService.id);
+  const handleSaveService = (updatedProduct: any) => {
+    // Convert Product to Service
+    const serviceData = productToService(updatedProduct);
     
-    let updatedServices: Service[];
+    const isNewService = !services.some(service => service.id === serviceData.id);
+    
     if (isNewService) {
-      updatedServices = [...services, updatedService];
-      toast.success(`${updatedService.name} has been added`);
+      addService(serviceData);
     } else {
-      updatedServices = services.map(service => 
-        service.id === updatedService.id ? updatedService : service
-      );
-      toast.success(`${updatedService.name} has been updated`);
+      updateService(serviceData);
     }
     
-    setServices(updatedServices);
     setIsDialogOpen(false);
     setSelectedService(null);
   };
@@ -186,7 +183,10 @@ const AdminServices = () => {
           </DialogHeader>
           
           <ProductForm 
-            product={selectedService} 
+            product={selectedService ? {
+              ...selectedService,
+              category: selectedService.category || selectedService.categoryId || 'Uncategorized'
+            } : null}
             onSubmit={handleSaveService} 
             onCancel={() => setIsDialogOpen(false)}
           />

@@ -1,9 +1,13 @@
 
-import { services } from '@/lib/mockData';
+import { Service, Product } from '@/lib/types';
+import { loadServices } from '@/lib/productManager';
 
 // Create a memoized service lookup map for better performance
 export const createServiceMap = () => {
   const serviceMap = new Map();
+  
+  // Load services from the product manager
+  const services = loadServices();
   
   // Add services to map
   if (services && Array.isArray(services)) {

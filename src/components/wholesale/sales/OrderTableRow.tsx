@@ -9,7 +9,7 @@ interface OrderTableRowProps {
   order: WholesaleOrder;
   customer: Customer | undefined;
   service: { id: string, name: string, type?: string } | undefined;
-  product?: { id: string, name: string, type?: string } | undefined; // Added for backward compatibility
+  product?: { id: string, name: string, type?: string } | undefined; // For backward compatibility
 }
 
 const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service, product }) => {
