@@ -28,7 +28,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   }, []);
   
   // Determine if products or services have been passed
-  const productsCount = products.filter(p => !p.type || p.type === 'product').length;
+  const productsCount = products.filter(p => !p.type || p.type !== 'service').length;
   const servicesCount = products.filter(p => p.type === 'service').length;
   
   return (
