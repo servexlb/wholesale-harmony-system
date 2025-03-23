@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -59,7 +60,15 @@ const Account: React.FC = () => {
   }, [userId]);
 
   const handleLogout = () => {
+    // Remove user ID and reset to guest state
     localStorage.removeItem('currentUserId');
+    
+    // Clear any other user-specific data
+    // This ensures the user returns to a complete guest state
+    localStorage.removeItem(`userProfile_${userId}`);
+    localStorage.removeItem(`userBalance_${userId}`);
+    localStorage.removeItem(`transactionHistory_${userId}`);
+    localStorage.removeItem(`customerOrders_${userId}`);
     
     toast.success("Logged out successfully");
     

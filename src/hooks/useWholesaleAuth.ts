@@ -23,9 +23,21 @@ export function useWholesaleAuth() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    // Get current wholesaler ID before clearing
+    const wholesalerId = localStorage.getItem('wholesalerId');
+    
+    // Clear authentication status
     setIsAuthenticated(false);
     localStorage.removeItem('wholesaleAuthenticated');
     localStorage.removeItem('wholesalerId');
+    setCurrentWholesaler('');
+    
+    // Clear any wholesaler-specific data
+    if (wholesalerId) {
+      localStorage.removeItem(`userBalance_${wholesalerId}`);
+      localStorage.removeItem(`userProfile_${wholesalerId}`);
+      localStorage.removeItem(`transactionHistory_${wholesalerId}`);
+    }
   }, []);
 
   return {

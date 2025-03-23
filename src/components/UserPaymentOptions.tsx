@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
-import { CreditCard, Repeat, AlertCircle, Copy, Check, Clock } from "lucide-react";
+import { CreditCard, Repeat, AlertCircle, Copy, Check, Clock, User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getCustomerById, addCustomerBalance } from "@/lib/data";
 
@@ -22,26 +22,76 @@ const UserPaymentOptions = () => {
   const [copied, setCopied] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Get current user ID (check for both customer and wholesaler)
   const customerId = localStorage.getItem('currentUserId');
   const wholesalerId = localStorage.getItem('wholesalerId');
-  const userId = wholesalerId || customerId || 'guest';
+  const userId = wholesalerId || customerId || '';
   
   useEffect(() => {
-    // Load user balance from localStorage
+    // Check if user is authenticated
+    if (wholesalerId) {
+      setIsAuthenticated(true);
+    } else if (customerId && customerId.startsWith('user_')) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+      toast.error("Authentication required", {
+        description: "Please log in to access payment options"
+      });
+      setTimeout(() => navigate("/login"), 1500);
+      return;
+    }
+    
+    // Load user balance from localStorage only for authenticated users
     let balance = 0;
     
     if (wholesalerId) {
       const balanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
       balance = balanceStr ? parseFloat(balanceStr) : 0;
-    } else if (customerId) {
+    } else if (customerId && customerId.startsWith('user_')) {
       const customer = getCustomerById(customerId);
-      balance = customer?.balance || 0;
+      if (customer) {
+        balance = customer.balance || 0;
+      } else {
+        const balanceStr = localStorage.getItem(`userBalance_${customerId}`);
+        balance = balanceStr ? parseFloat(balanceStr) : 0;
+      }
     }
     
     setUserBalance(balance);
-  }, [customerId, wholesalerId]);
+  }, [customerId, wholesalerId, navigate]);
+  
+  // If not authenticated, show login required component
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Balance & Payments</h1>
+        
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <User className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-medium mb-2">Authentication Required</h2>
+            <p className="text-center text-muted-foreground mb-6">
+              You need to be logged in to access payment options.
+            </p>
+            <div className="flex gap-4">
+              <Button variant="default" onClick={() => navigate('/login')}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign In
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/register')}>
+                Register
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   const wishMoneyAccount = "76349522";
   

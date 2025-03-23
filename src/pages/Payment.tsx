@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
-import { Copy, Check, AlertCircle, CreditCard, ExternalLink, Clock } from "lucide-react";
+import { Copy, Check, AlertCircle, CreditCard, ExternalLink, Clock, User, LogIn } from "lucide-react";
 import { AdminNotification } from "@/lib/types";
 
 const Payment: React.FC = () => {
@@ -24,12 +23,29 @@ const Payment: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "success" | null>(null);
-  const [userBalance, setUserBalance] = useState(10.00);
+  const [userBalance, setUserBalance] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  const userId = localStorage.getItem('currentUserId');
   
   useEffect(() => {
-    const userBalanceStr = localStorage.getItem('userBalance');
-    setUserBalance(userBalanceStr ? parseFloat(userBalanceStr) : 10.00);
-  }, []);
+    const isUserLoggedIn = !!userId && userId.startsWith('user_');
+    setIsAuthenticated(isUserLoggedIn);
+    
+    if (!isUserLoggedIn) {
+      toast.error("Authentication required", {
+        description: "Please log in to add funds"
+      });
+      return;
+    }
+    
+    const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
+    if (userBalanceStr && userId) {
+      setUserBalance(parseFloat(userBalanceStr));
+    } else {
+      setUserBalance(0);
+    }
+  }, [userId]);
   
   const wishMoneyAccount = "76349522";
   const bankAccount = {
@@ -56,6 +72,15 @@ const Payment: React.FC = () => {
 
   const handleWishMoneySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      toast.error("Authentication required", {
+        description: "Please log in to add funds"
+      });
+      navigate("/login");
+      return;
+    }
+    
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -65,7 +90,6 @@ const Payment: React.FC = () => {
 
     const amountValue = parseFloat(amount);
     
-    // Add transaction to history
     const transaction = {
       id: `txn-${Date.now()}`,
       type: "deposit",
@@ -75,9 +99,9 @@ const Payment: React.FC = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${userId}`) || '[]');
     transactionHistory.push(transaction);
-    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify(transactionHistory));
 
     const adminNotification: Partial<AdminNotification> = {
       type: "payment_issue",
@@ -91,7 +115,8 @@ const Payment: React.FC = () => {
       amount,
       timestamp: new Date().toISOString(),
       notes,
-      adminNotification
+      adminNotification,
+      userId
     });
     
     setTimeout(() => {
@@ -104,6 +129,15 @@ const Payment: React.FC = () => {
   
   const handleCreditCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      toast.error("Authentication required", {
+        description: "Please log in to add funds"
+      });
+      navigate("/login");
+      return;
+    }
+    
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -111,7 +145,6 @@ const Payment: React.FC = () => {
 
     const amountValue = parseFloat(amount);
     
-    // Add transaction to history
     const transaction = {
       id: `txn-${Date.now()}`,
       type: "deposit",
@@ -121,9 +154,9 @@ const Payment: React.FC = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${userId}`) || '[]');
     transactionHistory.push(transaction);
-    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify(transactionHistory));
 
     toast("Redirecting to bank payment page...");
     window.open("https://www.yourbank.com/payments", "_blank");
@@ -137,6 +170,15 @@ const Payment: React.FC = () => {
   
   const handleBinancePaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      toast.error("Authentication required", {
+        description: "Please log in to add funds"
+      });
+      navigate("/login");
+      return;
+    }
+    
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -144,7 +186,6 @@ const Payment: React.FC = () => {
 
     const amountValue = parseFloat(amount);
     
-    // Add transaction to history
     const transaction = {
       id: `txn-${Date.now()}`,
       type: "deposit",
@@ -154,9 +195,9 @@ const Payment: React.FC = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+    const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${userId}`) || '[]');
     transactionHistory.push(transaction);
-    localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify(transactionHistory));
 
     toast("Redirecting to Binance Pay...");
     window.open(binancePayUrl, "_blank");
@@ -171,6 +212,49 @@ const Payment: React.FC = () => {
   const handleReturnToShopping = () => {
     navigate("/services");
   };
+
+  if (!isAuthenticated) {
+    return (
+      <MainLayout>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="container py-8"
+        >
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>Authentication Required</CardTitle>
+              <CardDescription>
+                You need to be logged in to add funds to your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              
+              <p className="text-center">
+                Please sign in or create an account to continue.
+              </p>
+              
+              <div className="flex gap-4 pt-4">
+                <Button variant="default" onClick={() => navigate('/login')} className="flex-1">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/register')} className="flex-1">
+                  Register
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </MainLayout>
+    );
+  }
 
   if (paymentStatus === "pending") {
     return (

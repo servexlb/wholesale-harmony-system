@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -24,14 +23,35 @@ const Checkout: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState("account-balance");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Get current user ID and check if authenticated
+  const userId = localStorage.getItem('currentUserId');
   
   // Get current user balance from localStorage
-  const userBalanceStr = localStorage.getItem('userBalance');
-  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 10.00; // Default to 10 to match original
+  const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
+  const userBalance = userBalanceStr && userId ? parseFloat(userBalanceStr) : 0;
   const total = 12.99;
 
-  // Check if user has sufficient balance on component mount
+  // Check if user is authenticated on component mount
   useEffect(() => {
+    // Check if user is logged in
+    const isUserLoggedIn = !!userId && userId.startsWith('user_');
+    setIsAuthenticated(isUserLoggedIn);
+    
+    if (!isUserLoggedIn) {
+      toast.error("Authentication required", {
+        description: "Please log in to make a purchase"
+      });
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+      return;
+    }
+    
+    // Now check balance for authenticated users
     if (paymentMethod === "account-balance" && userBalance < total) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
@@ -44,6 +64,15 @@ const Checkout: React.FC = () => {
   }, []);
 
   const showPurchaseConfirmation = () => {
+    // Check authentication again when attempting purchase
+    if (!isAuthenticated) {
+      toast.error("Authentication required", {
+        description: "Please log in to make a purchase"
+      });
+      navigate("/login");
+      return;
+    }
+    
     // Check balance again when attempting purchase
     if (paymentMethod === "account-balance" && userBalance < total) {
       toast.error("Insufficient balance", {
@@ -58,18 +87,25 @@ const Checkout: React.FC = () => {
   };
 
   const handleCompletePurchase = () => {
+    // Final authentication check
+    if (!isAuthenticated) {
+      toast.error("Authentication required");
+      navigate("/login");
+      return;
+    }
+    
     setIsProcessing(true);
 
     // Deduct the price from user balance immediately
     if (paymentMethod === "account-balance") {
       const newBalance = userBalance - total;
-      localStorage.setItem('userBalance', newBalance.toString());
+      localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
     }
 
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
-      userId: "user-123", // In a real app, this would be the current user's ID
+      userId: userId,
       serviceId: "service-123", // In a real app, this would be the actual service ID
       quantity: 1,
       totalPrice: total,
@@ -79,9 +115,9 @@ const Checkout: React.FC = () => {
     };
 
     // Save order to localStorage
-    const customerOrders = JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${userId}`) || '[]');
     customerOrders.push(order);
-    localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
+    localStorage.setItem(`customerOrders_${userId}`, JSON.stringify(customerOrders));
 
     // In a real app, you would send this to your backend
     console.log("Created order:", order);
@@ -104,6 +140,37 @@ const Checkout: React.FC = () => {
     // Redirect to a confirmation page
     navigate("/dashboard");
   };
+
+  // If not authenticated, show a message
+  if (!isAuthenticated) {
+    return (
+      <MainLayout>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="container py-8"
+        >
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>Authentication Required</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">You need to be logged in to make a purchase.</p>
+              <div className="flex gap-4">
+                <Button onClick={() => navigate('/login')} className="flex-1">
+                  Sign In
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/register')} className="flex-1">
+                  Register
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
