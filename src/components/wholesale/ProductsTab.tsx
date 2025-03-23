@@ -1,13 +1,21 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Search, Filter, X } from 'lucide-react';
+import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ProductCard from '@/components/ProductCard';
 import { Product, Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import { toast } from '@/lib/toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface ProductsTabProps {
   products: Product[];
@@ -24,6 +32,8 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
   const [showServicesOnly, setShowServicesOnly] = useState(false);
   const [showProductsOnly, setShowProductsOnly] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productDetailOpen, setProductDetailOpen] = useState(false);
 
   // Log products to debug
   useEffect(() => {
@@ -68,6 +78,13 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
       detail: { productId: product.id }
     }));
+  }, []);
+  
+  // View details handler
+  const handleViewDetails = useCallback((product: Product, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    setSelectedProduct(product);
+    setProductDetailOpen(true);
   }, []);
   
   // Reset filters
@@ -182,11 +199,116 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                 product={product} 
                 isWholesale={true}
                 onClick={() => handleProductClick(product)}
+                onViewDetails={(e) => handleViewDetails(product, e)}
               />
             </div>
           ))}
         </div>
       )}
+
+      {/* Product Detail Dialog */}
+      <Dialog open={productDetailOpen} onOpenChange={setProductDetailOpen}>
+        {selectedProduct && (
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">{selectedProduct.name}</DialogTitle>
+              <DialogDescription>
+                Product ID: {selectedProduct.id}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                <img 
+                  src={selectedProduct.image} 
+                  alt={selectedProduct.name} 
+                  className="object-cover w-full h-full"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder.svg';
+                  }} 
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-1">Description</h3>
+                  <p className="text-gray-600">{selectedProduct.description || "No description available."}</p>
+                </div>
+                
+                <div className="pt-2">
+                  <h3 className="text-lg font-medium mb-1">Details</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Category:</span>
+                      <span className="font-medium">{selectedProduct.category}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Type:</span>
+                      <span className="font-medium capitalize">{selectedProduct.type || "Standard"}</span>
+                    </div>
+                    {selectedProduct.deliveryTime && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Delivery Time:</span>
+                        <span className="font-medium">{selectedProduct.deliveryTime}</span>
+                      </div>
+                    )}
+                    {selectedProduct.minQuantity && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Minimum Quantity:</span>
+                        <span className="font-medium">{selectedProduct.minQuantity}</span>
+                      </div>
+                    )}
+                    {selectedProduct.value && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Value:</span>
+                        <span className="font-medium">${selectedProduct.value.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <h3 className="text-lg font-medium mb-1">Price Information</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Retail Price:</span>
+                      <span className="font-medium">${selectedProduct.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Wholesale Price:</span>
+                      <span className="font-medium">${selectedProduct.wholesalePrice.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Profit Margin:</span>
+                      <span className="font-medium">
+                        {((1 - (selectedProduct.wholesalePrice / selectedProduct.price)) * 100).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setProductDetailOpen(false)}>
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  setProductDetailOpen(false);
+                  window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
+                    detail: { productId: selectedProduct.id }
+                  }));
+                }}
+              >
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Purchase Now
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </motion.div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -27,9 +28,15 @@ interface ProductCardProps {
   product: Product;
   isWholesale?: boolean;
   onClick?: (product: Product) => void;
+  onViewDetails?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false, onClick }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  isWholesale = false, 
+  onClick,
+  onViewDetails
+}) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -234,17 +241,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isWholesale = false,
             </div>
             
             <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="subtle-focus-ring"
-                asChild
-              >
-                <Link to={`/products/${product.id}`}>
+              {onViewDetails ? (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="subtle-focus-ring"
+                  onClick={onViewDetails}
+                >
                   <Eye className="h-4 w-4 mr-1" />
                   View
-                </Link>
-              </Button>
+                </Button>
+              ) : (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="subtle-focus-ring"
+                  asChild
+                >
+                  <Link to={`/products/${product.id}`}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Link>
+                </Button>
+              )}
               <Button 
                 size="sm" 
                 className="subtle-focus-ring"
