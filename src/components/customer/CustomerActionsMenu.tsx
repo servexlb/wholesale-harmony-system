@@ -20,6 +20,36 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   customerId,
   onPurchaseForCustomer
 }) => {
+  // Handle purchase action
+  const handlePurchase = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("Purchase clicked for customer:", customerId);
+    if (onPurchaseForCustomer) {
+      onPurchaseForCustomer(customerId);
+    }
+  };
+
+  // Handle view orders action
+  const handleViewOrders = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("View orders clicked for customer:", customerId);
+    // Add actual implementation later
+  };
+
+  // Handle edit customer action
+  const handleEditCustomer = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("Edit clicked for customer:", customerId);
+    // Add actual implementation later
+  };
+
+  // Handle delete customer action
+  const handleDeleteCustomer = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("Delete clicked for customer:", customerId);
+    // Add actual implementation later
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -36,40 +66,40 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="z-50">
+      <DropdownMenuContent 
+        align="end" 
+        className="z-50 bg-popover shadow-md"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onPurchaseForCustomer) {
-              onPurchaseForCustomer(customerId);
-            }
-          }}
+          onClick={handlePurchase}
           disabled={!onPurchaseForCustomer}
-          className="cursor-pointer"
+          className="cursor-pointer hover:bg-accent focus:bg-accent"
         >
           <ShoppingBag className="h-4 w-4 mr-2" />
           Purchase for Customer
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={(e) => e.stopPropagation()}
-          className="cursor-pointer"
+          onClick={handleViewOrders}
+          className="cursor-pointer hover:bg-accent focus:bg-accent"
         >
           <FileText className="h-4 w-4 mr-2" />
           View Orders
         </DropdownMenuItem>
         <DropdownMenuItem 
-          onClick={(e) => e.stopPropagation()}
-          className="cursor-pointer"
+          onClick={handleEditCustomer}
+          className="cursor-pointer hover:bg-accent focus:bg-accent"
         >
           <Edit className="h-4 w-4 mr-2" />
           Edit Customer
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
-          className="text-destructive cursor-pointer"
-          onClick={(e) => e.stopPropagation()}
+          className="text-destructive cursor-pointer hover:bg-accent focus:bg-accent"
+          onClick={handleDeleteCustomer}
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Customer

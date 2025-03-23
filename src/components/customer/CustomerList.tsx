@@ -32,6 +32,14 @@ const CustomerList: React.FC<CustomerListProps> = ({
     customer.phone.includes(searchTerm))
   );
 
+  // Make sure the function is properly passed down
+  const handlePurchaseForCustomer = (customerId: string) => {
+    console.log("CustomerList: Handling purchase for customer", customerId);
+    if (onPurchaseForCustomer) {
+      onPurchaseForCustomer(customerId);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg border shadow-sm overflow-hidden relative z-10">
       <div className="overflow-x-auto">
@@ -50,7 +58,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
                   key={customer.id} 
                   customer={customer} 
                   subscriptions={subscriptions.filter(sub => sub.userId === customer.id)}
-                  onPurchaseForCustomer={onPurchaseForCustomer}
+                  onPurchaseForCustomer={handlePurchaseForCustomer}
                 />
               ))
             )}

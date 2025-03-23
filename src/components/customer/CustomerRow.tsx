@@ -25,6 +25,14 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
 
+  const handleRowClick = (e: React.MouseEvent) => {
+    // Don't expand if clicking on a menu item or action button
+    if ((e.target as HTMLElement).closest('.dropdown-action')) {
+      return;
+    }
+    setExpanded(!expanded);
+  };
+
   return (
     <>
       <motion.tr
@@ -32,7 +40,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="hover:bg-muted/50 cursor-pointer relative"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleRowClick}
       >
         <TableCell className="font-medium">
           <Link 
@@ -107,8 +115,8 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
             <span className="text-muted-foreground text-sm">No active subscriptions</span>
           )}
         </TableCell>
-        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          <div className="z-50 relative">
+        <TableCell className="text-right">
+          <div className="z-50 relative dropdown-action" onClick={(e) => e.stopPropagation()}>
             <CustomerActionsMenu 
               customerId={customer.id} 
               onPurchaseForCustomer={onPurchaseForCustomer} 
