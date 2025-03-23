@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,7 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customers: Customer[];
-  products: Service[]; // Changed from Product[] to Service[]
+  products: Service[];
   selectedCustomer: string;
   currentWholesaler: string;
   onOrderPlaced: (order: WholesaleOrder) => void;
@@ -38,13 +37,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
   
-  // Add credential state for subscriptions
   const [credentials, setCredentials] = useState<{
     email: string;
     password: string;
   }>({ email: '', password: '' });
   
-  // Add a state to control whether to show the credentials fields
   const [showCredentials, setShowCredentials] = useState(false);
   
   useEffect(() => {
@@ -62,7 +59,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   }, [open, initialSelectedCustomer]);
   
-  // Effect to show credentials input when a subscription product is selected
   useEffect(() => {
     const product = products.find(p => p.id === selectedProduct);
     setShowCredentials(product?.type === 'subscription');
@@ -100,7 +96,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
 
-    // Calculate total price based on product type
     const totalPrice = product.type === 'subscription' 
       ? product.wholesalePrice * parseInt(selectedDuration)
       : product.wholesalePrice * quantity;
@@ -283,7 +278,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </>
         )}
         
-        {/* Add subscription credentials input fields */}
         {showCredentials && (
           <div className="space-y-3 p-3 border rounded-md">
             <h3 className="text-sm font-medium">Subscription Credentials</h3>
