@@ -88,6 +88,19 @@ const Wholesale = () => {
         setActiveTab={setActiveTab}
         handleLogout={handleLogout}
       >
+        {/* Show the inline purchase form when open */}
+        {purchaseDialogOpen && (
+          <PurchaseDialog
+            open={purchaseDialogOpen}
+            onOpenChange={setPurchaseDialogOpen}
+            customers={wholesalerCustomers}
+            products={defaultProducts}
+            selectedCustomer={selectedCustomerId}
+            currentWholesaler={currentWholesaler}
+            onOrderPlaced={handleOrderPlaced}
+          />
+        )}
+        
         <WholesaleTabContent 
           activeTab={activeTab}
           products={defaultProducts}
@@ -102,16 +115,6 @@ const Wholesale = () => {
           onPurchaseForCustomer={handlePurchaseForCustomer}
         />
       </WholesaleLayout>
-      
-      <PurchaseDialog
-        open={purchaseDialogOpen}
-        onOpenChange={setPurchaseDialogOpen}
-        customers={wholesalerCustomers}
-        products={defaultProducts}
-        selectedCustomer={selectedCustomerId}
-        currentWholesaler={currentWholesaler}
-        onOrderPlaced={handleOrderPlaced}
-      />
     </>
   );
 };
