@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
@@ -24,6 +26,12 @@ const Checkout: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [requireCredentials, setRequireCredentials] = useState(true);
+  const [credentials, setCredentials] = useState({
+    email: '',
+    password: ''
+  });
   
   // Get current user ID and check if authenticated
   const userId = localStorage.getItem('currentUserId');
@@ -61,6 +69,29 @@ const Checkout: React.FC = () => {
         navigate("/payment");
       }, 1500);
     }
+    
+    // Load credential requirement setting
+    const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
+    if (savedSetting !== null) {
+      const requireCreds = savedSetting === "true";
+      setRequireCredentials(requireCreds);
+      setShowCredentials(requireCreds);
+    }
+    
+    // Listen for settings changes
+    const handleCredentialSettingChanged = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.requireCredentials !== undefined) {
+        setRequireCredentials(customEvent.detail.requireCredentials);
+        setShowCredentials(customEvent.detail.requireCredentials);
+      }
+    };
+    
+    window.addEventListener('credential-setting-changed', handleCredentialSettingChanged);
+    
+    return () => {
+      window.removeEventListener('credential-setting-changed', handleCredentialSettingChanged);
+    };
   }, []);
 
   const showPurchaseConfirmation = () => {
@@ -94,6 +125,14 @@ const Checkout: React.FC = () => {
       return;
     }
     
+    // Validate credentials if required
+    if (showCredentials && (credentials.email.trim() === '' || credentials.password.trim() === '')) {
+      toast.error("Missing credentials", {
+        description: "Please provide both email and password for the subscription account"
+      });
+      return;
+    }
+    
     setIsProcessing(true);
 
     // Deduct the price from user balance immediately
@@ -111,7 +150,8 @@ const Checkout: React.FC = () => {
       totalPrice: total,
       status: "pending",
       createdAt: new Date().toISOString(),
-      paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending"
+      paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending",
+      ...(showCredentials ? { credentials } : {})
     };
 
     // Save order to localStorage
@@ -223,6 +263,42 @@ const Checkout: React.FC = () => {
                     </div>
                   </div>
                 )}
+                
+                {/* Subscription credentials section */}
+                {showCredentials && (
+                  <div className="mt-6 p-4 border rounded-md">
+                    <h3 className="text-base font-medium mb-3">Subscription Credentials</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Please provide the email and password you'd like to use for this subscription service.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="subscription-email">Email</Label>
+                        <Input 
+                          id="subscription-email" 
+                          type="email"
+                          value={credentials.email}
+                          onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="your-email@example.com"
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="subscription-password">Password</Label>
+                        <Input 
+                          id="subscription-password" 
+                          type="password"
+                          value={credentials.password}
+                          onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                          placeholder="••••••••"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -261,7 +337,7 @@ const Checkout: React.FC = () => {
                 <Button 
                   className="w-full" 
                   onClick={showPurchaseConfirmation}
-                  disabled={isProcessing}
+                  disabled={isProcessing || (showCredentials && (credentials.email === '' || credentials.password === ''))}
                 >
                   {isProcessing ? "Processing..." : "Complete Purchase"}
                 </Button>
@@ -298,13 +374,29 @@ const Checkout: React.FC = () => {
                   <span>${(userBalance - total).toFixed(2)}</span>
                 </div>
               )}
+              {showCredentials && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="font-medium mb-2">Subscription Credentials</h4>
+                  <div className="flex justify-between items-center mb-1 text-sm">
+                    <span>Email:</span>
+                    <span>{credentials.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span>Password:</span>
+                    <span>••••••••</span>
+                  </div>
+                </div>
+              )}
             </div>
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCompletePurchase} disabled={isProcessing}>
+              <Button 
+                onClick={handleCompletePurchase} 
+                disabled={isProcessing || (showCredentials && (credentials.email === '' || credentials.password === ''))}
+              >
                 {isProcessing ? "Processing..." : "Confirm Purchase"}
               </Button>
             </DialogFooter>

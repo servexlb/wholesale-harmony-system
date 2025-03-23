@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -45,11 +46,30 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [showCredentials, setShowCredentials] = useState(false);
   const [requireCredentials, setRequireCredentials] = useState(true);
   
+  // Load credential setting from localStorage and listen for changes
   useEffect(() => {
-    const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
-    if (savedSetting !== null) {
-      setRequireCredentials(savedSetting === "true");
-    }
+    const loadCredentialSetting = () => {
+      const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
+      if (savedSetting !== null) {
+        setRequireCredentials(savedSetting === "true");
+      }
+    };
+    
+    loadCredentialSetting();
+    
+    // Listen for credential setting changes
+    const handleCredentialSettingChanged = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.requireCredentials !== undefined) {
+        setRequireCredentials(customEvent.detail.requireCredentials);
+      }
+    };
+    
+    window.addEventListener('credential-setting-changed', handleCredentialSettingChanged);
+    
+    return () => {
+      window.removeEventListener('credential-setting-changed', handleCredentialSettingChanged);
+    };
   }, []);
   
   useEffect(() => {
@@ -142,6 +162,14 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     
     if (!product) {
       toast.error("Product not found");
+      return;
+    }
+    
+    // Check if credentials are required but missing
+    if (showCredentials && (credentials.email.trim() === '' || credentials.password.trim() === '')) {
+      toast.error("Credentials required", {
+        description: "Please provide both email and password for this subscription"
+      });
       return;
     }
 

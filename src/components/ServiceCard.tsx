@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Service, ServiceType } from '@/lib/types';
@@ -39,6 +39,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [selectedDuration, setSelectedDuration] = useState("1");
   const [accountId, setAccountId] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [requireCredentials, setRequireCredentials] = useState(true);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [credentials, setCredentials] = useState<{ email: string; password: string }>({
+    email: '',
+    password: ''
+  });
+  
   const navigate = useNavigate();
 
   const price = isWholesale ? service.wholesalePrice : service.price;
@@ -64,6 +71,35 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       service.categoryId.toLowerCase().includes('security') ||
       service.categoryId.toLowerCase().includes('productivity')
     ));
+  
+  // Load credential requirement setting from localStorage
+  useEffect(() => {
+    const loadCredentialSetting = () => {
+      const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
+      if (savedSetting !== null) {
+        const requireCreds = savedSetting === "true";
+        setRequireCredentials(requireCreds);
+        setShowCredentials(requireCreds && isSubscription);
+      }
+    };
+    
+    loadCredentialSetting();
+    
+    // Listen for credential setting changes
+    const handleCredentialSettingChanged = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.requireCredentials !== undefined) {
+        setRequireCredentials(customEvent.detail.requireCredentials);
+        setShowCredentials(customEvent.detail.requireCredentials && isSubscription);
+      }
+    };
+    
+    window.addEventListener('credential-setting-changed', handleCredentialSettingChanged);
+    
+    return () => {
+      window.removeEventListener('credential-setting-changed', handleCredentialSettingChanged);
+    };
+  }, [isSubscription]);
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
@@ -71,6 +107,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     setAccountId("");
     setQuantity(1);
     setCustomerName("");
+    setCredentials({ email: '', password: '' });
     
     // Set default duration for subscriptions
     if (shouldUseMonths) {
@@ -93,6 +130,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     if (isWholesale && !customerName.trim()) {
       toast.error("Customer name required", {
         description: "Please enter the customer name for this order"
+      });
+      return;
+    }
+    
+    // Validate credentials if required for subscription
+    if (showCredentials && (credentials.email.trim() === '' || credentials.password.trim() === '')) {
+      toast.error("Credentials required", {
+        description: "Please provide both email and password for this subscription"
       });
       return;
     }
@@ -131,6 +176,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
+      ...(showCredentials && credentials.email && credentials.password ? {
+        credentials: credentials
+      } : {})
     };
 
     // Save order to localStorage
@@ -333,6 +381,31 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               </div>
             )}
             
+            {/* Subscription credentials if required */}
+            {showCredentials && (
+              <div className="space-y-2 mb-4 p-3 border rounded-md">
+                <h3 className="text-sm font-medium">Subscription Credentials</h3>
+                <div>
+                  <label className="text-xs font-medium block mb-1">Email/Username</label>
+                  <Input
+                    type="text"
+                    value={credentials.email}
+                    onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="username@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1">Password</label>
+                  <Input
+                    type="password"
+                    value={credentials.password}
+                    onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            )}
+            
             {/* Subscription duration for subscription and streaming/vpn/security products */}
             {shouldUseMonths && (
               <div className="space-y-2 mb-4">
@@ -474,7 +547,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleBuyNow} disabled={isPurchasing}>
+            <Button 
+              onClick={handleBuyNow} 
+              disabled={
+                isPurchasing ||
+                (isRecharge && !accountId) ||
+                (isWholesale && !customerName) ||
+                (showCredentials && (!credentials.email || !credentials.password))
+              }
+            >
               {isPurchasing ? "Processing..." : "Confirm Purchase"}
             </Button>
           </DialogFooter>

@@ -27,6 +27,12 @@ const CredentialsSettings = () => {
     // Save the setting to localStorage
     localStorage.setItem("requireSubscriptionCredentials", requireCredentials.toString());
     setHasChanges(false);
+    
+    // Dispatch a custom event to inform other components of the change
+    window.dispatchEvent(new CustomEvent('credential-setting-changed', { 
+      detail: { requireCredentials } 
+    }));
+    
     toast.success("Credential settings saved successfully");
   };
 
