@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   customers, 
   onOrderPlaced 
 }) => {
+  // Log products to debug
+  useEffect(() => {
+    console.log('Products in ProductsTab:', products);
+    console.log('Products with type "service":', products.filter(p => p.type === 'service').length);
+    console.log('Products with type "product" or undefined:', products.filter(p => !p.type || p.type !== 'service').length);
+  }, [products]);
+
   // Handler for when a product is clicked
   const handleProductClick = useCallback((product: Product) => {
-    console.log("Product clicked:", product.name, product.id);
+    console.log("Product clicked:", product.name, product.id, product.type);
     // We'll use the onOpenPurchaseDialog prop passed from the parent
     window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
       detail: { productId: product.id }

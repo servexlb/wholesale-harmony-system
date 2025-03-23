@@ -48,14 +48,23 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       image: service.image || '/placeholder.svg', // Fallback image
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
       featured: service.featured || false,
-      type: service.type || 'service',
+      type: 'service', // Explicitly set type to 'service'
       deliveryTime: service.deliveryTime || "",
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
     }));
     
-    return [...products, ...servicesAsProducts];
+    // Add type 'product' explicitly to products that don't have a type
+    const typedProducts = products.map(product => ({
+      ...product,
+      type: product.type || 'product'
+    }));
+    
+    console.log('Services count:', servicesAsProducts.length);
+    console.log('Products count:', typedProducts.length);
+    
+    return [...typedProducts, ...servicesAsProducts];
   }, [products]);
 
   return (
