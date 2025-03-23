@@ -1,4 +1,3 @@
-
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -39,7 +38,7 @@ export interface Service {
   features?: string[];
 }
 
-// Added Product type for backward compatibility
+// Product type for backward compatibility
 export interface Product {
   id: string;
   name: string;
@@ -56,7 +55,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId: boolean; // Set as required field to fix TypeScript errors
+  requiresId: boolean; // This is a required field to fix TypeScript errors
 }
 
 export interface Subscription {
