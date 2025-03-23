@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers } from '@/lib/data';
 import { services } from '@/lib/mockData';
@@ -96,7 +95,7 @@ const Wholesale = () => {
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
             customers={wholesalerCustomers}
-            products={services as Service[]} 
+            products={services as Service[]} // Explicitly cast to Service[]
             selectedCustomer={selectedCustomerId}
             currentWholesaler={currentWholesaler}
             onOrderPlaced={handleOrderPlaced}

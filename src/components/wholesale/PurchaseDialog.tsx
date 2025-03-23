@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,7 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customers: Customer[];
-  products: Service[];
+  products: Service[]; // Updated to Service[] instead of Product[]
   selectedCustomer: string;
   currentWholesaler: string;
   onOrderPlaced: (order: WholesaleOrder) => void;
