@@ -1,12 +1,10 @@
-
 import React, { useState } from 'react';
-import { Key, Copy, Check } from 'lucide-react';
+import { Key, Copy, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Subscription } from '@/lib/types';
 import { toast } from '@/lib/toast';
-import { differenceInDays, parseISO } from 'date-fns';
 import { getSubscriptionStatus } from './utils';
 
 interface StockSubscriptionCardProps {
