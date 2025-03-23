@@ -8,7 +8,6 @@ import { useWholesaleAuth } from '@/hooks/useWholesaleAuth';
 import { useWholesaleData } from '@/hooks/useWholesaleData';
 import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
 import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
-import { useState } from 'react';
 
 const Wholesale = () => {
   // State for purchase dialog
