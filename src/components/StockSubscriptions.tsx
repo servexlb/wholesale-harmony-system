@@ -5,26 +5,27 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { filterSubscriptions } from './wholesale/stock/utils';
 import MobileStockView from './wholesale/stock/MobileStockView';
 import DesktopStockView from './wholesale/stock/DesktopStockView';
-import { RefreshCw } from 'lucide-react';
 
 interface StockSubscriptionsProps {
   subscriptions: Subscription[];
   allowRenewal?: boolean;
   onRenew?: (subscription: Subscription) => void;
   renewedSubscriptions?: string[];
+  category?: string;
 }
 
 const StockSubscriptions: React.FC<StockSubscriptionsProps> = ({
   subscriptions,
   allowRenewal = false,
   onRenew,
-  renewedSubscriptions = []
+  renewedSubscriptions = [],
+  category = 'all'
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const isMobile = useIsMobile();
 
-  // Filter subscriptions based on search term
-  const filteredSubscriptions = filterSubscriptions(subscriptions, searchTerm);
+  // Filter subscriptions based on search term and category
+  const filteredSubscriptions = filterSubscriptions(subscriptions, searchTerm, category);
 
   // Render appropriate view based on device type
   if (isMobile) {

@@ -61,6 +61,17 @@ export const isSubscriptionCancelled = (subscription: Subscription) => {
   return subscription.status === 'cancelled';
 };
 
+export const isSubscriptionEndingSoon = (subscription: Subscription, days: number = 5) => {
+  if (subscription.status !== 'active') return false;
+  
+  const end = new Date(subscription.endDate);
+  const now = new Date();
+  const diffTime = end.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays > 0 && diffDays <= days;
+};
+
 export const getRemainingDays = (endDate: string) => {
   const end = new Date(endDate);
   const now = new Date();
@@ -79,24 +90,30 @@ export const formatDate = (dateString: string) => {
 };
 
 // Add a function to filter subscriptions based on search term
-export const filterSubscriptions = (subscriptions: Subscription[], searchTerm: string) => {
-  if (!searchTerm.trim()) {
-    return subscriptions;
+export const filterSubscriptions = (subscriptions: Subscription[], searchTerm: string, category?: string) => {
+  let filtered = subscriptions;
+  
+  // First apply category filter if provided
+  if (category === 'ending-soon') {
+    filtered = subscriptions.filter(sub => isSubscriptionEndingSoon(sub, 5));
   }
   
-  const lowercasedSearch = searchTerm.toLowerCase();
-  
-  return subscriptions.filter(subscription => {
-    // Search across multiple fields: customer name, service name, etc.
-    // Since we don't have these fields directly on the subscription object,
-    // this will need to be adapted based on how you store this information
-    const searchableFields = [
-      subscription.id.toLowerCase(),
-      subscription.status.toLowerCase(),
-      subscription.credentials?.email?.toLowerCase() || '',
-      subscription.credentials?.username?.toLowerCase() || ''
-    ];
+  // Then apply search term filter if provided
+  if (searchTerm.trim()) {
+    const lowercasedSearch = searchTerm.toLowerCase();
     
-    return searchableFields.some(field => field.includes(lowercasedSearch));
-  });
+    filtered = filtered.filter(subscription => {
+      // Search across multiple fields: customer name, service name, etc.
+      const searchableFields = [
+        subscription.id.toLowerCase(),
+        subscription.status.toLowerCase(),
+        subscription.credentials?.email?.toLowerCase() || '',
+        subscription.credentials?.username?.toLowerCase() || ''
+      ];
+      
+      return searchableFields.some(field => field.includes(lowercasedSearch));
+    });
+  }
+  
+  return filtered;
 };
