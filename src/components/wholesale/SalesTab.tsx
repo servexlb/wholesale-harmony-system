@@ -124,7 +124,7 @@ const SalesTab: React.FC<SalesTabProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white p-5 rounded-lg shadow-sm md:col-span-2">
           <h2 className="text-lg font-medium mb-4">Sales Analytics</h2>
-          <SalesCalculator />
+          <SalesCalculator orders={orders} customers={customers} />
         </div>
         
         <SalesSummary 
