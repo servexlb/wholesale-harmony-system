@@ -18,6 +18,37 @@ export const getSubscriptionStatusIcon = (status: string) => {
   }
 };
 
+export const getSubscriptionStatus = (subscription: Subscription) => {
+  const status = subscription.status;
+  
+  switch (status) {
+    case 'active':
+      return {
+        label: 'Active',
+        variant: 'success' as const,
+        icon: <CheckCircle className="h-3 w-3 mr-1" />
+      };
+    case 'expired':
+      return {
+        label: 'Expired',
+        variant: 'warning' as const,
+        icon: <AlertTriangle className="h-3 w-3 mr-1" />
+      };
+    case 'cancelled':
+      return {
+        label: 'Cancelled',
+        variant: 'destructive' as const,
+        icon: <Ban className="h-3 w-3 mr-1" />
+      };
+    default:
+      return {
+        label: 'Unknown',
+        variant: 'outline' as const,
+        icon: null
+      };
+  }
+};
+
 export const isSubscriptionActive = (subscription: Subscription) => {
   return subscription.status === 'active';
 };
@@ -27,7 +58,7 @@ export const isSubscriptionExpired = (subscription: Subscription) => {
 };
 
 export const isSubscriptionCancelled = (subscription: Subscription) => {
-  return subscription.status === 'cancelled'; // Fixed from 'canceled' to 'cancelled'
+  return subscription.status === 'cancelled';
 };
 
 export const getRemainingDays = (endDate: string) => {
@@ -44,5 +75,28 @@ export const formatDate = (dateString: string) => {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
+  });
+};
+
+// Add a function to filter subscriptions based on search term
+export const filterSubscriptions = (subscriptions: Subscription[], searchTerm: string) => {
+  if (!searchTerm.trim()) {
+    return subscriptions;
+  }
+  
+  const lowercasedSearch = searchTerm.toLowerCase();
+  
+  return subscriptions.filter(subscription => {
+    // Search across multiple fields: customer name, service name, etc.
+    // Since we don't have these fields directly on the subscription object,
+    // this will need to be adapted based on how you store this information
+    const searchableFields = [
+      subscription.id.toLowerCase(),
+      subscription.status.toLowerCase(),
+      subscription.credentials?.email?.toLowerCase() || '',
+      subscription.credentials?.username?.toLowerCase() || ''
+    ];
+    
+    return searchableFields.some(field => field.includes(lowercasedSearch));
   });
 };
