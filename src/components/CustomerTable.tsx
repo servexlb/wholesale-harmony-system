@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -47,6 +47,11 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [customersList, setCustomersList] = useState<Customer[]>(customers);
+  
+  // Update customers list when the customers prop changes
+  useEffect(() => {
+    setCustomersList(customers);
+  }, [customers]);
   
   // Setup form
   const form = useForm<CustomerFormValues>({

@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import CustomerTable from '@/components/CustomerTable';
 import { Customer } from '@/lib/data';

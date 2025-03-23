@@ -40,12 +40,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
   
+  // Effect to reset product selection when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedProduct('');
+      setQuantity(1);
     }
   }, [open]);
   
+  // Effect to update selected customer when initialSelectedCustomer changes
   useEffect(() => {
     if (open && initialSelectedCustomer) {
       setSelectedCustomer(initialSelectedCustomer);
