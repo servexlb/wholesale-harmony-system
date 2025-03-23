@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -46,7 +45,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [showCredentials, setShowCredentials] = useState(false);
   const [requireCredentials, setRequireCredentials] = useState(true);
   
-  // Load credential setting from localStorage and listen for changes
   useEffect(() => {
     const loadCredentialSetting = () => {
       const savedSetting = localStorage.getItem("requireSubscriptionCredentials");
@@ -57,7 +55,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     
     loadCredentialSetting();
     
-    // Listen for credential setting changes
     const handleCredentialSettingChanged = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail?.requireCredentials !== undefined) {
@@ -165,7 +162,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
     
-    // Check if credentials are required but missing
     if (showCredentials && (credentials.email.trim() === '' || credentials.password.trim() === '')) {
       toast.error("Credentials required", {
         description: "Please provide both email and password for this subscription"

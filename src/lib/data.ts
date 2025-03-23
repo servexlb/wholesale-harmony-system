@@ -297,7 +297,13 @@ export const createSubscriptionIssue = (issueData: {
   customerName: string;
   serviceName: string;
   type: IssueType;
-  credentials?: { email: string; password: string; };
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
 }): Promise<boolean> => {
   const newIssue: SubscriptionIssue = {
     id: `issue-${Date.now()}`,

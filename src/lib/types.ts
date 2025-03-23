@@ -227,8 +227,11 @@ export interface SubscriptionIssue {
   resolvedBy?: string;
   notes?: string;
   credentials?: {
-    email?: string;
+    username?: string;
     password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
   };
 }
 
