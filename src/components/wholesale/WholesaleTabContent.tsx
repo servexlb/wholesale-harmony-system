@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
@@ -59,13 +58,13 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         minQuantity: service.minQuantity || 1
       })) as Service[];
       
-      // Convert products to Service type with categoryId
+      // Convert products to Service type ensuring categoryId is always set
       const productsAsServices = products.map(product => ({
         ...product,
+        // Ensure categoryId is set - use existing categoryId or fall back to category
+        categoryId: product.categoryId || product.category || "uncategorized",
         // Mark non-service products as subscription type by default
-        type: product.type || "subscription" as "subscription",
-        // Add required categoryId property from the product's category
-        categoryId: product.categoryId || product.category || "uncategorized"
+        type: product.type || "subscription" as "subscription"
       })) as Service[];
       
       console.log('Services count:', servicesList.length);

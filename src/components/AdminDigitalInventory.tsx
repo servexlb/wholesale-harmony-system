@@ -98,7 +98,7 @@ const AdminDigitalInventory: React.FC = () => {
       wholesalePrice: service.wholesalePrice,
       image: service.image,
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      categoryId: service.categoryId,
+      categoryId: service.categoryId || 'uncategorized',
       featured: service.featured || false,
       type: service.type,
       deliveryTime: service.deliveryTime || "",
@@ -109,7 +109,7 @@ const AdminDigitalInventory: React.FC = () => {
     }));
     
     const formattedDataProducts = dataProducts.map(product => {
-      const baseProduct = {
+      return {
         id: product.id,
         name: product.name,
         description: product.description,
@@ -117,23 +117,17 @@ const AdminDigitalInventory: React.FC = () => {
         wholesalePrice: product.wholesalePrice,
         image: product.image, 
         category: product.category,
-        categoryId: product.categoryId,
+        categoryId: product.categoryId || product.category || 'uncategorized',
         featured: product.featured || false,
         type: product.type,
         deliveryTime: product.deliveryTime || "",
         apiUrl: product.apiUrl,
         availableMonths: product.availableMonths,
-        value: product.value
+        value: product.value,
+        minQuantity: 'minQuantity' in product && product.minQuantity !== undefined 
+          ? Number(product.minQuantity) 
+          : undefined
       };
-      
-      if ('minQuantity' in product && product.minQuantity !== undefined) {
-        return {
-          ...baseProduct,
-          minQuantity: Number(product.minQuantity)
-        };
-      }
-      
-      return baseProduct;
     });
     
     const combinedProducts = [...formattedDataProducts, ...servicesAsProducts];

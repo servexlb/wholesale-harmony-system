@@ -6,12 +6,14 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
+  categoryId?: string;
   type?: "subscription" | "recharge" | "giftcard" | "service";
   value?: number;
   deliveryTime?: string;
   featured?: boolean;
   availableMonths?: number[];
   apiUrl?: string;
+  minQuantity?: number;
 }
 
 export interface Customer {

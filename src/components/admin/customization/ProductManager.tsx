@@ -30,7 +30,7 @@ const ProductManager = () => {
       wholesalePrice: service.wholesalePrice,
       image: service.image,
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      categoryId: service.categoryId,
+      categoryId: service.categoryId || 'uncategorized', // Ensure categoryId is always set
       featured: service.featured || false,
       type: service.type,
       deliveryTime: service.deliveryTime || "",
@@ -49,7 +49,7 @@ const ProductManager = () => {
       wholesalePrice: product.wholesalePrice,
       image: product.image,
       category: product.category,
-      categoryId: product.categoryId,
+      categoryId: product.categoryId || product.category || 'uncategorized', // Use category as fallback
       featured: product.featured || false,
       type: product.type,
       deliveryTime: product.deliveryTime || "",
