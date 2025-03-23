@@ -3,7 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
 import { Customer, Product } from '@/lib/data';
-import { Subscription, WholesaleOrder } from '@/lib/types';
+import { Subscription, WholesaleOrder, Service } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
@@ -39,44 +39,47 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   onPurchaseForCustomer
 }) => {
   // Combine products and services for the ProductsTab
-  const allProducts = React.useMemo(() => {
+  const allServices = React.useMemo(() => {
     try {
-      // Convert services to the Product format expected by ProductCard
-      const servicesAsProducts = services.map(service => ({
+      // Convert services to the Service format expected by ProductCard
+      const servicesList = services.map(service => ({
         id: service.id,
         name: service.name,
         description: service.description,
         price: service.price,
         wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
         image: service.image || '/placeholder.svg', // Fallback image
-        category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
+        categoryId: service.categoryId || "uncategorized",
         featured: service.featured || false,
         type: "service" as "service", // Use explicit type assertion
         deliveryTime: service.deliveryTime || "",
         apiUrl: service.apiUrl,
         availableMonths: service.availableMonths,
         value: service.value,
-      })) as Product[];
+        minQuantity: service.minQuantity || 1
+      })) as Service[];
       
-      // Make sure products have the right type
-      const typedProducts = products.map(product => ({
+      // Convert products to Service type with categoryId
+      const productsAsServices = products.map(product => ({
         ...product,
         // Mark non-service products as subscription type by default
-        type: product.type || "subscription" as "subscription"
-      })) as Product[];
+        type: product.type || "subscription" as "subscription",
+        // Add required categoryId property from the product's category
+        categoryId: product.category || "uncategorized"
+      })) as Service[];
       
-      console.log('Services count:', servicesAsProducts.length);
-      console.log('Products count:', typedProducts.length);
+      console.log('Services count:', servicesList.length);
+      console.log('Products count:', productsAsServices.length);
       
       // Create a combined array of both products and services
-      const combined = [...typedProducts, ...servicesAsProducts];
+      const combined = [...productsAsServices, ...servicesList];
       console.log('Combined products and services count:', combined.length);
       
       return combined;
     } catch (error) {
       console.error('Error combining products and services:', error);
-      toast.error('Error loading products');
-      return products;
+      toast.error('Error loading services');
+      return [] as Service[];
     }
   }, [products]);
 
@@ -92,7 +95,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         
         <TabsContent value="products" className="h-full">
           <ProductsTab 
-            services={allProducts} 
+            services={allServices} 
             customers={wholesalerCustomers}
             onOrderPlaced={handleOrderPlaced}
           />

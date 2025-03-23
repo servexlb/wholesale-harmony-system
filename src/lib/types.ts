@@ -45,6 +45,7 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
+  categoryId?: string; // Added optional categoryId for compatibility with Service
   featured?: boolean;
   type?: "subscription" | "recharge" | "service" | "giftcard";
   value?: number;
