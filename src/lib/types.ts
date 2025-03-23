@@ -20,6 +20,12 @@ export interface ServiceCategory {
   icon: string;
 }
 
+export interface MonthlyPricing {
+  months: number;
+  price: number;
+  wholesalePrice: number;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -38,6 +44,7 @@ export interface Service {
   apiUrl?: string;
   features?: string[];
   category?: string; // Making category optional in Service interface
+  monthlyPricing?: MonthlyPricing[]; // Added monthly pricing array
 }
 
 export interface Product {
@@ -57,6 +64,7 @@ export interface Product {
   apiUrl?: string;
   minQuantity?: number;
   requiresId?: boolean; // Adding requiresId property to Product interface
+  monthlyPricing?: MonthlyPricing[]; // Added monthly pricing array
 }
 
 export interface Subscription {

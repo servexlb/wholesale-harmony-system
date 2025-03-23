@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
-import { Service, ServiceType } from "@/lib/types";
+import { Service, ServiceType, MonthlyPricing } from "@/lib/types";
 import { services as mockServices } from "@/lib/mockData";
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ProductForm from "../admin/customization/ProductForm";
 
 const AdminServices = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -172,12 +175,23 @@ const AdminServices = () => {
         </TabsContent>
       </Tabs>
 
-      <ServiceFormDialog 
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        service={selectedService}
-        onSave={handleSaveService}
-      />
+      {/* Use the ProductForm component for service editing */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedService && selectedService.id ? "Edit" : "Add"} Service</DialogTitle>
+            <DialogDescription>
+              Fill in the details for this service. Different fields will be available based on the service type.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ProductForm 
+            product={selectedService} 
+            onSubmit={handleSaveService} 
+            onCancel={() => setIsDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -258,6 +272,17 @@ const ServiceList = ({
             <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
               {service.description}
             </p>
+            
+            {service.type === "subscription" && service.monthlyPricing && service.monthlyPricing.length > 0 && (
+              <div className="text-xs text-muted-foreground mb-2">
+                <span className="font-semibold">Available durations:</span>{" "}
+                {service.monthlyPricing
+                  .sort((a, b) => a.months - b.months)
+                  .map(p => `${p.months} month${p.months > 1 ? 's' : ''}`)
+                  .join(', ')}
+              </div>
+            )}
+            
             <div className="flex items-center justify-between mt-2">
               <span className="font-semibold">${service.price.toFixed(2)}</span>
               <div className="flex space-x-1">
@@ -282,321 +307,6 @@ const ServiceList = ({
         </Card>
       ))}
     </div>
-  );
-};
-
-const ServiceFormDialog = ({ 
-  open, 
-  onOpenChange, 
-  service, 
-  onSave 
-}: { 
-  open: boolean, 
-  onOpenChange: (open: boolean) => void, 
-  service: Service | null, 
-  onSave: (service: Service) => void 
-}) => {
-  const form = useForm<Service>({
-    defaultValues: service || {
-      id: `service-${Date.now()}`,
-      name: "",
-      description: "",
-      price: 0,
-      wholesalePrice: 0,
-      categoryId: "uncategorized",
-      image: "/placeholder.svg",
-      deliveryTime: "24 hours",
-      featured: false,
-      type: "subscription",
-    }
-  });
-
-  useEffect(() => {
-    if (service) {
-      form.reset(service);
-    }
-  }, [service, form]);
-
-  const handleSubmit = (data: Service) => {
-    onSave(data);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{service && service.id ? "Edit" : "Add"} Service</DialogTitle>
-          <DialogDescription>
-            Fill in the details for this service. Different fields will be available based on the service type.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Service Type</FormLabel>
-                    <Select 
-                      onValueChange={(value) => field.onChange(value as ServiceType)}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="subscription">Subscription</SelectItem>
-                        <SelectItem value="topup">Top-up</SelectItem>
-                        <SelectItem value="giftcard">Gift Card</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="image"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image URL</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="wholesalePrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Wholesale Price</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="deliveryTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Delivery Time</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="featured"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Featured</FormLabel>
-                      <FormDescription>
-                        Show this service on the homepage
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {form.watch("type") === "subscription" && (
-              <FormField
-                control={form.control}
-                name="availableMonths"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Available Durations (Months)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="1,3,6,12"
-                        value={field.value ? field.value.join(',') : ''}
-                        onChange={(e) => {
-                          const values = e.target.value.split(',')
-                            .map(val => parseInt(val.trim()))
-                            .filter(val => !isNaN(val));
-                          field.onChange(values.length > 0 ? values : [1]);
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter subscription durations in months, separated by commas
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            
-            {form.watch("type") === "topup" && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="requiresId"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Requires ID</FormLabel>
-                        <FormDescription>
-                          Customer must provide an ID or account number for this top-up
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="minQuantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Minimum Quantity</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Minimum quantity required for purchase
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
-            
-            {form.watch("type") === "giftcard" && (
-              <FormField
-                control={form.control}
-                name="value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gift Card Value</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      The value loaded on the gift card (if different from price)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save</Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
   );
 };
 

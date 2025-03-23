@@ -1,16 +1,16 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Product, ServiceType } from "@/lib/types";
+import { Product, ServiceType, MonthlyPricing } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { ImageIcon, UploadCloud } from "lucide-react";
+import { ImageIcon, UploadCloud, Plus, Trash2 } from "lucide-react";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 
 interface ProductFormProps {
@@ -26,6 +26,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
   const [availableImages, setAvailableImages] = useState<any[]>([]);
   const [showImageSelector, setShowImageSelector] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [monthlyPricing, setMonthlyPricing] = useState<MonthlyPricing[]>([]);
 
   const form = useForm<Product>({
     defaultValues: product || {
@@ -39,7 +40,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
       featured: false,
       deliveryTime: "24 hours",
       type: "subscription",
-      requiresId: false, // Ensure requiresId is set with default value
+      requiresId: false,
     }
   });
 
@@ -56,6 +57,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     if (product) {
       form.reset(product);
       setPreviewImage(product.image);
+      if (product.monthlyPricing && product.monthlyPricing.length > 0) {
+        setMonthlyPricing(product.monthlyPricing);
+      } else if (product.availableMonths && product.availableMonths.length > 0) {
+        setMonthlyPricing(
+          product.availableMonths.map(month => ({
+            months: month,
+            price: product.price * month,
+            wholesalePrice: product.wholesalePrice * month
+          }))
+        );
+      } else {
+        setMonthlyPricing([]);
+      }
     }
   }, [product, form]);
 
@@ -82,8 +96,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, you'd upload this file to a server
-      // For now, we'll use a FileReader to get a data URL
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
@@ -107,7 +119,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
 
   const handleImageError = () => {
     setImageError(true);
-    // Log this error
     const errorLog = JSON.parse(localStorage.getItem('productImageErrorLog') || '[]');
     if (product && !errorLog.some((log: any) => log.productId === product.id)) {
       errorLog.push({
@@ -119,6 +130,63 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
       localStorage.setItem('productImageErrorLog', JSON.stringify(errorLog));
     }
   };
+
+  const addMonthlyPricing = () => {
+    const months = 1;
+    const basePrice = form.getValues("price");
+    const baseWholesalePrice = form.getValues("wholesalePrice");
+    
+    // Find a month that isn't already in the pricing
+    const existingMonths = monthlyPricing.map(p => p.months);
+    let newMonth = months;
+    
+    // Common subscription durations if none exist yet
+    if (monthlyPricing.length === 0) {
+      setMonthlyPricing([
+        { months: 1, price: basePrice, wholesalePrice: baseWholesalePrice },
+        { months: 3, price: basePrice * 3 * 0.95, wholesalePrice: baseWholesalePrice * 3 * 0.95 },
+        { months: 6, price: basePrice * 6 * 0.9, wholesalePrice: baseWholesalePrice * 6 * 0.9 },
+        { months: 12, price: basePrice * 12 * 0.85, wholesalePrice: baseWholesalePrice * 12 * 0.85 }
+      ]);
+      return;
+    }
+    
+    // Find next available month
+    while (existingMonths.includes(newMonth)) {
+      newMonth++;
+    }
+    
+    setMonthlyPricing([
+      ...monthlyPricing,
+      { 
+        months: newMonth, 
+        price: basePrice * newMonth, 
+        wholesalePrice: baseWholesalePrice * newMonth 
+      }
+    ]);
+  };
+
+  const updateMonthlyPricing = (index: number, field: keyof MonthlyPricing, value: number) => {
+    const updated = [...monthlyPricing];
+    updated[index] = { ...updated[index], [field]: value };
+    setMonthlyPricing(updated);
+  };
+
+  const removeMonthlyPricing = (index: number) => {
+    const updated = [...monthlyPricing];
+    updated.splice(index, 1);
+    setMonthlyPricing(updated);
+  };
+
+  const sortedMonthlyPricing = [...monthlyPricing].sort((a, b) => a.months - b.months);
+
+  useEffect(() => {
+    if (monthlyPricing.length > 0) {
+      const months = monthlyPricing.map(p => p.months);
+      form.setValue("availableMonths", months);
+      form.setValue("monthlyPricing", monthlyPricing);
+    }
+  }, [monthlyPricing, form]);
 
   return (
     <Form {...form}>
@@ -253,7 +321,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
                   <Input {...field} 
                     onChange={(e) => {
                       field.onChange(e.target.value);
-                      // Also update categoryId to match category (slugified)
                       form.setValue("categoryId", e.target.value.toLowerCase().replace(/\s+/g, '-'));
                     }}
                   />
@@ -268,7 +335,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Base Price (Per Month)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 
@@ -286,7 +353,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
             name="wholesalePrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Wholesale Price</FormLabel>
+                <FormLabel>Base Wholesale Price (Per Month)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number" 
@@ -352,31 +419,82 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
         
         {/* Conditional fields based on product type */}
         {serviceType === "subscription" && (
-          <FormField
-            control={form.control}
-            name="availableMonths"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Available Months</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="1,3,6,12"
-                    value={field.value ? field.value.join(',') : ''}
-                    onChange={(e) => {
-                      const values = e.target.value.split(',')
-                        .map(val => parseInt(val.trim()))
-                        .filter(val => !isNaN(val));
-                      field.onChange(values.length > 0 ? values : undefined);
-                    }}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Enter subscription months separated by commas (e.g. 1,3,6,12)
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
+          <div className="space-y-4 border p-4 rounded-md">
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium">Subscription Pricing</h3>
+              <Button 
+                type="button" 
+                size="sm" 
+                variant="outline" 
+                onClick={addMonthlyPricing}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {monthlyPricing.length === 0 ? "Add Standard Durations" : "Add Duration"}
+              </Button>
+            </div>
+            
+            {sortedMonthlyPricing.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Duration (Months)</TableHead>
+                    <TableHead>Regular Price</TableHead>
+                    <TableHead>Wholesale Price</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedMonthlyPricing.map((pricing, index) => (
+                    <TableRow key={pricing.months}>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={pricing.months}
+                          onChange={(e) => updateMonthlyPricing(index, "months", parseInt(e.target.value) || 1)}
+                          className="w-20"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={pricing.price}
+                          onChange={(e) => updateMonthlyPricing(index, "price", parseFloat(e.target.value) || 0)}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={pricing.wholesalePrice}
+                          onChange={(e) => updateMonthlyPricing(index, "wholesalePrice", parseFloat(e.target.value) || 0)}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMonthlyPricing(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-sm text-muted-foreground text-center py-4">
+                Click "Add Standard Durations" to set up subscription pricing options.
+              </div>
             )}
-          />
+          </div>
         )}
         
         {/* Top-up specific fields */}

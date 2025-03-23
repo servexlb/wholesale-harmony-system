@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Customer } from '@/lib/data';
 import { toast } from 'sonner';
-import { WholesaleOrder, Service } from '@/lib/types';
+import { WholesaleOrder, Service, MonthlyPricing } from '@/lib/types';
 import { Search, Calendar, Zap, Package, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProductSearch from './ProductSearch';
@@ -82,7 +82,57 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const handleProductSelect = useCallback((productId: string) => {
     setSelectedProduct(productId);
+    // Reset selected duration when product changes
+    setSelectedDuration("1");
   }, []);
+
+  // Get available durations for selected product
+  const availableDurations = useMemo(() => {
+    if (!selectedProductData || selectedProductData.type !== 'subscription') return [];
+    
+    // Use monthly pricing if available
+    if (selectedProductData.monthlyPricing && selectedProductData.monthlyPricing.length > 0) {
+      return selectedProductData.monthlyPricing
+        .sort((a, b) => a.months - b.months)
+        .map(p => p.months.toString());
+    }
+    
+    // Fall back to available months
+    if (selectedProductData.availableMonths && selectedProductData.availableMonths.length > 0) {
+      return selectedProductData.availableMonths
+        .sort((a, b) => a - b)
+        .map(m => m.toString());
+    }
+    
+    // Default durations
+    return ["1", "3", "6", "12"];
+  }, [selectedProductData]);
+
+  useEffect(() => {
+    // Set the first available duration when product changes
+    if (availableDurations.length > 0 && selectedProductData?.type === 'subscription') {
+      setSelectedDuration(availableDurations[0]);
+    }
+  }, [availableDurations, selectedProductData]);
+
+  // Get pricing for selected duration
+  const getSubscriptionPrice = useCallback((isWholesale: boolean): number => {
+    if (!selectedProductData) return 0;
+    
+    const durationMonths = parseInt(selectedDuration);
+    
+    // Check if we have custom monthly pricing
+    if (selectedProductData.monthlyPricing && selectedProductData.monthlyPricing.length > 0) {
+      const pricing = selectedProductData.monthlyPricing.find(p => p.months === durationMonths);
+      if (pricing) {
+        return isWholesale ? pricing.wholesalePrice : pricing.price;
+      }
+    }
+    
+    // Fall back to base price * duration
+    const basePrice = isWholesale ? selectedProductData.wholesalePrice : selectedProductData.price;
+    return basePrice * durationMonths;
+  }, [selectedProductData, selectedDuration]);
 
   const handlePurchaseSubmit = useCallback(() => {
     if (!selectedCustomer || !selectedProduct) {
@@ -97,9 +147,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
 
-    const totalPrice = product.type === 'subscription' 
-      ? product.wholesalePrice * parseInt(selectedDuration)
-      : product.wholesalePrice * quantity;
+    let totalPrice: number;
+    
+    if (product.type === 'subscription') {
+      totalPrice = getSubscriptionPrice(true);
+    } else {
+      totalPrice = product.wholesalePrice * quantity;
+    }
     
     const currentBalance = getUserBalance();
     if (currentBalance < totalPrice) {
@@ -155,7 +209,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     navigate, 
     selectedDuration, 
     showCredentials, 
-    credentials
+    credentials,
+    getSubscriptionPrice
   ]);
 
   const loadPurchaseHistory = useCallback((customerId: string) => {
@@ -251,7 +306,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <div>
                 <label className="text-sm font-medium mb-1 block">Duration</label>
                 <div className="flex gap-2 flex-wrap">
-                  {["1", "3", "6", "12"].map((duration) => (
+                  {availableDurations.map((duration) => (
                     <Button 
                       key={duration}
                       type="button"
@@ -329,7 +384,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             <div className="flex justify-between mb-2">
               <span className="text-sm text-muted-foreground">Price per unit:</span>
               <span className="font-medium">
-                ${selectedProductData.wholesalePrice.toFixed(2)}
+                ${isSubscription 
+                  ? (getSubscriptionPrice(true) / parseInt(selectedDuration)).toFixed(2)
+                  : selectedProductData.wholesalePrice.toFixed(2)}
                 {isSubscription ? '/month' : ''}
               </span>
             </div>
@@ -338,13 +395,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <span>Total price:</span>
               <span className="text-primary">
                 ${isSubscription 
-                  ? (selectedProductData.wholesalePrice * parseInt(selectedDuration)).toFixed(2)
+                  ? getSubscriptionPrice(true).toFixed(2)
                   : (selectedProductData.wholesalePrice * quantity).toFixed(2)}
               </span>
             </div>
 
             {currentBalance < (isSubscription 
-              ? selectedProductData.wholesalePrice * parseInt(selectedDuration)
+              ? getSubscriptionPrice(true)
               : selectedProductData.wholesalePrice * quantity) && (
               <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
                 Warning: Your balance is insufficient for this purchase. Please add funds before proceeding.
@@ -366,7 +423,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             (showCredentials && (!credentials.email || !credentials.password)) ||
             (selectedProductData && currentBalance < (
               isSubscription 
-                ? selectedProductData.wholesalePrice * parseInt(selectedDuration)
+                ? getSubscriptionPrice(true)
                 : selectedProductData.wholesalePrice * quantity
             ))
           }
