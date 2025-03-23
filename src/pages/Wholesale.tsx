@@ -11,6 +11,7 @@ import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
 import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
 import { Service } from '@/lib/types';
 import { loadServices } from '@/lib/productManager';
+import { Button } from '@/components/ui/button';
 
 const Wholesale = () => {
   // State for purchase dialog

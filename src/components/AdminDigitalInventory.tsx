@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search, User, Hash, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Sheet,
@@ -17,14 +18,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Product, Service, ServiceType, CredentialStock } from "@/lib/types";
 import { products as dataProducts } from "@/lib/data";
 import { services } from "@/lib/mockData";
 import { 
   getAllCredentialStock, 
   addCredentialToStock, 
-  deleteCredentialFromStock 
+  deleteCredentialFromStock,
+  updateCredentialInStock,
+  saveCredentialStock
 } from "@/lib/credentialUtils";
 
 interface DigitalItem extends CredentialStock {
@@ -64,8 +66,7 @@ const AdminDigitalInventory: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
   
-  const { toast } = useToast();
-
+  // Load inventory when component mounts
   useEffect(() => {
     const loadInventory = () => {
       const stock = getAllCredentialStock();
@@ -73,16 +74,23 @@ const AdminDigitalInventory: React.FC = () => {
     };
 
     loadInventory();
+    
+    // Add event listener for credential stock updates
+    window.addEventListener('credential-stock-updated', loadInventory);
+    
+    return () => {
+      window.removeEventListener('credential-stock-updated', loadInventory);
+    };
   }, []);
 
   useEffect(() => {
     const servicesAsProducts: Product[] = services.map(service => ({
       id: service.id,
       name: service.name,
-      description: service.description,
+      description: service.description || "",
       price: service.price,
       wholesalePrice: service.wholesalePrice,
-      image: service.image,
+      image: service.image || "",
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
       categoryId: service.categoryId || 'uncategorized',
       featured: service.featured || false,
@@ -121,10 +129,6 @@ const AdminDigitalInventory: React.FC = () => {
     const combinedProducts = [...formattedDataProducts, ...servicesAsProducts];
     setAllProducts(combinedProducts);
     setFilteredProducts(combinedProducts);
-    
-    console.log("Total products loaded:", combinedProducts.length);
-    console.log("Data products:", formattedDataProducts.length);
-    console.log("Service products:", servicesAsProducts.length);
   }, []);
 
   useEffect(() => {
@@ -143,10 +147,8 @@ const AdminDigitalInventory: React.FC = () => {
 
   const handleAddItem = () => {
     if (!selectedService || !newCredentials.email || !newCredentials.password) {
-      toast({
-        title: "Missing Information",
+      toast.error("Missing Information", {
         description: "Please fill in at least email and password fields",
-        variant: "destructive",
       });
       return;
     }
@@ -173,8 +175,7 @@ const AdminDigitalInventory: React.FC = () => {
 
     setInventory(prev => [...prev, ...newItems]);
     setNewCredentials({ email: "", password: "", username: "", pinCode: "" });
-    toast({
-      title: "Items Added",
+    toast.success("Items Added", {
       description: `${quantity} digital inventory item(s) have been added successfully`,
     });
     setQuantity(1);
@@ -182,10 +183,8 @@ const AdminDigitalInventory: React.FC = () => {
 
   const handleBulkImport = () => {
     if (!selectedService || !bulkCredentials) {
-      toast({
-        title: "Missing Information",
+      toast.error("Missing Information", {
         description: "Please select a service and enter credentials",
-        variant: "destructive",
       });
       return;
     }
@@ -222,16 +221,13 @@ const AdminDigitalInventory: React.FC = () => {
     if (newItems.length > 0) {
       setInventory(prev => [...prev, ...newItems]);
       setBulkCredentials("");
-      toast({
-        title: "Bulk Import Successful",
+      toast.success("Bulk Import Successful", {
         description: `Added ${newItems.length} items to inventory`,
       });
       setQuantity(1);
     } else {
-      toast({
-        title: "Import Failed",
+      toast.error("Import Failed", {
         description: "No valid credentials found. Use format: email:password[:username][:pinCode]",
-        variant: "destructive",
       });
     }
   };
@@ -251,8 +247,7 @@ const AdminDigitalInventory: React.FC = () => {
     
     setInventory(prev => [...prev, ...duplicatedItems]);
     
-    toast({
-      title: "Items Duplicated",
+    toast.success("Items Duplicated", {
       description: `${quantity} copies of the item have been added to inventory`,
     });
     setQuantity(1);
@@ -261,8 +256,7 @@ const AdminDigitalInventory: React.FC = () => {
   const handleDeleteItem = (id: string) => {
     deleteCredentialFromStock(id);
     setInventory(inventory.filter(item => item.id !== id));
-    toast({
-      title: "Item Removed",
+    toast.success("Item Removed", {
       description: "Digital inventory item has been removed",
     });
   };
@@ -298,8 +292,7 @@ const AdminDigitalInventory: React.FC = () => {
     });
     
     setInventory(prev => [...prev, ...productsToAdd]);
-    toast({
-      title: "Products Added to Inventory",
+    toast.success("Products Added to Inventory", {
       description: `Added ${productsToAdd.length} products to inventory. You can now add credentials for them.`,
     });
     setSelectedProducts([]);
@@ -316,43 +309,32 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const updateCredential = (itemId: string, field: keyof DigitalItem['credentials'], value: string) => {
-    console.log(`Updating item ${itemId}, field ${field} to value: ${value}`);
-    
+    // Update the credentials in the specified field
     const updatedInventory = inventory.map(item => {
       if (item.id === itemId) {
-        const updatedItem = {
-          ...item,
-          credentials: {
-            ...item.credentials,
-            [field]: value
-          }
+        const updatedCredentials = {
+          ...item.credentials,
+          [field]: value
         };
         
-        const allStock = getAllCredentialStock();
-        const updatedStock = allStock.map(stock => {
-          if (stock.id === itemId) {
-            return {
-              ...stock,
-              credentials: {
-                ...stock.credentials,
-                [field]: value
-              }
-            };
-          }
-          return stock;
+        // Call the utility function to update in localStorage and return updated item
+        const result = updateCredentialInStock(itemId, {
+          credentials: updatedCredentials
         });
         
-        localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
-        
-        return updatedItem;
+        if (result) {
+          return {
+            ...item,
+            credentials: updatedCredentials
+          };
+        }
       }
       return item;
     });
     
     setInventory(updatedInventory);
     
-    toast({
-      title: "Credential Updated",
+    toast.success("Credential Updated", {
       description: `Updated ${field} for item ${itemId.substring(0, 8)}...`,
     });
   };
@@ -704,7 +686,7 @@ const AdminDigitalInventory: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.status === "available" ? "outline" : "secondary"}>
+                        <Badge variant="outline">
                           {item.status === "available" ? "Available" : "Assigned"}
                         </Badge>
                       </TableCell>

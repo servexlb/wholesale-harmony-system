@@ -1,110 +1,116 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Search, Filter, RefreshCcw, Package, Download } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Download, Filter, Search, EyeIcon, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Order } from "@/lib/types";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+};
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderDetails, setShowOrderDetails] = useState(false);
 
   // Load orders from localStorage
   useEffect(() => {
     const loadOrders = () => {
-      setLoading(true);
       try {
-        const storedOrders = localStorage.getItem('allOrders');
-        if (storedOrders) {
-          const parsedOrders = JSON.parse(storedOrders);
-          setOrders(parsedOrders);
-          setFilteredOrders(parsedOrders);
-        } else {
-          // If no orders in localStorage, use empty array
-          setOrders([]);
-          setFilteredOrders([]);
+        // Try to load orders from localStorage
+        const savedOrders = localStorage.getItem('orders');
+        const savedWholesaleOrders = localStorage.getItem('wholesaleOrders');
+        
+        let allOrders: Order[] = [];
+        
+        if (savedOrders) {
+          const parsedOrders = JSON.parse(savedOrders);
+          allOrders = [...allOrders, ...parsedOrders];
         }
+        
+        if (savedWholesaleOrders) {
+          const parsedWholesaleOrders = JSON.parse(savedWholesaleOrders);
+          allOrders = [...allOrders, ...parsedWholesaleOrders];
+        }
+        
+        // Sort orders by date (newest first)
+        allOrders.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
+        setOrders(allOrders);
+        setFilteredOrders(allOrders);
       } catch (error) {
         console.error("Error loading orders:", error);
         setOrders([]);
         setFilteredOrders([]);
-      } finally {
-        setLoading(false);
       }
     };
-
+    
     loadOrders();
+    
+    // Listen for order updates
+    window.addEventListener('order-placed', loadOrders);
+    
+    return () => {
+      window.removeEventListener('order-placed', loadOrders);
+    };
   }, []);
 
-  // Filter orders based on search term and status filter
+  // Filter orders based on search term and active tab
   useEffect(() => {
-    let result = [...orders];
+    let result = orders;
     
-    // Apply status filter
-    if (statusFilter !== "all") {
-      result = result.filter(order => order.status === statusFilter);
+    // Apply tab filter
+    if (activeTab !== "all") {
+      result = result.filter(order => order.status.toLowerCase() === activeTab);
     }
     
     // Apply search filter
-    if (searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase();
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       result = result.filter(order => 
-        order.id.toLowerCase().includes(searchLower) ||
-        (order.customerName && order.customerName.toLowerCase().includes(searchLower)) ||
-        order.userId.toLowerCase().includes(searchLower)
+        order.id.toLowerCase().includes(term) ||
+        (order.userId && order.userId.toLowerCase().includes(term)) ||
+        (order.serviceId && order.serviceId.toLowerCase().includes(term))
       );
     }
     
     setFilteredOrders(result);
-  }, [orders, searchTerm, statusFilter]);
+  }, [searchTerm, activeTab, orders]);
 
-  // Generate badge variant based on order status
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "warning" as const;
-      case "processing":
-        return "secondary" as const;
-      case "completed":
-        return "default" as const;
-      case "cancelled":
-        return "destructive" as const;
-      default:
-        return "outline" as const;
-    }
+  const handleViewOrderDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setShowOrderDetails(true);
   };
 
-  // Format date to a readable format
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Export orders as CSV
-  const exportOrders = () => {
-    const headers = ["Order ID", "Customer", "User ID", "Products", "Total", "Status", "Date", "Credential Status"];
+  const exportToCSV = () => {
+    // Generate CSV from filteredOrders
+    const headers = ["Order ID", "User ID", "Service", "Date", "Status", "Total"];
     
     const rows = filteredOrders.map(order => [
       order.id,
-      order.customerName || "N/A",
-      order.userId,
-      order.products ? order.products.length : "N/A",
-      `$${order.totalPrice || order.total || 0}`,
+      order.userId || "N/A",
+      order.serviceId || "Multiple",
+      new Date(order.createdAt).toLocaleString(),
       order.status,
-      formatDate(order.createdAt),
-      order.credentialStatus || "N/A"
+      `$${(order.totalPrice || order.total || 0).toFixed(2)}`
     ]);
     
     const csvContent = [
@@ -112,15 +118,31 @@ const AdminOrders = () => {
       ...rows.map(row => row.join(","))
     ].join("\n");
     
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Create a blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `orders_export_${new Date().toISOString()}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return "outline";
+      case 'processing':
+        return "secondary";
+      case 'cancelled':
+        return "destructive";
+      case 'pending':
+        return "outline";
+      default:
+        return "default";
+    }
   };
 
   return (
@@ -128,114 +150,226 @@ const AdminOrders = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Order Management</h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportOrders}>
+          <Button variant="outline" onClick={exportToCSV}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
       </div>
-      
+
+      {/* Order metrics cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{orders.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.filter(o => o.status.toLowerCase() === 'completed').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Processing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.filter(o => o.status.toLowerCase() === 'processing').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {orders.filter(o => o.status.toLowerCase() === 'cancelled').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Order filtering and search */}
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            type="search"
+            placeholder="Search orders..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+          <TabsList>
+            <TabsTrigger value="all">All Orders</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="processing">Processing</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Orders table */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <CardTitle>Orders</CardTitle>
+          <CardDescription>
+            {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by order ID, customer, or user ID..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="status-filter" className="whitespace-nowrap">Status:</Label>
-              <select 
-                id="status-filter"
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                }}
-                title="Reset filters"
-              >
-                <RefreshCcw className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent text-primary rounded-full" aria-hidden="true"></div>
-              <p className="mt-2 text-sm text-muted-foreground">Loading orders...</p>
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No Orders Found</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {orders.length === 0 
-                  ? "There are no orders in the system yet."
-                  : "No orders match your current filters. Try adjusting your search criteria."
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Credential Status</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                    No orders found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id.substring(0, 8)}...</TableCell>
+                    <TableCell>{order.userId || "N/A"}</TableCell>
+                    <TableCell>{order.serviceId || "Multiple"}</TableCell>
+                    <TableCell>{formatDate(order.createdAt)}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(order.status)}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      ${(order.totalPrice || order.total || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="outline" size="sm" onClick={() => handleViewOrderDetails(order)}>
+                        <EyeIcon className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id.substring(0, 8)}</TableCell>
-                      <TableCell>{order.customerName || "N/A"}</TableCell>
-                      <TableCell>{formatDate(order.createdAt)}</TableCell>
-                      <TableCell>${(order.totalPrice || order.total || 0).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadge(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {order.credentialStatus ? (
-                          <Badge variant={order.credentialStatus === "assigned" ? "default" : "outline"}>
-                            {order.credentialStatus.charAt(0).toUpperCase() + order.credentialStatus.slice(1)}
-                          </Badge>
-                        ) : (
-                          "N/A"
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
+
+      {/* Order details dialog */}
+      <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about order #{selectedOrder?.id.substring(0, 8)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-1">Order ID</p>
+                  <p className="text-sm">{selectedOrder.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Date</p>
+                  <p className="text-sm">{formatDate(selectedOrder.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Customer</p>
+                  <p className="text-sm">{selectedOrder.userId || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Status</p>
+                  <Badge variant={getStatusBadgeVariant(selectedOrder.status)}>
+                    {selectedOrder.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Service</p>
+                  <p className="text-sm">{selectedOrder.serviceId || "Multiple"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Total</p>
+                  <p className="text-sm font-bold">
+                    ${(selectedOrder.totalPrice || selectedOrder.total || 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              
+              {selectedOrder.credentials && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Credentials</p>
+                  <Card>
+                    <CardContent className="p-4">
+                      {Object.entries(selectedOrder.credentials).map(([key, value]) => (
+                        <div key={key} className="flex justify-between py-1 border-b last:border-b-0">
+                          <span className="text-sm font-medium capitalize">{key}</span>
+                          <span className="text-sm">{value}</span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+              
+              {selectedOrder.products && selectedOrder.products.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Products</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedOrder.products.map((product, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{product.name}</TableCell>
+                          <TableCell>{product.quantity || 1}</TableCell>
+                          <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

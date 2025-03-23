@@ -1,261 +1,270 @@
 
-import { CredentialStock, Order, Service, WholesaleOrder } from "./types";
+import { CredentialStock, Order } from './types';
 
-// Load credential stock from localStorage or use default if not available
-const loadCredentialStock = (): CredentialStock[] => {
-  const storedStock = localStorage.getItem('credentialStock');
-  if (storedStock) {
-    return JSON.parse(storedStock);
+// Get all credentials in stock
+export const getAllCredentialStock = (): CredentialStock[] => {
+  try {
+    const stockJson = localStorage.getItem('credentialStock');
+    if (!stockJson) return [];
+    return JSON.parse(stockJson);
+  } catch (error) {
+    console.error('Error getting credential stock:', error);
+    return [];
   }
-  
-  // Default initial stock if nothing is in localStorage
-  return [
-    {
-      id: "cred-1",
-      serviceId: "service-netflix",
-      credentials: {
-        email: "netflix_premium1@example.com",
-        password: "securepass123",
-        notes: "Premium account with 4K streaming"
-      },
-      status: "available" as const,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: "cred-2",
-      serviceId: "service-netflix",
-      credentials: {
-        email: "netflix_premium2@example.com",
-        password: "securepass456",
-        notes: "Premium account with 4K streaming"
-      },
-      status: "available" as const,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: "cred-3",
-      serviceId: "service-disney",
-      credentials: {
-        email: "disney_plus1@example.com",
-        password: "disneypass123",
-        notes: "Disney+ subscription"
-      },
-      status: "available" as const,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: "cred-4",
-      serviceId: "service-spotify",
-      credentials: {
-        email: "spotify_premium@example.com",
-        password: "spotifypass123",
-        notes: "Spotify Premium subscription"
-      },
-      status: "available" as const,
-      createdAt: new Date().toISOString()
-    }
-  ];
 };
 
-// Get credential stock
-let credentialStock = loadCredentialStock();
-
-// Save credential stock to localStorage
-const saveCredentialStock = (): void => {
-  localStorage.setItem('credentialStock', JSON.stringify(credentialStock));
-};
-
-// Check if credentials are available for a service
-export const checkCredentialAvailability = (serviceId: string): boolean => {
-  return credentialStock.some(cred => cred.serviceId === serviceId && cred.status === "available");
-};
-
-// Get available stock count for a service
-export const getAvailableStockCount = (serviceId: string): number => {
-  return credentialStock.filter(cred => cred.serviceId === serviceId && cred.status === "available").length;
-};
-
-// Assign credentials to an order if available
-export const assignCredentialsToOrder = (order: Order | WholesaleOrder): Order | WholesaleOrder => {
-  // If order already has credentials, return it unchanged
-  if (order.credentials && Object.keys(order.credentials).length > 0) {
-    return {
-      ...order,
-      credentialStatus: "assigned" as const
-    };
-  }
-  
-  // Find available credentials for the service
-  const availableCredential = credentialStock.find(
-    cred => cred.serviceId === order.serviceId && cred.status === "available"
-  );
-  
-  if (availableCredential) {
-    // Mark credential as assigned
-    const updatedCredentialStock = credentialStock.map(cred => {
-      if (cred.id === availableCredential.id) {
-        return {
-          ...cred,
-          status: "assigned" as const,
-          assignedToOrderId: order.id
-        };
-      }
-      return cred;
-    });
-
-    credentialStock = updatedCredentialStock;
-    saveCredentialStock();
+// Save all credentials stock
+export const saveCredentialStock = (stock: CredentialStock[]) => {
+  try {
+    localStorage.setItem('credentialStock', JSON.stringify(stock));
     
-    // Update the order with credentials
-    return {
-      ...order,
-      credentials: availableCredential.credentials,
-      credentialStatus: "assigned" as const
-    };
+    // Dispatch event to notify components about the update
+    window.dispatchEvent(new CustomEvent('credential-stock-updated', { 
+      detail: { stock }
+    }));
+  } catch (error) {
+    console.error('Error saving credential stock:', error);
   }
-  
-  // No credentials available
-  return {
-    ...order,
-    credentialStatus: "pending" as const
-  };
 };
 
-// Update service objects with stock availability info
-export const updateServicesWithStockInfo = (services: Service[]): Service[] => {
-  return services.map(service => {
-    const stockCount = getAvailableStockCount(service.id);
-    return {
-      ...service,
-      stockAvailable: stockCount
-    };
-  });
-};
-
-// Add new credentials to stock
+// Add a new credential to stock
 export const addCredentialToStock = (
   serviceId: string, 
   credentials: { 
-    email?: string; 
-    password?: string; 
-    username?: string;
-    notes?: string;
-    [key: string]: any;
+    email: string; 
+    password: string; 
+    username?: string; 
+    pinCode?: string; 
   }
 ): CredentialStock => {
-  const newCredential: CredentialStock = {
-    id: `cred-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    serviceId,
-    credentials,
-    status: "available" as const,
-    createdAt: new Date().toISOString()
-  };
-  
-  credentialStock.push(newCredential);
-  saveCredentialStock();
-  return newCredential;
-};
-
-// Process order with automatic credential assignment
-export const processOrderWithCredentials = (order: Order | WholesaleOrder): Order | WholesaleOrder => {
-  // Only process subscription or credential-based services
-  const requiresCredentials = !order.serviceId?.includes("giftcard") && 
-                             !order.serviceId?.includes("topup");
-  
-  if (!requiresCredentials) {
-    return order;
-  }
-  
-  const processedOrder = assignCredentialsToOrder(order);
-  
-  // Save order to localStorage for admin panel
-  saveOrderToHistory(processedOrder);
-  
-  return processedOrder;
-};
-
-// Save order to localStorage for admin panel
-const saveOrderToHistory = (order: Order | WholesaleOrder): void => {
   try {
-    const storedOrders = localStorage.getItem('allOrders');
-    let allOrders: Array<Order | WholesaleOrder> = [];
+    const stock = getAllCredentialStock();
     
-    if (storedOrders) {
-      allOrders = JSON.parse(storedOrders);
-    }
+    const newCredential: CredentialStock = {
+      id: `cred-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      serviceId,
+      credentials,
+      status: 'available' as const,
+      createdAt: new Date().toISOString()
+    };
     
-    // Check if order already exists
-    const orderExists = allOrders.some(existingOrder => existingOrder.id === order.id);
+    stock.push(newCredential);
+    saveCredentialStock(stock);
     
-    if (!orderExists) {
-      // Add new order
-      allOrders.push(order);
-    } else {
-      // Update existing order
-      allOrders = allOrders.map(existingOrder => 
-        existingOrder.id === order.id ? order : existingOrder
-      );
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem('allOrders', JSON.stringify(allOrders));
-    
+    return newCredential;
   } catch (error) {
-    console.error("Error saving order history:", error);
+    console.error('Error adding credential to stock:', error);
+    throw error;
   }
 };
 
-// Get all credential stock (for admin panels)
-export const getAllCredentialStock = (): CredentialStock[] => {
-  return [...credentialStock];
-};
-
-// Delete a credential from stock
-export const deleteCredentialFromStock = (credentialId: string): boolean => {
-  const initialLength = credentialStock.length;
-  credentialStock = credentialStock.filter(cred => cred.id !== credentialId);
-  
-  if (credentialStock.length !== initialLength) {
-    saveCredentialStock();
-    return true;
-  }
-  return false;
-};
-
-// Update a credential property in the stock
+// Update credential details
 export const updateCredentialInStock = (
-  credentialId: string, 
-  field: string, 
-  value: any
-): boolean => {
-  let updated = false;
-  
-  credentialStock = credentialStock.map(cred => {
-    if (cred.id === credentialId) {
-      updated = true;
+  credentialId: string,
+  updatedFields: Partial<CredentialStock>
+): CredentialStock | null => {
+  try {
+    const stock = getAllCredentialStock();
+    const index = stock.findIndex(item => item.id === credentialId);
+    
+    if (index === -1) {
+      console.error(`Credential with id ${credentialId} not found`);
+      return null;
+    }
+    
+    // Update the credential with new fields
+    const updatedCredential = {
+      ...stock[index],
+      ...updatedFields,
+      // Don't allow changing these fields directly
+      id: stock[index].id,
+      createdAt: stock[index].createdAt
+    };
+    
+    stock[index] = updatedCredential;
+    saveCredentialStock(stock);
+    
+    return updatedCredential;
+  } catch (error) {
+    console.error('Error updating credential in stock:', error);
+    return null;
+  }
+};
+
+// Delete credential from stock
+export const deleteCredentialFromStock = (credentialId: string): boolean => {
+  try {
+    const stock = getAllCredentialStock();
+    const filteredStock = stock.filter(item => item.id !== credentialId);
+    
+    if (filteredStock.length === stock.length) {
+      // No item was removed
+      return false;
+    }
+    
+    saveCredentialStock(filteredStock);
+    return true;
+  } catch (error) {
+    console.error('Error deleting credential from stock:', error);
+    return false;
+  }
+};
+
+// Assign credential to an order
+export const assignCredentialToOrder = (
+  serviceId: string, 
+  orderId: string
+): CredentialStock | null => {
+  try {
+    const stock = getAllCredentialStock();
+    
+    // Find an available credential for this service
+    const index = stock.findIndex(item => 
+      item.serviceId === serviceId && 
+      item.status === 'available'
+    );
+    
+    if (index === -1) {
+      console.error(`No available credential found for service ${serviceId}`);
+      return null;
+    }
+    
+    // Update the credential status
+    stock[index] = {
+      ...stock[index],
+      status: 'assigned' as const,
+      assignedToOrderId: orderId
+    };
+    
+    saveCredentialStock(stock);
+    
+    // Save this assignment to order history
+    saveCredentialAssignment(orderId, stock[index]);
+    
+    return stock[index];
+  } catch (error) {
+    console.error('Error assigning credential to order:', error);
+    return null;
+  }
+};
+
+// Get available credentials for a service
+export const getAvailableCredentialsForService = (serviceId: string): CredentialStock[] => {
+  try {
+    const stock = getAllCredentialStock();
+    return stock.filter(item => 
+      item.serviceId === serviceId && 
+      item.status === 'available'
+    );
+  } catch (error) {
+    console.error('Error getting available credentials:', error);
+    return [];
+  }
+};
+
+// Save credential assignment to order history
+export const saveCredentialAssignment = (orderId: string, credential: CredentialStock): void => {
+  try {
+    const historyJson = localStorage.getItem('credentialAssignmentHistory');
+    const history = historyJson ? JSON.parse(historyJson) : [];
+    
+    history.push({
+      orderId,
+      credentialId: credential.id,
+      serviceId: credential.serviceId,
+      credentials: credential.credentials,
+      assignedAt: new Date().toISOString()
+    });
+    
+    localStorage.setItem('credentialAssignmentHistory', JSON.stringify(history));
+  } catch (error) {
+    console.error('Error saving credential assignment history:', error);
+  }
+};
+
+// Get credentials assigned to a specific order
+export const getCredentialsForOrder = (orderId: string): CredentialStock[] => {
+  try {
+    const stock = getAllCredentialStock();
+    return stock.filter(item => item.assignedToOrderId === orderId);
+  } catch (error) {
+    console.error('Error getting credentials for order:', error);
+    return [];
+  }
+};
+
+// Bulk import credentials
+export const bulkImportCredentials = (
+  serviceId: string,
+  credentialsList: Array<{ 
+    email: string; 
+    password: string; 
+    username?: string; 
+    pinCode?: string; 
+  }>,
+  quantity: number = 1
+): CredentialStock[] => {
+  try {
+    const stock = getAllCredentialStock();
+    const newCredentials: CredentialStock[] = [];
+    
+    // Create multiple copies of each credential based on quantity
+    credentialsList.forEach(credentials => {
+      for (let i = 0; i < quantity; i++) {
+        const newCredential: CredentialStock = {
+          id: `cred-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          serviceId,
+          credentials: {...credentials},
+          status: 'available' as const,
+          createdAt: new Date().toISOString()
+        };
+        
+        newCredentials.push(newCredential);
+        stock.push(newCredential);
+      }
+    });
+    
+    saveCredentialStock(stock);
+    return newCredentials;
+  } catch (error) {
+    console.error('Error bulk importing credentials:', error);
+    return [];
+  }
+};
+
+// Process order fulfillment with digital credentials
+export const fulfillOrderWithCredentials = (order: Order): Order => {
+  try {
+    // Check if we already have credentials assigned to this order
+    const assignedCredentials = getCredentialsForOrder(order.id);
+    
+    if (assignedCredentials.length > 0) {
+      // Order already has credentials assigned
       return {
-        ...cred,
-        credentials: {
-          ...cred.credentials,
-          [field]: value
-        }
+        ...order,
+        credentials: assignedCredentials[0].credentials,
+        credentialStatus: 'assigned'
       };
     }
-    return cred;
-  });
-  
-  if (updated) {
-    saveCredentialStock();
+    
+    // Assign a credential to this order
+    const credential = assignCredentialToOrder(order.serviceId, order.id);
+    
+    if (credential) {
+      return {
+        ...order,
+        credentials: credential.credentials,
+        credentialStatus: 'assigned'
+      };
+    }
+    
+    // No credentials available
+    return {
+      ...order,
+      credentialStatus: 'unavailable'
+    };
+  } catch (error) {
+    console.error('Error fulfilling order with credentials:', error);
+    return order;
   }
-  
-  return updated;
-};
-
-// Get orders with credential status
-export const getOrdersWithCredentialStatus = (): Array<Order | WholesaleOrder> => {
-  const storedOrders = localStorage.getItem('allOrders');
-  if (storedOrders) {
-    return JSON.parse(storedOrders);
-  }
-  return [];
 };
