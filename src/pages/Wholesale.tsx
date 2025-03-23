@@ -17,7 +17,7 @@ import WholesaleTabContent from '@/components/wholesale/WholesaleTabContent';
 const mockSubscriptions: Subscription[] = [
   {
     id: 'sub-1',
-    userId: customers[0].id,
+    userId: defaultCustomers[0].id,
     serviceId: products[0].id,
     startDate: '2023-08-01T00:00:00Z',
     endDate: new Date(Date.now() + 86400000 * 10).toISOString(), // 10 days from now
@@ -29,7 +29,7 @@ const mockSubscriptions: Subscription[] = [
   },
   {
     id: 'sub-2',
-    userId: customers[0].id,
+    userId: defaultCustomers[0].id,
     serviceId: products[1].id,
     startDate: '2023-09-15T00:00:00Z',
     endDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 days from now
@@ -41,7 +41,7 @@ const mockSubscriptions: Subscription[] = [
   },
   {
     id: 'sub-3',
-    userId: customers[1].id,
+    userId: defaultCustomers[1].id,
     serviceId: products[2].id,
     startDate: '2023-10-10T00:00:00Z',
     endDate: new Date().toISOString(), // Today
@@ -53,7 +53,7 @@ const mockSubscriptions: Subscription[] = [
   },
   {
     id: 'sub-4',
-    userId: customers[2].id,
+    userId: defaultCustomers[2].id,
     serviceId: products[0].id,
     startDate: '2023-07-20T00:00:00Z',
     endDate: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago

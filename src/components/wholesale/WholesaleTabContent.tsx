@@ -65,7 +65,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
           />
         );
       case 'stock':
-        return <StockTab />;
+        return <StockTab subscriptions={subscriptions} />;
       case 'settings':
         return <SettingsTab />;
       default:

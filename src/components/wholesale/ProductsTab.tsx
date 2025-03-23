@@ -4,16 +4,21 @@ import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductCard from '@/components/ProductCard';
-import { Product } from '@/lib/data';
+import { Product, Customer } from '@/lib/data';
 import { Service } from '@/lib/types';
 import { services } from '@/lib/mockData';
 
 interface ProductsTabProps {
   products: Product[];
-  onOpenPurchaseDialog: () => void;
+  customers: Customer[];
+  onOrderPlaced: (order: any) => void;
 }
 
-const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialog }) => {
+const ProductsTab: React.FC<ProductsTabProps> = ({ 
+  products, 
+  customers, 
+  onOrderPlaced 
+}) => {
   const [allItems, setAllItems] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,8 +65,11 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
   // Handler for when a product is clicked
   const handleProductClick = useCallback((product: Product) => {
     console.log("Product clicked:", product.name, product.id);
-    onOpenPurchaseDialog();
-  }, [onOpenPurchaseDialog]);
+    // We'll use the onOpenPurchaseDialog prop passed from the parent
+    window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
+      detail: { productId: product.id }
+    }));
+  }, []);
   
   return (
     <motion.div
@@ -72,7 +80,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onOpenPurchaseDialo
     >
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Wholesale Products</h1>
-        <Button onClick={onOpenPurchaseDialog}>
+        <Button onClick={() => window.dispatchEvent(new CustomEvent('openPurchaseDialog'))}>
           <ShoppingBag className="mr-2 h-4 w-4" />
           Quick Purchase
         </Button>
