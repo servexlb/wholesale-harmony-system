@@ -109,7 +109,7 @@ const AboutPage: React.FC = () => {
               <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
                 <Users className="h-16 w-16 text-primary/60" />
               </div>
-              <h3 className="text-xl font-semibold">Sarah Johnson</h3>
+              <h3 className="text-xl font-semibold">Salim Hage</h3>
               <p className="text-muted-foreground">Founder & CEO</p>
             </motion.div>
             <motion.div
@@ -145,7 +145,7 @@ const AboutPage: React.FC = () => {
               <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
                 <Users className="h-16 w-16 text-primary/60" />
               </div>
-              <h3 className="text-xl font-semibold">Salim Hage</h3>
+              <h3 className="text-xl font-semibold">Sarah Johnson</h3>
               <p className="text-muted-foreground">Chief Marketing Officer</p>
             </motion.div>
           </div>
