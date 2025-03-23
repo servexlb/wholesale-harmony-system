@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
 import { Customer, Product } from '@/lib/data';
-import { Subscription, WholesaleOrder, Service } from '@/lib/types';
+import { Subscription, WholesaleOrder, Service, ServiceType } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
@@ -42,36 +43,25 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
     try {
       // Convert services to the Service format expected by ProductCard
       const servicesList = services.map(service => ({
-        id: service.id,
-        name: service.name,
-        description: service.description,
-        price: service.price,
-        wholesalePrice: service.wholesalePrice || service.price * 0.7, // Default wholesale price if not set
-        image: service.image || '/placeholder.svg', // Fallback image
-        categoryId: service.categoryId || "uncategorized",
-        featured: service.featured || false,
-        type: "service" as "service", // Use explicit type assertion
-        deliveryTime: service.deliveryTime || "",
-        apiUrl: service.apiUrl,
-        availableMonths: service.availableMonths,
-        value: service.value,
-        minQuantity: service.minQuantity || 1
-      })) as Service[];
+        ...service,
+        // Ensure type is a valid ServiceType
+        type: service.type as ServiceType
+      }));
       
       // Convert products to Service type ensuring categoryId is always set
       const productsAsServices = products.map(product => ({
         ...product,
         // Ensure categoryId is set - use existing categoryId or fall back to category
         categoryId: product.categoryId || product.category || "uncategorized",
-        // Mark non-service products as subscription type by default
-        type: product.type || "subscription" as "subscription"
+        // Mark non-service products as subscription type by default if not set
+        type: product.type || "subscription" as ServiceType
       })) as Service[];
       
       console.log('Services count:', servicesList.length);
       console.log('Products count:', productsAsServices.length);
       
       // Create a combined array of both products and services
-      const combined = [...productsAsServices, ...servicesList];
+      const combined = [...productsAsServices, ...servicesList] as Service[];
       console.log('Combined products and services count:', combined.length);
       
       return combined;

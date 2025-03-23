@@ -1,3 +1,4 @@
+
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -10,7 +11,7 @@ export interface User {
   createdAt: string;
 }
 
-export type ServiceType = "subscription" | "topup" | "giftcard";
+export type ServiceType = "subscription" | "topup" | "giftcard" | "recharge" | "service";
 
 export interface ServiceCategory {
   id: string;

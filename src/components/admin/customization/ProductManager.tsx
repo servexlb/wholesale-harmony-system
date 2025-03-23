@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash2 } from "lucide-react";
@@ -39,13 +38,13 @@ const ProductManager = () => {
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
       categoryId: service.categoryId || 'uncategorized', // Ensure categoryId is always set
       featured: service.featured || false,
-      type: (service.type as ServiceType) || "subscription",
+      type: service.type as ServiceType,
       deliveryTime: service.deliveryTime || "",
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
       minQuantity: service.minQuantity,
-      requiresId: false
+      requiresId: service.requiresId || false
     }));
     
     // Convert products from data.ts to the expected Product type
@@ -59,13 +58,13 @@ const ProductManager = () => {
       category: product.category,
       categoryId: product.categoryId || product.category || 'uncategorized', // Use category as fallback
       featured: product.featured || false,
-      type: (product.type as ServiceType) || "subscription",
+      type: (product.type || "subscription") as ServiceType,
       deliveryTime: product.deliveryTime || "",
       apiUrl: product.apiUrl,
       availableMonths: product.availableMonths,
       value: product.value,
       minQuantity: product.minQuantity,
-      requiresId: false
+      requiresId: product.requiresId || false
     }));
     
     // Combine both product lists with the correct typing

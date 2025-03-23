@@ -108,6 +108,7 @@ export const services: Service[] = [
     image: "/images/netflix.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service2",
@@ -119,6 +120,7 @@ export const services: Service[] = [
     image: "/images/prime-video.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service3",
@@ -130,6 +132,7 @@ export const services: Service[] = [
     image: "/images/disney-plus.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service4",
@@ -141,6 +144,7 @@ export const services: Service[] = [
     image: "/images/spotify.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "subscription"
   },
   {
     id: "service5",
@@ -152,6 +156,7 @@ export const services: Service[] = [
     image: "/images/youtube.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "subscription"
   },
   {
     id: "service6",
@@ -163,6 +168,7 @@ export const services: Service[] = [
     image: "/images/hbo-max.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "subscription"
   },
   {
     id: "service7",
@@ -174,6 +180,7 @@ export const services: Service[] = [
     image: "/images/ps-plus.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service8",
@@ -185,6 +192,7 @@ export const services: Service[] = [
     image: "/images/xbox-gamepass.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service9",
@@ -196,6 +204,7 @@ export const services: Service[] = [
     image: "/images/google-play.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "giftcard"
   },
   {
     id: "service10",
@@ -207,6 +216,7 @@ export const services: Service[] = [
     image: "/images/itunes.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "giftcard"
   },
   {
     id: "service11",
@@ -218,6 +228,7 @@ export const services: Service[] = [
     image: "/images/steam.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "giftcard"
   },
   {
     id: "service12",
@@ -229,6 +240,7 @@ export const services: Service[] = [
     image: "/images/nordvpn.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service13",
@@ -240,6 +252,7 @@ export const services: Service[] = [
     image: "/images/expressvpn.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "subscription"
   },
   {
     id: "service14",
@@ -251,6 +264,7 @@ export const services: Service[] = [
     image: "/images/microsoft-365.jpg",
     deliveryTime: "Instant",
     featured: true,
+    type: "subscription"
   },
   {
     id: "service15",
@@ -262,6 +276,7 @@ export const services: Service[] = [
     image: "/images/adobe-cc.jpg",
     deliveryTime: "Instant",
     featured: false,
+    type: "subscription"
   },
   {
     id: "service16",
@@ -273,7 +288,7 @@ export const services: Service[] = [
     image: "/images/pubg-mobile.jpg",
     deliveryTime: "Instant",
     featured: true,
-    type: "recharge",
+    type: "topup",
     apiUrl: "https://api.example.com/recharge/pubg",
   },
   {
@@ -286,7 +301,7 @@ export const services: Service[] = [
     image: "/images/free-fire.jpg",
     deliveryTime: "Instant",
     featured: true,
-    type: "recharge",
+    type: "topup",
     apiUrl: "https://api.example.com/recharge/freefire",
   },
   {
@@ -299,7 +314,7 @@ export const services: Service[] = [
     image: "/images/soulchill.jpg",
     deliveryTime: "Instant",
     featured: false,
-    type: "recharge",
+    type: "topup",
     apiUrl: "https://api.example.com/recharge/soulchill",
   },
   {
@@ -312,7 +327,7 @@ export const services: Service[] = [
     image: "/images/bingo.jpg",
     deliveryTime: "Instant",
     featured: false,
-    type: "recharge",
+    type: "topup",
     apiUrl: "https://api.example.com/recharge/bingo",
   },
   {
@@ -325,7 +340,7 @@ export const services: Service[] = [
     image: "/images/valorant.jpg",
     deliveryTime: "Instant",
     featured: true,
-    type: "recharge",
+    type: "topup",
     apiUrl: "https://api.example.com/recharge/valorant",
   },
   {
@@ -338,7 +353,7 @@ export const services: Service[] = [
     image: "/images/mobile-legends.jpg",
     deliveryTime: "Instant",
     featured: false,
-    type: "recharge",
+    type: "topup",
     apiUrl: "https://api.example.com/recharge/mobilelegends",
   },
 ];

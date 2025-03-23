@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Service } from '@/lib/types';
+import { Service, ServiceType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { CreditCard, Eye, ImageIcon, Minus, Plus, User } from 'lucide-react';
@@ -53,8 +53,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   // Helper to determine if service is a subscription
   const isSubscription = service.type === 'subscription';
   
-  // Helper to determine if service is a recharge
-  const isRecharge = service.type === 'recharge';
+  // Helper to determine if service is a recharge/topup
+  const isRecharge = service.type === 'topup';
   
   // Helper to determine if service should use months feature
   const shouldUseMonths = isSubscription || 

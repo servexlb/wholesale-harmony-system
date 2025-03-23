@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Product, Service } from "@/lib/types";
+import { Product, Service, ServiceType } from "@/lib/types";
 import { products as dataProducts } from "@/lib/data";
 import { services } from "@/lib/mockData";
 
@@ -100,7 +101,7 @@ const AdminDigitalInventory: React.FC = () => {
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
       categoryId: service.categoryId || 'uncategorized',
       featured: service.featured || false,
-      type: service.type,
+      type: service.type as ServiceType,
       deliveryTime: service.deliveryTime || "",
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
@@ -119,7 +120,7 @@ const AdminDigitalInventory: React.FC = () => {
         category: product.category,
         categoryId: product.categoryId || product.category || 'uncategorized',
         featured: product.featured || false,
-        type: product.type,
+        type: (product.type || "subscription") as ServiceType,
         deliveryTime: product.deliveryTime || "",
         apiUrl: product.apiUrl,
         availableMonths: product.availableMonths,
