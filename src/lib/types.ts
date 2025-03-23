@@ -30,7 +30,6 @@ export interface WholesaleOrder {
   };
 }
 
-// Update the Subscription interface to include credentials
 export interface Subscription {
   id: string;
   userId: string;
@@ -48,7 +47,6 @@ export interface Subscription {
   };
 }
 
-// Make sure Service and Product are compatible
 export type ServiceType = 'subscription' | 'giftcard' | 'topup' | 'recharge' | 'service';
 
 export interface MonthlyPricing {
@@ -75,12 +73,13 @@ export interface Service {
   minQuantity?: number;
   requiresId?: boolean;
   monthlyPricing?: MonthlyPricing[];
+  features?: string[];
 }
 
 export interface Product {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   price: number;
   wholesalePrice?: number;
   image?: string;
@@ -95,9 +94,9 @@ export interface Product {
   minQuantity?: number;
   requiresId?: boolean;
   monthlyPricing?: MonthlyPricing[];
+  features?: string[];
 }
 
-// Missing types that are causing errors
 export type UserRole = 'admin' | 'customer' | 'wholesale';
 
 export interface User {
@@ -119,6 +118,7 @@ export interface AdminNotification {
   serviceName: string;
   createdAt: string;
   read: boolean;
+  orderId?: string;
 }
 
 export interface SupportTicket {
@@ -138,6 +138,7 @@ export interface TicketResponse {
   message: string;
   sentBy: 'user' | 'admin';
   createdAt: string;
+  userId?: string;
 }
 
 export interface CustomerNotification {
@@ -156,6 +157,7 @@ export interface ServiceCategory {
   name: string;
   description?: string;
   image?: string;
+  icon?: string;
 }
 
 export interface Order {
@@ -170,6 +172,7 @@ export interface Order {
   total: number;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   createdAt: string;
+  serviceId?: string;
 }
 
 export interface Payment {
@@ -180,9 +183,14 @@ export interface Payment {
   status: PaymentStatus;
   createdAt: string;
   transactionId?: string;
+  userName?: string;
+  userEmail?: string;
+  receiptUrl?: string;
+  reviewedAt?: string;
+  notes?: string;
 }
 
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'approved' | 'rejected';
 
 export type IssueType = 'profile_fix' | 'payment_issue' | 'password_reset';
 export type IssueStatus = 'pending' | 'in-progress' | 'resolved' | 'cancelled';
@@ -209,4 +217,46 @@ export interface SimpleCustomer {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+}
+
+// Gift Card specific types
+export interface GiftCard {
+  id: string;
+  code: string;
+  value: number;
+  balance: number;
+  expiryDate?: string;
+  createdAt: string;
+  status: 'active' | 'redeemed' | 'expired';
+  purchaserId?: string;
+  recipientEmail?: string;
+  message?: string;
+}
+
+// Recharge specific types
+export interface RechargePackage {
+  id: string;
+  name: string;
+  description?: string;
+  value: number;
+  price: number;
+  wholesalePrice?: number;
+  category: string;
+  image?: string;
+  featured?: boolean;
+  validityDays?: number;
+}
+
+export interface Recharge {
+  id: string;
+  userId: string;
+  packageId: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt: string;
+  completedAt?: string;
+  accountNumber?: string;
+  operator?: string;
+  receiptId?: string;
 }
