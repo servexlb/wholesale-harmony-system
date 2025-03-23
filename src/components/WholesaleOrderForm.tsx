@@ -97,10 +97,18 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
     const product = products.find(p => p.id === values.productId);
     
     if (!product) {
-      toast.error("Product not found");
+      toast.error("Product not found. Please select a valid product.");
+      console.error("Product not found for ID:", values.productId);
       return;
     }
 
+    if (!customersList.find(c => c.id === values.customerId)) {
+      toast.error("Customer not found. Please select a valid customer.");
+      return;
+    }
+
+    console.log("Creating order with product:", product.name, "and customer:", values.customerId);
+    
     const newOrder: WholesaleOrder = {
       id: `order-${Date.now()}`,
       userId: wholesalerId,
@@ -108,7 +116,7 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       serviceId: values.productId,
       customerId: values.customerId,
       quantity: values.quantity,
-      totalPrice: product.wholesalePrice * values.quantity,
+      totalPrice: (product.wholesalePrice || 0) * values.quantity,
       status: "pending",
       createdAt: new Date().toISOString(),
     };

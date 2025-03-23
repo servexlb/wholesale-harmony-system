@@ -78,6 +78,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   }, []);
 
   const handleSelectProduct = useCallback((productId: string) => {
+    console.log("Product selected:", productId);
     onProductSelect(productId);
     setIsCommandOpen(false);
   }, [onProductSelect]);
@@ -121,7 +122,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         </div>
         
         {isCommandOpen && (
-          <Command className="rounded-lg border shadow-md absolute top-full mt-1 w-full z-10">
+          <Command className="rounded-lg border shadow-md absolute top-full mt-1 w-full z-50 bg-white">
             <CommandList className="max-h-[300px] overflow-auto">
               <CommandInput placeholder="Search products..." value={productSearch} onValueChange={setProductSearch} className="border-none focus:ring-0" />
               <CommandEmpty>No products found. Try a different search term.</CommandEmpty>
@@ -141,7 +142,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
                         {renderProductIcon(product.type)}
                         <div className="flex flex-col">
                           <span className="font-medium">{product.name}</span>
-                          <span className="text-xs text-muted-foreground">${product.wholesalePrice.toFixed(2)}</span>
+                          <span className="text-xs text-muted-foreground">${product.wholesalePrice?.toFixed(2) || "0.00"}</span>
                         </div>
                       </CommandItem>
                     ))}

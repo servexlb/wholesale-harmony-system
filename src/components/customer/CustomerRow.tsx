@@ -59,7 +59,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
                 return (
                   <TooltipProvider key={sub.id}>
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Badge 
                           variant={
                             statusColor === "green" ? "default" : 
@@ -75,7 +75,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
                           {product?.name || 'Unknown'}
                         </Badge>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent side="top" className="z-50 bg-white">
                         <div className="space-y-1">
                           <p className="font-medium">{product?.name || 'Unknown'}</p>
                           <p>Expires: {new Date(sub.endDate).toLocaleDateString()}</p>
@@ -107,7 +107,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
             <span className="text-muted-foreground text-sm">No active subscriptions</span>
           )}
         </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
           <CustomerActionsMenu 
             customerId={customer.id} 
             onPurchaseForCustomer={onPurchaseForCustomer} 

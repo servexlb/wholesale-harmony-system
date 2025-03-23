@@ -22,13 +22,21 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
 }) => {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+        >
           <span className="sr-only">Open menu</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="bg-white">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
@@ -43,16 +51,19 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
           <ShoppingBag className="h-4 w-4 mr-2" />
           Purchase for Customer
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
           <FileText className="h-4 w-4 mr-2" />
           View Orders
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
           <Edit className="h-4 w-4 mr-2" />
           Edit Customer
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive">
+        <DropdownMenuItem 
+          className="text-destructive"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Customer
         </DropdownMenuItem>

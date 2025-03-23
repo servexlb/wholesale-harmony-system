@@ -33,7 +33,7 @@ const CustomerList: React.FC<CustomerListProps> = ({
   );
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+    <div className="bg-white rounded-lg border shadow-sm overflow-hidden relative z-10">
       <div className="overflow-x-auto">
         <Table>
           <CustomerTableHeader />
