@@ -1,6 +1,7 @@
 
 import { Service, Product } from '@/lib/types';
-import { loadServices } from '@/lib/productManager';
+import { loadServices, loadProducts } from '@/lib/productManager';
+import { services as mockServices } from '@/lib/mockData';
 
 // Create a memoized service lookup map for better performance
 export const createServiceMap = () => {
@@ -9,9 +10,12 @@ export const createServiceMap = () => {
   // Load services from the product manager
   const services = loadServices();
   
+  // If no services from product manager, fall back to mockData
+  const servicesToUse = services.length > 0 ? services : mockServices;
+  
   // Add services to map
-  if (services && Array.isArray(services)) {
-    services.forEach(service => {
+  if (servicesToUse && Array.isArray(servicesToUse)) {
+    servicesToUse.forEach(service => {
       serviceMap.set(service.id, {
         id: service.id,
         name: service.name,
@@ -24,7 +28,7 @@ export const createServiceMap = () => {
   
   // If map is empty, add fallback items to prevent errors
   if (serviceMap.size === 0) {
-    console.warn('No services found in the system');
+    console.warn('No services found in the system, using fallback');
     // Add a dummy service to prevent UI errors
     serviceMap.set('service-fallback', {
       id: 'service-fallback',
@@ -58,6 +62,15 @@ export const getServiceById = (serviceMap: Map<string, any>, serviceId: string) 
   return service;
 };
 
+// Method to get all available services
+export const getAllServices = (): Service[] => {
+  const services = loadServices();
+  
+  // If no services from product manager, fall back to mockData
+  return services.length > 0 ? services : mockServices;
+};
+
 // For backward compatibility, aliases for the product-related functions
 export const createProductMap = createServiceMap;
 export const getProductById = getServiceById;
+export const getAllProducts = getAllServices;

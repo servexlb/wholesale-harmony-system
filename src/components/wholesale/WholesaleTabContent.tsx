@@ -8,8 +8,8 @@ import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
 import StockTab from './StockTab';
-import { services } from '@/lib/mockData';
 import { toast } from '@/lib/toast';
+import { getAllServices } from './sales/utils/productMapUtils';
 
 interface WholesaleTabContentProps {
   activeTab: string;
@@ -38,17 +38,11 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   onUpdateCustomer,
   onPurchaseForCustomer
 }) => {
-  // Use only services from mockData instead of combining with products
+  // Get all available services using the utility function
   const allServices = React.useMemo(() => {
     try {
-      // Convert services to ensure they have the correct ServiceType
-      const servicesList = services.map(service => ({
-        ...service,
-        type: service.type as ServiceType
-      }));
-      
+      const servicesList = getAllServices();
       console.log('Services count:', servicesList.length);
-      
       return servicesList;
     } catch (error) {
       console.error('Error processing services:', error);
