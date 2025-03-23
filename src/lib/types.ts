@@ -1,3 +1,4 @@
+
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -36,6 +37,7 @@ export interface Service {
   value?: number;
   apiUrl?: string;
   features?: string[];
+  category?: string; // Add optional category to make compatible with Product
 }
 
 export interface Product {
@@ -46,7 +48,7 @@ export interface Product {
   wholesalePrice: number;
   image: string;
   category: string;
-  categoryId: string;
+  categoryId?: string; // Make categoryId optional in Product
   featured?: boolean;
   type?: ServiceType;
   value?: number;
@@ -54,7 +56,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId?: boolean;
+  requiresId?: boolean; // Add requiresId property
 }
 
 export interface Subscription {

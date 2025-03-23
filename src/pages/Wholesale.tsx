@@ -9,6 +9,7 @@ import { useWholesaleAuth } from '@/hooks/useWholesaleAuth';
 import { useWholesaleData } from '@/hooks/useWholesaleData';
 import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
 import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
+import { Service } from '@/lib/types';
 
 const Wholesale = () => {
   // State for purchase dialog
@@ -95,7 +96,7 @@ const Wholesale = () => {
             open={purchaseDialogOpen}
             onOpenChange={setPurchaseDialogOpen}
             customers={wholesalerCustomers}
-            products={services} // Use services instead of products
+            products={services as Service[]} // Explicitly cast to Service[]
             selectedCustomer={selectedCustomerId}
             currentWholesaler={currentWholesaler}
             onOrderPlaced={handleOrderPlaced}
@@ -104,7 +105,7 @@ const Wholesale = () => {
         
         <WholesaleTabContent 
           activeTab={activeTab}
-          products={services} // Use services for backward compatibility
+          products={services as Service[]} // Explicitly cast to Service[]
           customers={customersData}
           wholesalerCustomers={wholesalerCustomers}
           orders={orders}

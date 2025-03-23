@@ -3,9 +3,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Customer, Product } from '@/lib/data';
+import { Customer } from '@/lib/data';
 import { toast } from 'sonner';
-import { WholesaleOrder } from '@/lib/types';
+import { WholesaleOrder, Service } from '@/lib/types';
 import { Search, Calendar, Zap, Package, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProductSearch from './ProductSearch';
@@ -15,7 +15,7 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customers: Customer[];
-  products: Product[];
+  products: Service[]; // Changed from Product[] to Service[]
   selectedCustomer: string;
   currentWholesaler: string;
   onOrderPlaced: (order: WholesaleOrder) => void;
