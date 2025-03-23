@@ -64,6 +64,9 @@ const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
     setShowCredentials(!showCredentials);
   };
 
+  // Format the amount to ensure consistent display
+  const formattedAmount = parseFloat(amount.toString()).toFixed(2);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -83,7 +86,7 @@ const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
               <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="font-medium text-green-800">${amount.toFixed(2)} has been deducted</p>
+              <p className="font-medium text-green-800">${formattedAmount} has been deducted</p>
               <p className="text-sm text-green-700">Your order for {serviceName} has been confirmed</p>
             </div>
           </div>

@@ -1,4 +1,3 @@
-
 export interface Customer {
   id: string;
   name: string;
@@ -84,7 +83,7 @@ export interface Product {
   description: string;
   price: number;
   wholesalePrice: number;
-  image?: string;
+  image: string;
   category: string;
   categoryId?: string;
   featured?: boolean;
@@ -183,6 +182,7 @@ export interface Order {
   serviceId?: string;
   quantity?: number;
   totalPrice?: number;
+  completedAt?: string;
   credentials?: {
     username?: string;
     password?: string;
