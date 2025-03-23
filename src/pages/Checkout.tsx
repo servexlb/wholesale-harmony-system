@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Wallet } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -19,12 +18,14 @@ import { Input } from "@/components/ui/input";
 import MainLayout from "@/components/MainLayout";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
+import PurchaseSuccessDialog from "@/components/PurchaseSuccessDialog";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState("account-balance");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [requireCredentials, setRequireCredentials] = useState(true);
@@ -32,6 +33,14 @@ const Checkout: React.FC = () => {
     email: '',
     password: ''
   });
+  const [purchasedOrder, setPurchasedOrder] = useState<{
+    id: string;
+    serviceId: string;
+    serviceName: string;
+    totalPrice: number;
+    credentials: any | null;
+    createdAt: string;
+  } | null>(null);
   
   // Get current user ID and check if authenticated
   const userId = localStorage.getItem('currentUserId');
@@ -141,17 +150,21 @@ const Checkout: React.FC = () => {
       localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
     }
 
+    // Check if there are available stock credentials
+    const stockCredentials = checkAvailableCredentials("service-netflix");
+
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       userId: userId,
-      serviceId: "service-123", // In a real app, this would be the actual service ID
+      serviceId: "service-netflix", // In a real app, this would be the actual service ID
       quantity: 1,
       totalPrice: total,
       status: "pending",
       createdAt: new Date().toISOString(),
       paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending",
-      ...(showCredentials ? { credentials } : {})
+      ...(showCredentials ? { credentials } : {}),
+      ...(stockCredentials ? { credentials: stockCredentials } : {})
     };
 
     // Save order to localStorage
@@ -162,23 +175,36 @@ const Checkout: React.FC = () => {
     // In a real app, you would send this to your backend
     console.log("Created order:", order);
     
-    toast.success(
-      paymentMethod === "account-balance"
-        ? "Order placed! Your payment has been processed."
-        : "Order placed! Payment is pending confirmation."
-    );
-
-    if (paymentMethod === "account-balance") {
-      toast.success("Balance updated", {
-        description: `$${total.toFixed(2)} has been deducted from your balance.`
-      });
-    }
+    // Set purchased order for success dialog
+    setPurchasedOrder({
+      id: order.id,
+      serviceId: "service-netflix",
+      serviceName: "Netflix Premium",
+      totalPrice: total,
+      credentials: order.credentials || null,
+      createdAt: order.createdAt
+    });
     
     setIsProcessing(false);
     setIsConfirmDialogOpen(false);
+    setIsSuccessDialogOpen(true);
+  };
+
+  // Helper function to check for available credentials in stock
+  const checkAvailableCredentials = (serviceId: string) => {
+    // In a real app, this would check a database
+    // For demo purposes, we'll always return credentials for Netflix
     
-    // Redirect to a confirmation page
-    navigate("/dashboard");
+    if (serviceId === "service-netflix") {
+      return {
+        email: `user_${Math.floor(1000 + Math.random() * 9000)}@netflix-example.com`,
+        password: `NetflixPass${Math.floor(1000 + Math.random() * 9000)}!`,
+        notes: "This Netflix account is ready to use immediately. Login at netflix.com."
+      };
+    }
+    
+    // No stock credentials available
+    return null;
   };
 
   // If not authenticated, show a message
@@ -343,6 +369,19 @@ const Checkout: React.FC = () => {
                 </Button>
               </CardFooter>
             </Card>
+            
+            {userBalance < total && paymentMethod === "account-balance" && (
+              <div className="mt-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate("/payment")}
+                >
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Top Up Balance
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -402,6 +441,20 @@ const Checkout: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
+        {/* Purchase Success Dialog */}
+        {purchasedOrder && (
+          <PurchaseSuccessDialog
+            open={isSuccessDialogOpen}
+            onOpenChange={setIsSuccessDialogOpen}
+            orderId={purchasedOrder.id}
+            serviceId={purchasedOrder.serviceId}
+            serviceName={purchasedOrder.serviceName}
+            amount={purchasedOrder.totalPrice}
+            credentials={purchasedOrder.credentials}
+            purchaseDate={purchasedOrder.createdAt}
+          />
+        )}
       </motion.div>
     </MainLayout>
   );

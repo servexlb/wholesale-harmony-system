@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus, Gift } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus, Gift, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -24,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Service } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import PurchaseSuccessDialog from "../PurchaseSuccessDialog";
 
 interface ServiceCardProps {
   service: Service;
@@ -44,6 +44,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
   const [accountId, setAccountId] = useState("");
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [purchasedOrder, setPurchasedOrder] = useState<{
+    id: string;
+    serviceId: string;
+    serviceName: string;
+    totalPrice: number;
+    credentials: any | null;
+    createdAt: string;
+  } | null>(null);
   
   // Get current user ID
   const userId = localStorage.getItem('currentUserId') || 'guest';
@@ -118,6 +127,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       createdAt: new Date().toISOString(),
     };
 
+    // Check if there are available stock credentials
+    const stockCredentials = checkAvailableCredentials(service.id);
+
+    // If stock credentials available, assign them to the order
+    if (stockCredentials) {
+      order.credentials = stockCredentials;
+    }
+
     // Save order to user-specific storage
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
@@ -127,15 +144,45 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     // In a real app, you would send this to your backend
     console.log("Created order:", order);
     
-    toast.success("Purchase successful!", {
-      description: `Your order is being processed. $${finalPrice.toFixed(2)} has been deducted from your balance.`
-    });
-    
     setIsPurchasing(false);
     setIsConfirmDialogOpen(false);
     
-    // Redirect to dashboard
-    navigate("/dashboard");
+    // Set purchased order for success dialog
+    setPurchasedOrder({
+      id: order.id,
+      serviceId: service.id,
+      serviceName: service.name,
+      totalPrice: finalPrice,
+      credentials: order.credentials || null,
+      createdAt: order.createdAt
+    });
+    
+    // Show success dialog
+    setIsSuccessDialogOpen(true);
+  };
+
+  // Helper function to check for available credentials in stock
+  const checkAvailableCredentials = (serviceId: string) => {
+    // In a real app, this would check a database
+    // For demo purposes, we'll return mock credentials for some services
+    
+    // Simulate some services having stock credentials
+    if (service.name.toLowerCase().includes('netflix') || 
+        service.name.toLowerCase().includes('disney') || 
+        service.name.toLowerCase().includes('spotify')) {
+      return {
+        email: `user_${Math.floor(1000 + Math.random() * 9000)}@example.com`,
+        password: `Pass${Math.floor(1000 + Math.random() * 9000)}!`,
+        notes: "This account is ready to use immediately."
+      };
+    }
+    
+    // No stock credentials available
+    return null;
+  };
+
+  const handleAddFunds = () => {
+    navigate("/payment");
   };
 
   const increaseQuantity = () => {
@@ -157,7 +204,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     }
   };
 
-  // Get icon and badge based on service type
   const getServiceTypeIcon = () => {
     switch (service.type) {
       case "subscription": return <RotateCw className="h-4 w-4 mr-1" />;
@@ -176,7 +222,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     }
   };
 
-  // Generate image URL based on service details
   const imageUrl = service.image || getImageUrl(service.name, service.type);
 
   function getImageUrl(serviceName: string, type: string) {
@@ -253,7 +298,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             <Link to={`/services/${service.id}`} className="hover:underline">
               <h3 className="font-semibold text-lg">{service.name}</h3>
             </Link>
-            <Badge variant="outline">{category?.name || service.categoryId}</Badge>
+            <Badge variant="outline">{category?.name || service.category}</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-4">
@@ -279,11 +324,23 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
         </CardContent>
         
         <CardFooter className="p-4 pt-0 flex justify-between">
-          <Link to={`/services/${service.id}`}>
-            <Button variant="outline" size="sm">
-              View Details
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to={`/services/${service.id}`}>
+              <Button variant="outline" size="sm">
+                View Details
+              </Button>
+            </Link>
+            {userBalance < service.price && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddFunds}
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Top Up
+              </Button>
+            )}
+          </div>
           <Button 
             size="sm" 
             onClick={showPurchaseConfirmation}
@@ -295,7 +352,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
         </CardFooter>
       </Card>
 
-      {/* Purchase Confirmation Dialog */}
       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -321,11 +377,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             {category && (
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Category:</span>
-                <span>{category.name || service.categoryId}</span>
+                <span>{category.name || service.category}</span>
               </div>
             )}
             
-            {/* Subscription duration selection */}
             {service.type === "subscription" && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -358,7 +413,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {/* Account ID field for top-up services that require it */}
             {service.type === "topup" && service.requiresId && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -376,7 +430,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {/* Quantity selector for non-subscription products */}
             {service.type !== "subscription" && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Quantity:</span>
@@ -420,7 +473,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </span>
             </div>
             
-            {/* Additional details based on service type */}
             {service.type === "subscription" && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Duration:</span>
@@ -439,18 +491,59 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               <span className="font-medium">Estimated Delivery:</span>
               <span>{service.deliveryTime}</span>
             </div>
+            
+            {userBalance < (service.type === "subscription" 
+              ? service.price * parseInt(selectedDuration)
+              : service.price * quantity) && (
+              <div className="border border-amber-200 bg-amber-50 p-3 rounded-md text-amber-800 flex items-start">
+                <div className="flex flex-col w-full">
+                  <p className="font-medium">Insufficient balance</p>
+                  <p className="text-sm mb-2">Your current balance is insufficient for this purchase.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsConfirmDialogOpen(false);
+                      navigate('/payment');
+                    }}
+                    className="self-start"
+                  >
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Top Up Now
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleBuyNow} disabled={isPurchasing}>
+            <Button 
+              onClick={handleBuyNow} 
+              disabled={isPurchasing || (service.type === "subscription" 
+                ? service.price * parseInt(selectedDuration) > userBalance
+                : service.price * quantity > userBalance)}
+            >
               {isPurchasing ? "Processing..." : "Confirm Purchase"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {purchasedOrder && (
+        <PurchaseSuccessDialog
+          open={isSuccessDialogOpen}
+          onOpenChange={setIsSuccessDialogOpen}
+          orderId={purchasedOrder.id}
+          serviceId={purchasedOrder.serviceId}
+          serviceName={purchasedOrder.serviceName}
+          amount={purchasedOrder.totalPrice}
+          credentials={purchasedOrder.credentials}
+          purchaseDate={purchasedOrder.createdAt}
+        />
+      )}
     </>
   );
 };

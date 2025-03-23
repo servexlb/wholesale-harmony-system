@@ -1,4 +1,3 @@
-
 export interface Customer {
   id: string;
   name: string;
@@ -177,6 +176,14 @@ export interface Order {
   createdAt: string;
   serviceId?: string;
   quantity?: number;
+  totalPrice?: number;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
 }
 
 export interface Payment {

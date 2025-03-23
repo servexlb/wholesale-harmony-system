@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Product } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye, ImageIcon, Minus, Plus, User } from 'lucide-react';
+import { CreditCard, Eye, ImageIcon, Minus, Plus, User, Wallet } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from '@/lib/toast';
+import PurchaseSuccessDialog from './PurchaseSuccessDialog';
 
 interface ProductCardProps {
   product: Product;
@@ -45,6 +45,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     email: '',
     password: ''
   });
+  
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [purchasedOrder, setPurchasedOrder] = useState<{
+    id: string;
+    serviceId: string;
+    serviceName: string;
+    totalPrice: number;
+    credentials: any | null;
+    createdAt: string;
+  } | null>(null);
   
   const navigate = useNavigate();
 
@@ -166,6 +176,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const newBalance = userBalance - finalPrice;
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
+    // Check if there are available stock credentials
+    const stockCredentials = checkAvailableCredentials(product.id);
+
     // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
@@ -179,7 +192,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
       createdAt: new Date().toISOString(),
       ...(showCredentials && credentials.email && credentials.password ? {
         credentials: credentials
-      } : {})
+      } : {}),
+      ...(stockCredentials ? { credentials: stockCredentials } : {})
     };
 
     // Save order to localStorage
@@ -191,15 +205,45 @@ const ProductCard: React.FC<ProductCardProps> = ({
     // In a real app, you would send this to your backend
     console.log("Created order:", order);
     
-    toast.success("Purchase successful!", {
-      description: `Your order is being processed. $${finalPrice.toFixed(2)} has been deducted from your balance.`
+    // Set purchased order for success dialog
+    setPurchasedOrder({
+      id: order.id,
+      serviceId: product.id,
+      serviceName: product.name,
+      totalPrice: finalPrice,
+      credentials: order.credentials || null,
+      createdAt: order.createdAt
     });
     
     setIsPurchasing(false);
     setIsConfirmDialogOpen(false);
     
-    // Redirect to dashboard
-    navigate("/dashboard");
+    // Show success dialog
+    setIsSuccessDialogOpen(true);
+  };
+
+  // Helper function to check for available credentials in stock
+  const checkAvailableCredentials = (productId: string) => {
+    // In a real app, this would check a database
+    // For demo purposes, we'll return mock credentials for some products
+    
+    // Simulate some products having stock credentials
+    if (product.name.toLowerCase().includes('netflix') || 
+        product.name.toLowerCase().includes('disney') || 
+        product.name.toLowerCase().includes('spotify')) {
+      return {
+        email: `user_${Math.floor(1000 + Math.random() * 9000)}@example.com`,
+        password: `Pass${Math.floor(1000 + Math.random() * 9000)}!`,
+        notes: "This account is ready to use immediately."
+      };
+    }
+    
+    // No stock credentials available
+    return null;
+  };
+
+  const handleAddFunds = () => {
+    navigate("/payment");
   };
 
   const increaseQuantity = () => {
@@ -267,63 +311,47 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <div className="p-5">
-          <div className="mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {product.category}
-            </span>
+        <div className="p-4">
+          <div className="mb-2 flex justify-between">
+            <h3 className="font-semibold text-lg">{product.name}</h3>
+            {product.featured && (
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                Featured
+              </span>
+            )}
           </div>
-          <h3 className="text-lg font-medium leading-tight text-primary">
-            {product.name}
-          </h3>
-          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+          
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
             {product.description}
           </p>
           
-          <div className="mt-4 flex items-end justify-between">
-            <div>
-              <p className="text-xl font-semibold text-primary">
-                ${price.toFixed(2)} {shouldUseMonths ? '/month' : ''}
-              </p>
-              {isWholesale && (
-                <p className="text-xs text-muted-foreground line-through">
-                  ${product.price.toFixed(2)}
-                </p>
-              )}
-            </div>
+          <div className="mt-2 flex justify-between items-center">
+            <span className="font-bold text-primary">
+              ${price.toFixed(2)} {isSubscription ? '/month' : ''}
+            </span>
             
             <div className="flex gap-2">
-              {onViewDetails ? (
+              {userBalance < price && (
                 <Button 
-                  size="sm" 
                   variant="outline" 
-                  className="subtle-focus-ring"
-                  onClick={onViewDetails}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-              ) : (
-                <Button 
                   size="sm" 
-                  variant="outline" 
-                  className="subtle-focus-ring"
-                  asChild
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddFunds();
+                  }}
                 >
-                  <Link to={`/products/${product.id}`}>
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Link>
+                  <Wallet className="h-4 w-4 mr-1" />
+                  Top Up
                 </Button>
               )}
+              
               <Button 
-                size="sm" 
-                className="subtle-focus-ring"
+                variant="default" 
+                size="sm"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent triggering the card click
+                  e.stopPropagation();
                   showPurchaseConfirmation();
                 }}
-                disabled={isPurchasing}
               >
                 <CreditCard className="h-4 w-4 mr-1" />
                 Buy Now
@@ -567,6 +595,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Purchase Success Dialog */}
+      {purchasedOrder && (
+        <PurchaseSuccessDialog
+          open={isSuccessDialogOpen}
+          onOpenChange={setIsSuccessDialogOpen}
+          orderId={purchasedOrder.id}
+          serviceId={purchasedOrder.serviceId}
+          serviceName={purchasedOrder.serviceName}
+          amount={purchasedOrder.totalPrice}
+          credentials={purchasedOrder.credentials}
+          purchaseDate={purchasedOrder.createdAt}
+        />
+      )}
     </>
   );
 };
