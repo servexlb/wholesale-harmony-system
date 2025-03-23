@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import PurchaseSuccessDialog from "@/components/PurchaseSuccessDialog";
 import { processOrderWithCredentials } from "@/lib/credentialUtils";
+import { Order } from "@/lib/types";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();

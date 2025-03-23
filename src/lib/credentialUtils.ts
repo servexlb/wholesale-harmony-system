@@ -1,3 +1,4 @@
+
 import { CredentialStock, Order, Service, WholesaleOrder } from "./types";
 
 // Load credential stock from localStorage or use default if not available
@@ -165,7 +166,43 @@ export const processOrderWithCredentials = (order: Order | WholesaleOrder): Orde
     return order;
   }
   
-  return assignCredentialsToOrder(order);
+  const processedOrder = assignCredentialsToOrder(order);
+  
+  // Save order to localStorage for admin panel
+  saveOrderToHistory(processedOrder);
+  
+  return processedOrder;
+};
+
+// Save order to localStorage for admin panel
+const saveOrderToHistory = (order: Order | WholesaleOrder): void => {
+  try {
+    const storedOrders = localStorage.getItem('allOrders');
+    let allOrders: Array<Order | WholesaleOrder> = [];
+    
+    if (storedOrders) {
+      allOrders = JSON.parse(storedOrders);
+    }
+    
+    // Check if order already exists
+    const orderExists = allOrders.some(existingOrder => existingOrder.id === order.id);
+    
+    if (!orderExists) {
+      // Add new order
+      allOrders.push(order);
+    } else {
+      // Update existing order
+      allOrders = allOrders.map(existingOrder => 
+        existingOrder.id === order.id ? order : existingOrder
+      );
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem('allOrders', JSON.stringify(allOrders));
+    
+  } catch (error) {
+    console.error("Error saving order history:", error);
+  }
 };
 
 // Get all credential stock (for admin panels)
@@ -183,4 +220,42 @@ export const deleteCredentialFromStock = (credentialId: string): boolean => {
     return true;
   }
   return false;
+};
+
+// Update a credential property in the stock
+export const updateCredentialInStock = (
+  credentialId: string, 
+  field: string, 
+  value: any
+): boolean => {
+  let updated = false;
+  
+  credentialStock = credentialStock.map(cred => {
+    if (cred.id === credentialId) {
+      updated = true;
+      return {
+        ...cred,
+        credentials: {
+          ...cred.credentials,
+          [field]: value
+        }
+      };
+    }
+    return cred;
+  });
+  
+  if (updated) {
+    saveCredentialStock();
+  }
+  
+  return updated;
+};
+
+// Get orders with credential status
+export const getOrdersWithCredentialStatus = (): Array<Order | WholesaleOrder> => {
+  const storedOrders = localStorage.getItem('allOrders');
+  if (storedOrders) {
+    return JSON.parse(storedOrders);
+  }
+  return [];
 };
