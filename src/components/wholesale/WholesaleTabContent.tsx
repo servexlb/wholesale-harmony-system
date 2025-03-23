@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
@@ -54,11 +55,11 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       value: service.value,
     }));
     
-    // Ensure products have a valid type property
+    // Make sure products have the right type
     const typedProducts: Product[] = products.map(product => ({
       ...product,
-      // If product.type is undefined, set it to 'service', otherwise keep original type
-      type: product.type || 'service' 
+      // Mark non-service products as subscription type by default
+      type: product.type || 'subscription' as const
     }));
     
     console.log('Services count:', servicesAsProducts.length);
