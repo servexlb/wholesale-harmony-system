@@ -1,4 +1,3 @@
-
 export type UserRole = "customer" | "wholesale" | "admin";
 
 export interface User {
@@ -10,6 +9,8 @@ export interface User {
   balance: number;
   createdAt: string;
 }
+
+export type ServiceType = "subscription" | "topup" | "giftcard";
 
 export interface ServiceCategory {
   id: string;
@@ -28,12 +29,13 @@ export interface Service {
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge" | "service" | "giftcard";
+  type: ServiceType;
   availableMonths?: number[];
+  requiresId?: boolean;
+  minQuantity?: number;
+  value?: number;
   apiUrl?: string;
   features?: string[];
-  value?: number;
-  minQuantity?: number;
 }
 
 // Added Product type for backward compatibility
@@ -47,12 +49,13 @@ export interface Product {
   category: string;
   categoryId: string; // Changed from optional to required to match Service interface
   featured?: boolean;
-  type?: "subscription" | "recharge" | "service" | "giftcard";
+  type?: ServiceType;
   value?: number;
   deliveryTime?: string;
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
+  requiresId?: boolean;
 }
 
 export interface Subscription {
@@ -88,6 +91,7 @@ export interface Order {
   };
   durationMonths?: number;
   paymentStatus?: "paid" | "pending" | "insufficient_balance";
+  accountId?: string; // For top-up services
 }
 
 export interface WholesaleOrder extends Order {

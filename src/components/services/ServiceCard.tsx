@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus } from "lucide-react";
+import { Clock, Tag, CreditCard, RotateCw, Zap, Calendar, ImageIcon, Loader2, Minus, Plus, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -46,30 +47,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
   
-  // Helper to determine if service is a subscription
-  const isSubscription = service.type === "subscription";
-  
-  // Helper to determine if service is a recharge
-  const isRecharge = service.type === "recharge";
-  
-  // Helper to determine if service is a gift card
-  const isGiftCard = service.type === "giftcard";
-  
-  // Helper to determine if service should use months feature
-  const shouldUseMonths = isSubscription || 
-    (category?.name.toLowerCase().includes('streaming') || 
-    category?.name.toLowerCase().includes('vpn') || 
-    category?.name.toLowerCase().includes('security') ||
-    category?.name.toLowerCase().includes('productivity'));
-
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = () => {
     // Reset fields
     setAccountId("");
-    setQuantity(1);
+    setQuantity(service.minQuantity || 1);
     
     // For subscriptions, set default selected duration
-    if (shouldUseMonths) {
+    if (service.type === "subscription") {
       if (service.availableMonths && service.availableMonths.length > 0) {
         setSelectedDuration(service.availableMonths[0].toString());
       } else {
@@ -81,10 +66,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   };
 
   const handleBuyNow = () => {
-    // Validate account ID for recharge services
-    if (isRecharge && !accountId.trim()) {
+    // Validate account ID for topup services that require it
+    if (service.type === "topup" && service.requiresId && !accountId.trim()) {
       toast.error("Account ID required", {
-        description: "Please enter your account ID for this recharge"
+        description: "Please enter your account ID for this top-up"
       });
       return;
     }
@@ -92,10 +77,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     console.log("Buy now clicked for service:", service);
     setIsPurchasing(true);
     
-    // Calculate final price based on months or quantity
-    const finalPrice = shouldUseMonths 
-      ? service.price * parseInt(selectedDuration)
-      : service.price * quantity;
+    // Calculate final price based on service type
+    let finalPrice = 0;
+    
+    if (service.type === "subscription") {
+      finalPrice = service.price * parseInt(selectedDuration);
+    } else {
+      finalPrice = service.price * quantity;
+    }
     
     // Check if user has sufficient balance
     if (userBalance < finalPrice) {
@@ -116,9 +105,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     const order = {
       id: `order-${Date.now()}`,
       serviceId: service.id,
-      quantity: shouldUseMonths ? 1 : quantity,
-      durationMonths: shouldUseMonths ? parseInt(selectedDuration) : undefined,
-      accountId: isRecharge ? accountId : undefined,
+      quantity: service.type === "subscription" ? 1 : quantity,
+      durationMonths: service.type === "subscription" ? parseInt(selectedDuration) : undefined,
+      accountId: service.type === "topup" && service.requiresId ? accountId : undefined,
       totalPrice: finalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -149,22 +138,43 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
   };
 
   const decreaseQuantity = () => {
-    setQuantity(prev => prev > 1 ? prev - 1 : 1);
+    const minQuantity = service.minQuantity || 1;
+    setQuantity(prev => prev > minQuantity ? prev - 1 : minQuantity);
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (!isNaN(value) && value > 0) {
+    const minQuantity = service.minQuantity || 1;
+    if (!isNaN(value) && value >= minQuantity) {
       setQuantity(value);
     } else if (e.target.value === '') {
-      setQuantity(1); // Reset to 1 if input is cleared
+      setQuantity(minQuantity);
     }
   };
 
-  const imageUrl = getImageUrl(service.name);
+  // Get icon and badge based on service type
+  const getServiceTypeIcon = () => {
+    switch (service.type) {
+      case "subscription": return <RotateCw className="h-4 w-4 mr-1" />;
+      case "topup": return <Zap className="h-4 w-4 mr-1" />;
+      case "giftcard": return <Gift className="h-4 w-4 mr-1" />;
+      default: return <Tag className="h-4 w-4 mr-1" />;
+    }
+  };
 
-  // Generate a more specific image URL for each service type
-  function getImageUrl(serviceName: string) {
+  const getServiceTypeName = () => {
+    switch (service.type) {
+      case "subscription": return "Subscription";
+      case "topup": return "Top-up";
+      case "giftcard": return "Gift Card";
+      default: return "Service";
+    }
+  };
+
+  // Generate image URL based on service details
+  const imageUrl = service.image || getImageUrl(service.name, service.type);
+
+  function getImageUrl(serviceName: string, type: string) {
     const name = serviceName.toLowerCase();
     
     if (name.includes('netflix')) return "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&h=400&fit=crop";
@@ -175,11 +185,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     if (name.includes('youtube')) return "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600&h=400&fit=crop";
     if (name.includes('hbo')) return "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&h=400&fit=crop";
     if (name.includes('playstation') || name.includes('xbox') || name.includes('game')) return "https://images.unsplash.com/photo-1592155931584-901ac15763e3?w=600&h=400&fit=crop";
-    if (name.includes('gift') || name.includes('card')) return "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&h=400&fit=crop";
+    if (name.includes('gift') || name.includes('card') || type === "giftcard") return "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&h=400&fit=crop";
     if (name.includes('vpn') || name.includes('security')) return "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop";
     if (name.includes('adobe') || name.includes('creative') || name.includes('canva')) return "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=600&h=400&fit=crop";
     if (name.includes('microsoft') || name.includes('office')) return "https://images.unsplash.com/photo-1588200618450-3a5b122c9fb9?w=600&h=400&fit=crop";
-    if (name.includes('premium') || name.includes('subscription')) return "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=600&h=400&fit=crop";
+    if (type === "topup") return "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=600&h=400&fit=crop";
+    if (type === "subscription") return "https://images.unsplash.com/photo-1589758438368-0ad531db3366?w=600&h=400&fit=crop";
     
     // Default image with service name
     return `https://placehold.co/600x400/3949ab/ffffff?text=${encodeURIComponent(serviceName)}`;
@@ -221,24 +232,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               Featured
             </Badge>
           )}
-          {service.type && (
-            <Badge
-              variant="outline" 
-              className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
-            >
-              {service.type === "subscription" ? (
-                <RotateCw className="h-3 w-3 mr-1" />
-              ) : (
-                <Zap className="h-3 w-3 mr-1" />
-              )}
-              {service.type === "subscription" ? "Subscription" : "Recharge"}
-            </Badge>
-          )}
+          
+          <Badge
+            variant="outline" 
+            className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
+          >
+            {getServiceTypeIcon()}
+            {getServiceTypeName()}
+          </Badge>
         </div>
         <CardHeader className="p-4 pb-0">
           <div className="flex justify-between items-start">
             <h3 className="font-semibold text-lg">{service.name}</h3>
-            <Badge variant="outline">{category?.name}</Badge>
+            <Badge variant="outline">{category?.name || service.categoryId}</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-4">
@@ -252,9 +258,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             </div>
             <div className="flex items-center">
               <Tag className="h-4 w-4 mr-1" />
-              ${service.price.toFixed(2)} {shouldUseMonths ? '/month' : ''}
+              ${service.price.toFixed(2)} {service.type === "subscription" ? '/month' : ''}
             </div>
-            {shouldUseMonths && service.availableMonths && service.availableMonths.length > 0 && (
+            {service.type === "subscription" && service.availableMonths && service.availableMonths.length > 0 && (
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
                 {service.availableMonths.join(", ")} {service.availableMonths.length === 1 ? "month" : "months"}
@@ -293,7 +299,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
           <div className="py-4 space-y-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Base Price:</span>
-              <span className="font-bold">${service.price.toFixed(2)} {shouldUseMonths ? '/month' : ''}</span>
+              <span className="font-bold">
+                ${service.price.toFixed(2)} {service.type === "subscription" ? '/month' : ''}
+              </span>
             </div>
             
             <div className="flex justify-between items-center mb-2">
@@ -304,12 +312,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
             {category && (
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Category:</span>
-                <span>{category.name}</span>
+                <span>{category.name || service.categoryId}</span>
               </div>
             )}
             
-            {/* Subscription duration selection - only show for specific categories */}
-            {shouldUseMonths ? (
+            {/* Subscription duration selection */}
+            {service.type === "subscription" && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
                   Duration <span className="text-red-500">*</span>
@@ -339,8 +347,28 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                   </SelectContent>
                 </Select>
               </div>
-            ) : (
-              /* Quantity selector for non-subscription products */
+            )}
+            
+            {/* Account ID field for top-up services that require it */}
+            {service.type === "topup" && service.requiresId && (
+              <div className="space-y-2 mb-4">
+                <label className="text-sm font-medium">
+                  Account ID <span className="text-red-500">*</span>
+                </label>
+                <Input 
+                  placeholder="Enter your account ID"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  This ID is required to process your top-up
+                </p>
+              </div>
+            )}
+            
+            {/* Quantity selector for non-subscription products */}
+            {service.type !== "subscription" && (
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Quantity:</span>
                 <div className="flex items-center">
@@ -350,13 +378,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
                     variant="outline" 
                     className="h-8 w-8 rounded-r-none"
                     onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= (service.minQuantity || 1)}
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
                   <Input
                     type="number"
-                    min="1"
+                    min={service.minQuantity || 1}
                     value={quantity.toString()}
                     onChange={handleQuantityChange}
                     className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
@@ -374,45 +402,27 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
               </div>
             )}
             
-            {/* Account ID field for recharge services */}
-            {isRecharge && (
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium">
-                  Account ID <span className="text-red-500">*</span>
-                </label>
-                <Input 
-                  placeholder="Enter your account ID"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  This ID is required to process your recharge
-                </p>
-              </div>
-            )}
-            
             <div className="flex justify-between items-center pt-2 border-t mb-2">
               <span className="font-medium">Total Price:</span>
               <span className="font-bold">
-                ${(shouldUseMonths 
+                ${(service.type === "subscription" 
                   ? service.price * parseInt(selectedDuration)
                   : service.price * quantity).toFixed(2)}
               </span>
             </div>
             
             {/* Additional details based on service type */}
-            {shouldUseMonths && (
+            {service.type === "subscription" && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Duration:</span>
                 <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
               </div>
             )}
             
-            {isGiftCard && (
+            {service.type === "giftcard" && service.value && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Gift Card Value:</span>
-                <span>${service.value?.toFixed(2) || service.price.toFixed(2)}</span>
+                <span>${service.value.toFixed(2)}</span>
               </div>
             )}
             

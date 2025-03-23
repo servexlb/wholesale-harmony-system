@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Trash2 } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Product, ServiceType } from "@/lib/types";
 import { products } from "@/lib/data";
 import { services } from "@/lib/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -21,6 +21,13 @@ const ProductManager = () => {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   useEffect(() => {
+    // Check localStorage first
+    const storedProducts = localStorage.getItem("products");
+    if (storedProducts) {
+      setProductList(JSON.parse(storedProducts));
+      return;
+    }
+    
     // Convert services to the Product type expected by our component
     const servicesAsProducts: Product[] = services.map(service => ({
       id: service.id,
@@ -32,12 +39,13 @@ const ProductManager = () => {
       category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
       categoryId: service.categoryId || 'uncategorized', // Ensure categoryId is always set
       featured: service.featured || false,
-      type: service.type,
+      type: (service.type as ServiceType) || "subscription",
       deliveryTime: service.deliveryTime || "",
       apiUrl: service.apiUrl,
       availableMonths: service.availableMonths,
       value: service.value,
-      minQuantity: undefined, // Default value for new field
+      minQuantity: service.minQuantity,
+      requiresId: false
     }));
     
     // Convert products from data.ts to the expected Product type
@@ -51,17 +59,29 @@ const ProductManager = () => {
       category: product.category,
       categoryId: product.categoryId || product.category || 'uncategorized', // Use category as fallback
       featured: product.featured || false,
-      type: product.type,
+      type: (product.type as ServiceType) || "subscription",
       deliveryTime: product.deliveryTime || "",
       apiUrl: product.apiUrl,
       availableMonths: product.availableMonths,
       value: product.value,
-      minQuantity: undefined, // Default value for new field
+      minQuantity: product.minQuantity,
+      requiresId: false
     }));
     
     // Combine both product lists with the correct typing
-    setProductList([...formattedProducts, ...servicesAsProducts]);
+    const combinedProducts = [...formattedProducts, ...servicesAsProducts];
+    setProductList(combinedProducts);
+    
+    // Store in localStorage
+    localStorage.setItem("products", JSON.stringify(combinedProducts));
   }, []);
+
+  // Save products to localStorage whenever they change
+  useEffect(() => {
+    if (productList.length > 0) {
+      localStorage.setItem("products", JSON.stringify(productList));
+    }
+  }, [productList]);
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
@@ -99,11 +119,36 @@ const ProductManager = () => {
     }
   };
   
+  const handleAddProduct = () => {
+    // Create a new product with default values
+    const newProduct: Product = {
+      id: `product-${Date.now()}`,
+      name: "New Product",
+      description: "Product description",
+      price: 0,
+      wholesalePrice: 0,
+      image: "/placeholder.svg",
+      category: "Uncategorized",
+      categoryId: "uncategorized",
+      featured: false,
+      type: "subscription",
+      deliveryTime: "24 hours",
+    };
+    
+    // Add it to the list
+    setProductList([...productList, newProduct]);
+    
+    // Select it for editing
+    setSelectedProduct(newProduct);
+    setIsDialogOpen(true);
+    toast.success("New product added. Please edit the details.");
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Manage Products</h3>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={handleAddProduct}>
           <PlusCircle className="h-4 w-4 mr-2" />
           Add Product
         </Button>

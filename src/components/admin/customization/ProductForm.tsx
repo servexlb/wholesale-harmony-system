@@ -1,13 +1,15 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Product } from "@/lib/types";
+import { Product, ServiceType } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { ImageIcon } from "lucide-react";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProductFormProps {
   product: Product | null;
@@ -18,16 +20,28 @@ interface ProductFormProps {
 const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }) => {
   const form = useForm<Product>({
     defaultValues: product || {
+      id: `product-${Date.now()}`,
       name: "",
       description: "",
       price: 0,
       wholesalePrice: 0,
       category: "",
+      categoryId: "uncategorized",
       featured: false,
-      deliveryTime: "",
-      minQuantity: undefined,
+      deliveryTime: "24 hours",
+      type: "subscription",
     }
   });
+
+  // Update form when product changes
+  useEffect(() => {
+    if (product) {
+      form.reset(product);
+    }
+  }, [product, form]);
+
+  // Get the current service type
+  const serviceType = form.watch("type") as ServiceType;
 
   return (
     <Form {...form}>
@@ -49,12 +63,44 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
           
           <FormField
             control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Product Type</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => field.onChange(value)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="subscription">Subscription</SelectItem>
+                    <SelectItem value="topup">Top-up</SelectItem>
+                    <SelectItem value="giftcard">Gift Card</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
             name="category"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} 
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      // Also update categoryId to match category (slugified)
+                      form.setValue("categoryId", e.target.value.toLowerCase().replace(/\s+/g, '-'));
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -90,25 +136,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
                     type="number" 
                     {...field} 
                     onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="value"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Value (for gift cards)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -155,11 +182,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={field.value}
-                    onChange={field.onChange}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    onCheckedChange={field.onChange}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
@@ -188,30 +213,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
           )}
         />
         
-        {/* Quantity and availability fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="minQuantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Minimum Quantity</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Minimum quantity required for purchase
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
+        {/* Conditional fields based on product type */}
+        {serviceType === "subscription" && (
           <FormField
             control={form.control}
             name="availableMonths"
@@ -220,7 +223,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
                 <FormLabel>Available Months</FormLabel>
                 <FormControl>
                   <Input 
-                    {...field} 
                     placeholder="1,3,6,12"
                     value={field.value ? field.value.join(',') : ''}
                     onChange={(e) => {
@@ -238,47 +240,99 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
               </FormItem>
             )}
           />
-          
+        )}
+        
+        {/* Top-up specific fields */}
+        {serviceType === "topup" && (
+          <>
+            <FormField
+              control={form.control}
+              name="minQuantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Quantity</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Minimum quantity required for purchase
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="requiresId"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value || false}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Requires Account ID</FormLabel>
+                    <FormDescription>
+                      Require customers to provide an ID for this top-up
+                    </FormDescription>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+        
+        {/* Gift card specific fields */}
+        {serviceType === "giftcard" && (
           <FormField
             control={form.control}
-            name="apiUrl"
+            name="value"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>API URL</FormLabel>
+                <FormLabel>Value (for gift cards)</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value || ""} />
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                    value={field.value || ""}
+                  />
                 </FormControl>
                 <FormDescription>
-                  API endpoint for this product (if applicable)
+                  The actual value of the gift card (if different from its price)
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Type</FormLabel>
-                <FormControl>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value || undefined)}
-                  >
-                    <option value="">Select Type</option>
-                    <option value="subscription">Subscription</option>
-                    <option value="recharge">Recharge</option>
-                    <option value="giftcard">Gift Card</option>
-                  </select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        )}
+        
+        {/* API URL - useful for programmatic integrations */}
+        <FormField
+          control={form.control}
+          name="apiUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>API URL</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value || ""} />
+              </FormControl>
+              <FormDescription>
+                API endpoint for this product (if applicable)
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onCancel}>
