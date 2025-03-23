@@ -23,7 +23,6 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { products } from '@/lib/data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Customer } from "@/lib/data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { loadServices } from "@/lib/productManager";
+import { loadServices, PRODUCT_EVENTS } from "@/lib/productManager";
 import { Service } from "@/lib/types";
 
 interface CustomerActionsMenuProps {
@@ -79,20 +78,23 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
   
   // Load available services from product manager
   useEffect(() => {
-    setAvailableServices(loadServices());
-    
-    const handleServiceUpdated = () => {
-      setAvailableServices(loadServices());
+    const loadAvailableServices = () => {
+      const services = loadServices();
+      console.log('Loaded services for customer actions:', services.length);
+      setAvailableServices(services);
     };
     
-    window.addEventListener('service-updated', handleServiceUpdated);
-    window.addEventListener('service-added', handleServiceUpdated);
-    window.addEventListener('service-deleted', handleServiceUpdated);
+    loadAvailableServices();
+    
+    // Listen for product update events
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, loadAvailableServices);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, loadAvailableServices);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, loadAvailableServices);
     
     return () => {
-      window.removeEventListener('service-updated', handleServiceUpdated);
-      window.removeEventListener('service-added', handleServiceUpdated);
-      window.removeEventListener('service-deleted', handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, loadAvailableServices);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, loadAvailableServices);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, loadAvailableServices);
     };
   }, []);
   
@@ -309,16 +311,22 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                       <SelectValue placeholder="Choose a streaming service" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getProductsByCategory().map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          <div className="flex flex-col">
-                            <span>{service.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ${service.wholesalePrice?.toFixed(2) || "0.00"}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {getProductsByCategory().length > 0 ? (
+                        getProductsByCategory().map((service) => (
+                          <SelectItem key={service.id} value={service.id}>
+                            <div className="flex flex-col">
+                              <span>{service.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ${service.wholesalePrice?.toFixed(2) || "0.00"}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          No streaming services available. Add some in the Admin Panel.
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -351,16 +359,22 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                       <SelectValue placeholder="Choose a product" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getProductsByCategory().map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          <div className="flex flex-col">
-                            <span>{product.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ${product.wholesalePrice?.toFixed(2) || "0.00"}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {getProductsByCategory().length > 0 ? (
+                        getProductsByCategory().map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            <div className="flex flex-col">
+                              <span>{product.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ${product.wholesalePrice?.toFixed(2) || "0.00"}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          No products available. Add some in the Admin Panel.
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
