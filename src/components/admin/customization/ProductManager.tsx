@@ -44,7 +44,7 @@ const ProductManager = () => {
       availableMonths: service.availableMonths,
       value: service.value,
       minQuantity: service.minQuantity,
-      requiresId: service.requiresId ?? false // Using nullish coalescing to ensure a boolean value
+      requiresId: service.requiresId ?? false // Ensure requiresId is always set
     }));
     
     // Convert products from data.ts to the expected Product type
