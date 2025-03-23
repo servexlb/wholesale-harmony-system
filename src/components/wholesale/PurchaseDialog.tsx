@@ -38,10 +38,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
   
+  // Add credential state for subscriptions
+  const [credentials, setCredentials] = useState<{
+    email: string;
+    password: string;
+  }>({ email: '', password: '' });
+  
+  // Add a state to control whether to show the credentials fields
+  const [showCredentials, setShowCredentials] = useState(false);
+  
   useEffect(() => {
     if (!open) {
       setSelectedProduct('');
       setQuantity(1);
+      setCredentials({ email: '', password: '' });
+      setShowCredentials(false);
     }
   }, [open]);
   
@@ -50,6 +61,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setSelectedCustomer(initialSelectedCustomer);
     }
   }, [open, initialSelectedCustomer]);
+  
+  // Effect to show credentials input when a subscription product is selected
+  useEffect(() => {
+    const product = products.find(p => p.id === selectedProduct);
+    setShowCredentials(product?.type === 'subscription');
+  }, [selectedProduct, products]);
   
   const selectedProductData = useMemo(() => 
     products.find(p => p.id === selectedProduct),
@@ -83,7 +100,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
 
-    const totalPrice = product.wholesalePrice * quantity;
+    // Calculate total price based on product type
+    const totalPrice = product.type === 'subscription' 
+      ? product.wholesalePrice * parseInt(selectedDuration)
+      : product.wholesalePrice * quantity;
     
     const currentBalance = getUserBalance();
     if (currentBalance < totalPrice) {
@@ -101,14 +121,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     
     const newOrder: WholesaleOrder = {
       id: `order-${Date.now()}`,
-      userId: selectedCustomer,
+      userId: currentWholesaler,
       wholesalerId: currentWholesaler,
       serviceId: selectedProduct,
       customerId: selectedCustomer,
-      quantity: quantity,
+      quantity: product.type === 'subscription' ? 1 : quantity,
       totalPrice: totalPrice,
       status: "pending",
       createdAt: new Date().toISOString(),
+      ...(product.type === 'subscription' && { 
+        durationMonths: parseInt(selectedDuration) 
+      }),
+      ...(showCredentials && { 
+        credentials: credentials
+      })
     };
     
     onOrderPlaced(newOrder);
@@ -118,8 +144,23 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     
     setSelectedProduct('');
     setQuantity(1);
+    setCredentials({ email: '', password: '' });
     onOpenChange(false);
-  }, [selectedCustomer, selectedProduct, quantity, products, customers, currentWholesaler, onOrderPlaced, onOpenChange, getUserBalance, navigate]);
+  }, [
+    selectedCustomer, 
+    selectedProduct, 
+    quantity, 
+    products, 
+    customers, 
+    currentWholesaler, 
+    onOrderPlaced, 
+    onOpenChange, 
+    getUserBalance, 
+    navigate, 
+    selectedDuration, 
+    showCredentials, 
+    credentials
+  ]);
 
   const loadPurchaseHistory = useCallback((customerId: string) => {
     setShowPurchaseHistory(true);
@@ -242,6 +283,31 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </>
         )}
         
+        {/* Add subscription credentials input fields */}
+        {showCredentials && (
+          <div className="space-y-3 p-3 border rounded-md">
+            <h3 className="text-sm font-medium">Subscription Credentials</h3>
+            <div>
+              <label className="text-xs font-medium block mb-1">Email/Username</label>
+              <Input
+                type="text"
+                value={credentials.email}
+                onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="username@example.com"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium block mb-1">Password</label>
+              <Input
+                type="password"
+                value={credentials.password}
+                onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+        )}
+        
         {selectedProductData && (
           <div className="p-4 bg-muted/40 rounded-md">
             <div className="flex items-center gap-2 mb-3">
@@ -299,11 +365,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </Button>
         <Button 
           onClick={handlePurchaseSubmit}
-          disabled={!selectedProduct || !selectedCustomer || (selectedProductData && currentBalance < (
-            isSubscription 
-              ? selectedProductData.wholesalePrice * parseInt(selectedDuration)
-              : selectedProductData.wholesalePrice * quantity
-          ))}
+          disabled={
+            !selectedProduct || 
+            !selectedCustomer || 
+            (showCredentials && (!credentials.email || !credentials.password)) ||
+            (selectedProductData && currentBalance < (
+              isSubscription 
+                ? selectedProductData.wholesalePrice * parseInt(selectedDuration)
+                : selectedProductData.wholesalePrice * quantity
+            ))
+          }
         >
           Place Order
         </Button>
