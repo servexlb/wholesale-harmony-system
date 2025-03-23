@@ -55,7 +55,7 @@ export interface Product {
   availableMonths?: number[];
   apiUrl?: string;
   minQuantity?: number;
-  requiresId: boolean; // This is a required field to fix TypeScript errors
+  requiresId: boolean; // Required boolean field
 }
 
 export interface Subscription {

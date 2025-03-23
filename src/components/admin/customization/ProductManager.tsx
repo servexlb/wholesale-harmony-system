@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, ImageIcon } from "lucide-react";
 import { Product, ServiceType } from "@/lib/types";
 import { products } from "@/lib/data";
 import { services } from "@/lib/mockData";
@@ -15,10 +16,12 @@ const ProductManager = () => {
   const [productList, setProductList] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [showImageManager, setShowImageManager] = useState(false);
+  const [errorLogs, setErrorLogs] = useState<any[]>([]);
 
+  // Load products from localStorage or default data
   useEffect(() => {
     // Check localStorage first
     const storedProducts = localStorage.getItem("products");
@@ -73,6 +76,23 @@ const ProductManager = () => {
     
     // Store in localStorage
     localStorage.setItem("products", JSON.stringify(combinedProducts));
+  }, []);
+
+  // Check for image errors in localStorage
+  useEffect(() => {
+    const imageErrorLog = JSON.parse(localStorage.getItem('productImageErrorLog') || '[]');
+    setErrorLogs(imageErrorLog);
+    
+    // Show notification if there are errors
+    if (imageErrorLog.length > 0) {
+      toast.error(`${imageErrorLog.length} product images failed to load`, {
+        description: "Some product images are missing or invalid",
+        action: {
+          label: "Fix Now",
+          onClick: () => handleFixImages()
+        }
+      });
+    }
   }, []);
 
   // Save products to localStorage whenever they change
@@ -132,7 +152,7 @@ const ProductManager = () => {
       featured: false,
       type: "subscription",
       deliveryTime: "24 hours",
-      requiresId: false // Ensure requiresId is set with default value
+      requiresId: false // Ensure requiresId is explicitly set with default value
     };
     
     // Add it to the list
@@ -143,15 +163,64 @@ const ProductManager = () => {
     setIsDialogOpen(true);
     toast.success("New product added. Please edit the details.");
   };
+
+  const handleFixImages = () => {
+    // Clear the error log
+    localStorage.setItem('productImageErrorLog', '[]');
+    setErrorLogs([]);
+    
+    // Get default image from uploaded images
+    const uploadedImages = JSON.parse(localStorage.getItem('uploadedImages') || '[]');
+    const defaultImage = uploadedImages.find((img: any) => img.name === 'Default Product Image')?.url || '/placeholder.svg';
+    
+    // Find products with broken images
+    const productsWithErrors = productList.filter(product => {
+      const errorLog = JSON.parse(localStorage.getItem('productImageErrorLog') || '[]');
+      return errorLog.some((log: any) => log.productId === product.id);
+    });
+    
+    if (productsWithErrors.length === 0) {
+      toast.info("No products with broken images found");
+      return;
+    }
+    
+    // Show the image manager dialog
+    toast.info(`Found ${productsWithErrors.length} products with broken images`, {
+      description: "Click on a product to update its image"
+    });
+    
+    // In a real app, you might show a specialized UI for bulk image fixes
+    // For simplicity, we'll just open the first broken product
+    if (productsWithErrors.length > 0) {
+      setSelectedProduct(productsWithErrors[0]);
+      setIsDialogOpen(true);
+    }
+  };
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Manage Products</h3>
-        <Button onClick={handleAddProduct}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <div>
+          <h3 className="text-lg font-medium">Manage Products</h3>
+          {errorLogs.length > 0 && (
+            <p className="text-sm text-yellow-600 flex items-center mt-1">
+              <AlertTriangle className="h-4 w-4 mr-1" /> 
+              {errorLogs.length} product{errorLogs.length > 1 ? 's' : ''} with image issues detected
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {errorLogs.length > 0 && (
+            <Button variant="outline" onClick={handleFixImages}>
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Fix Images
+            </Button>
+          )}
+          <Button onClick={handleAddProduct}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
