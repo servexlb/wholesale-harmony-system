@@ -28,6 +28,13 @@ export interface WholesaleOrder {
     notes?: string;
     [key: string]: any;
   };
+  credentialStatus?: 'available' | 'pending' | 'assigned';
+  products?: Array<{
+    productId: string;
+    quantity: number;
+    price: number;
+  }>;
+  total?: number;
 }
 
 export interface Subscription {
@@ -184,6 +191,9 @@ export interface Order {
   quantity?: number;
   totalPrice?: number;
   completedAt?: string;
+  durationMonths?: number;
+  accountId?: string;
+  customerName?: string;
   credentials?: {
     username?: string;
     password?: string;
@@ -192,6 +202,7 @@ export interface Order {
     [key: string]: any;
   };
   credentialStatus?: 'available' | 'pending' | 'assigned';
+  paymentStatus?: string;
 }
 
 export interface Payment {

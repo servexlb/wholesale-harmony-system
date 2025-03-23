@@ -1,5 +1,4 @@
-
-import { CredentialStock, Order, Service } from "./types";
+import { CredentialStock, Order, Service, WholesaleOrder } from "./types";
 
 // Load credential stock from localStorage or use default if not available
 const loadCredentialStock = (): CredentialStock[] => {
@@ -18,7 +17,7 @@ const loadCredentialStock = (): CredentialStock[] => {
         password: "securepass123",
         notes: "Premium account with 4K streaming"
       },
-      status: "available",
+      status: "available" as const,
       createdAt: new Date().toISOString()
     },
     {
@@ -29,7 +28,7 @@ const loadCredentialStock = (): CredentialStock[] => {
         password: "securepass456",
         notes: "Premium account with 4K streaming"
       },
-      status: "available",
+      status: "available" as const,
       createdAt: new Date().toISOString()
     },
     {
@@ -40,7 +39,7 @@ const loadCredentialStock = (): CredentialStock[] => {
         password: "disneypass123",
         notes: "Disney+ subscription"
       },
-      status: "available",
+      status: "available" as const,
       createdAt: new Date().toISOString()
     },
     {
@@ -51,7 +50,7 @@ const loadCredentialStock = (): CredentialStock[] => {
         password: "spotifypass123",
         notes: "Spotify Premium subscription"
       },
-      status: "available",
+      status: "available" as const,
       createdAt: new Date().toISOString()
     }
   ];
@@ -76,12 +75,12 @@ export const getAvailableStockCount = (serviceId: string): number => {
 };
 
 // Assign credentials to an order if available
-export const assignCredentialsToOrder = (order: Order): Order => {
+export const assignCredentialsToOrder = (order: Order | WholesaleOrder): Order | WholesaleOrder => {
   // If order already has credentials, return it unchanged
   if (order.credentials && Object.keys(order.credentials).length > 0) {
     return {
       ...order,
-      credentialStatus: "assigned"
+      credentialStatus: "assigned" as const
     };
   }
   
@@ -96,7 +95,7 @@ export const assignCredentialsToOrder = (order: Order): Order => {
       if (cred.id === availableCredential.id) {
         return {
           ...cred,
-          status: "assigned",
+          status: "assigned" as const,
           assignedToOrderId: order.id
         };
       }
@@ -110,14 +109,14 @@ export const assignCredentialsToOrder = (order: Order): Order => {
     return {
       ...order,
       credentials: availableCredential.credentials,
-      credentialStatus: "assigned"
+      credentialStatus: "assigned" as const
     };
   }
   
   // No credentials available
   return {
     ...order,
-    credentialStatus: "pending"
+    credentialStatus: "pending" as const
   };
 };
 
@@ -147,7 +146,7 @@ export const addCredentialToStock = (
     id: `cred-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     serviceId,
     credentials,
-    status: "available",
+    status: "available" as const,
     createdAt: new Date().toISOString()
   };
   
@@ -157,7 +156,7 @@ export const addCredentialToStock = (
 };
 
 // Process order with automatic credential assignment
-export const processOrderWithCredentials = (order: Order): Order => {
+export const processOrderWithCredentials = (order: Order | WholesaleOrder): Order | WholesaleOrder => {
   // Only process subscription or credential-based services
   const requiresCredentials = !order.serviceId?.includes("giftcard") && 
                              !order.serviceId?.includes("topup");
@@ -185,4 +184,3 @@ export const deleteCredentialFromStock = (credentialId: string): boolean => {
   }
   return false;
 };
-

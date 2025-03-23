@@ -134,7 +134,7 @@ const Checkout: React.FC = () => {
       localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
     }
 
-    const order = {
+    const order: Order = {
       id: `order-${Date.now()}`,
       userId: userId,
       serviceId: "service-netflix",
@@ -144,12 +144,11 @@ const Checkout: React.FC = () => {
       createdAt: new Date().toISOString(),
       paymentStatus: paymentMethod === "account-balance" ? "paid" : "pending",
       credentials: showCredentials ? credentials : undefined,
-      credentialStatus: undefined,
       products: [],
       total: total
     };
 
-    const processedOrder = processOrderWithCredentials(order);
+    const processedOrder = processOrderWithCredentials(order) as Order;
 
     const customerOrders = JSON.parse(localStorage.getItem(`customerOrders_${userId}`) || '[]');
     customerOrders.push(processedOrder);

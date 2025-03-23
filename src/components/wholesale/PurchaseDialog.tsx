@@ -205,8 +205,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       ...(product.type === 'subscription' && { 
         durationMonths: parseInt(selectedDuration) 
       }),
-      credentials: undefined,
-      credentialStatus: undefined
+      products: []
     };
     
     const processedOrder = processOrderWithCredentials(newOrder) as WholesaleOrder;

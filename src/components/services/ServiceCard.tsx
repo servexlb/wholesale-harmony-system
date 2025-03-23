@@ -106,8 +106,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
     const newBalance = userBalance - finalPrice;
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
-    const order = {
+    const order: Order = {
       id: `order-${Date.now()}`,
+      userId: userId,
       serviceId: service.id,
       quantity: service.type === "subscription" ? 1 : quantity,
       durationMonths: service.type === "subscription" ? parseInt(selectedDuration) : undefined,
@@ -116,10 +117,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
       status: "pending",
       createdAt: new Date().toISOString(),
       credentials: undefined,
-      credentialStatus: undefined
+      products: [],
+      total: finalPrice
     };
 
-    const processedOrder = processOrderWithCredentials(order);
+    const processedOrder = processOrderWithCredentials(order) as Order;
 
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');

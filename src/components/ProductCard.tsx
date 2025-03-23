@@ -157,8 +157,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const newBalance = userBalance - finalPrice;
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
-    const order = {
+    const order: Order = {
       id: `order-${Date.now()}`,
+      userId: userId,
       serviceId: product.id,
       quantity: shouldUseMonths ? 1 : quantity,
       durationMonths: shouldUseMonths ? parseInt(selectedDuration) : undefined,
@@ -168,12 +169,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
       status: "pending",
       createdAt: new Date().toISOString(),
       credentials: showCredentials && credentials.email && credentials.password ? credentials : undefined,
-      credentialStatus: undefined,
       products: [],
       total: finalPrice
     };
 
-    const processedOrder = processOrderWithCredentials(order);
+    const processedOrder = processOrderWithCredentials(order) as Order;
 
     const orderStorageKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
