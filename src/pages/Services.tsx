@@ -6,8 +6,9 @@ import MainLayout from "@/components/MainLayout";
 import ServiceFilters from "@/components/services/ServiceFilters";
 import ServiceSearchBar from "@/components/services/ServiceSearchBar";
 import ServicesList from "@/components/services/ServicesList";
-import { services, serviceCategories, getServicesByCategory } from "@/lib/mockData";
+import { serviceCategories } from "@/lib/mockData";
 import { Service } from "@/lib/types";
+import { loadServices, initProductManager, PRODUCT_EVENTS } from "@/lib/productManager";
 
 const Services: React.FC = () => {
   const location = useLocation();
@@ -16,7 +17,39 @@ const Services: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
-  const [filteredServices, setFilteredServices] = useState<Service[]>(services);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  
+  // Initialize product manager and load services
+  useEffect(() => {
+    initProductManager();
+    const loadedServices = loadServices();
+    setServices(loadedServices);
+    
+    // Listen for service updates
+    const handleServiceUpdated = () => {
+      console.log("Services updated, refreshing services list");
+      setServices(loadServices());
+    };
+    
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
+    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
+    
+    return () => {
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
+      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
+    };
+  }, []);
+  
+  // Get services by category helper function
+  const getServicesByCategory = (category: string) => {
+    return services.filter(service => 
+      service.category?.toLowerCase() === category.toLowerCase() || 
+      service.categoryId?.toLowerCase() === category.toLowerCase()
+    );
+  };
   
   useEffect(() => {
     let result = services;
@@ -31,12 +64,12 @@ const Services: React.FC = () => {
       const query = searchQuery.toLowerCase();
       result = result.filter(service => 
         service.name.toLowerCase().includes(query) || 
-        service.description.toLowerCase().includes(query)
+        (service.description?.toLowerCase().includes(query) || false)
       );
     }
     
     setFilteredServices(result);
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, services]);
   
   return (
     <MainLayout>
