@@ -36,7 +36,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-white">
+      <DropdownMenuContent align="end" className="z-50">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
@@ -47,21 +47,28 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
             }
           }}
           disabled={!onPurchaseForCustomer}
+          className="cursor-pointer"
         >
           <ShoppingBag className="h-4 w-4 mr-2" />
           Purchase for Customer
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuItem 
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-pointer"
+        >
           <FileText className="h-4 w-4 mr-2" />
           View Orders
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuItem 
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-pointer"
+        >
           <Edit className="h-4 w-4 mr-2" />
           Edit Customer
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
-          className="text-destructive"
+          className="text-destructive cursor-pointer"
           onClick={(e) => e.stopPropagation()}
         >
           <Trash2 className="h-4 w-4 mr-2" />

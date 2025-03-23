@@ -31,7 +31,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="hover:bg-muted/50 cursor-pointer"
+        className="hover:bg-muted/50 cursor-pointer relative"
         onClick={() => setExpanded(!expanded)}
       >
         <TableCell className="font-medium">
@@ -75,7 +75,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
                           {product?.name || 'Unknown'}
                         </Badge>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="z-50 bg-white">
+                      <TooltipContent side="top" className="z-50">
                         <div className="space-y-1">
                           <p className="font-medium">{product?.name || 'Unknown'}</p>
                           <p>Expires: {new Date(sub.endDate).toLocaleDateString()}</p>
@@ -108,10 +108,12 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
           )}
         </TableCell>
         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-          <CustomerActionsMenu 
-            customerId={customer.id} 
-            onPurchaseForCustomer={onPurchaseForCustomer} 
-          />
+          <div className="z-50 relative">
+            <CustomerActionsMenu 
+              customerId={customer.id} 
+              onPurchaseForCustomer={onPurchaseForCustomer} 
+            />
+          </div>
         </TableCell>
       </motion.tr>
       {expanded && subscriptions.length > 0 && (
