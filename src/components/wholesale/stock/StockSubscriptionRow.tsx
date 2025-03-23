@@ -44,6 +44,16 @@ const StockSubscriptionRow: React.FC<StockSubscriptionRowProps> = ({
     }
   };
 
+  // Helper function to map variant to one that exists in button variant
+  const getBadgeVariant = (variant: string): "default" | "destructive" | "outline" | "secondary" => {
+    switch (variant) {
+      case "success": return "default";
+      case "warning": return "secondary";
+      case "destructive": return "destructive";
+      default: return "outline";
+    }
+  };
+
   return (
     <TableRow key={subscription.id}>
       <TableCell>{productName}</TableCell>
@@ -53,7 +63,7 @@ const StockSubscriptionRow: React.FC<StockSubscriptionRowProps> = ({
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant={variant}>
+        <Badge variant={getBadgeVariant(variant)}>
           {icon}
           {label}
         </Badge>
@@ -71,7 +81,7 @@ const StockSubscriptionRow: React.FC<StockSubscriptionRowProps> = ({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => handleCopyToClipboard(subscription.credentials!.email, subscription.id, "Email")}
+                onClick={() => handleCopyToClipboard(subscription.credentials!.email || "", subscription.id, "Email")}
               >
                 {copiedId === subscription.id && copiedField === "Email" ? (
                   <Check className="h-4 w-4" />
@@ -91,7 +101,7 @@ const StockSubscriptionRow: React.FC<StockSubscriptionRowProps> = ({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => handleCopyToClipboard(subscription.credentials!.password, subscription.id, "Password")}
+                onClick={() => handleCopyToClipboard(subscription.credentials!.password || "", subscription.id, "Password")}
               >
                 {copiedId === subscription.id && copiedField === "Password" ? (
                   <Check className="h-4 w-4" />

@@ -52,7 +52,7 @@ const AdminServices = () => {
   const filteredServices = services.filter(service => {
     const matchesTab = activeTab === "all" || service.type === activeTab;
     const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          service.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          (service.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     return matchesTab && matchesSearch;
   });
 
@@ -81,6 +81,7 @@ const AdminServices = () => {
       description: "Service description",
       price: 0,
       wholesalePrice: 0,
+      category: "Uncategorized",
       categoryId: "uncategorized",
       image: "/placeholder.svg",
       deliveryTime: "24 hours",
@@ -185,7 +186,9 @@ const AdminServices = () => {
           <ProductForm 
             product={selectedService ? {
               ...selectedService,
-              category: selectedService.category || selectedService.categoryId || 'Uncategorized'
+              description: selectedService.description || '',
+              category: selectedService.category || selectedService.categoryId || 'Uncategorized',
+              image: selectedService.image || '/placeholder.svg'
             } : null}
             onSubmit={handleSaveService} 
             onCancel={() => setIsDialogOpen(false)}
@@ -310,16 +313,18 @@ const ServiceList = ({
   );
 };
 
-const getServiceTypeName = (type: ServiceType): string => {
+const getServiceTypeName = (type?: ServiceType): string => {
   switch (type) {
     case "subscription": return "Subscription";
     case "topup": return "Top-up";
     case "giftcard": return "Gift Card";
+    case "recharge": return "Recharge";
+    case "service": return "Service";
     default: return "Unknown";
   }
 };
 
-const getBadgeVariant = (type: ServiceType): "default" | "secondary" | "outline" => {
+const getBadgeVariant = (type?: ServiceType): "default" | "secondary" | "outline" => {
   switch (type) {
     case "subscription": return "default";
     case "topup": return "secondary";

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Key, Copy, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,16 @@ const StockSubscriptionCard: React.FC<StockSubscriptionCardProps> = ({
   
   const { label, variant, icon } = getSubscriptionStatus(subscription);
 
+  // Helper function to map variant to one that exists in button variant
+  const getBadgeVariant = (variant: string): "default" | "destructive" | "outline" | "secondary" => {
+    switch (variant) {
+      case "success": return "default";
+      case "warning": return "secondary";
+      case "destructive": return "destructive";
+      default: return "outline";
+    }
+  };
+
   const handleCopyToClipboard = (text: string, id: string, field: string) => {
     try {
       navigator.clipboard.writeText(text);
@@ -49,7 +60,7 @@ const StockSubscriptionCard: React.FC<StockSubscriptionCardProps> = ({
         <CardTitle className="text-sm font-medium">
           {productName}
         </CardTitle>
-        <Badge variant={variant}>
+        <Badge variant={getBadgeVariant(variant)}>
           {icon}
           {label}
         </Badge>
@@ -73,7 +84,7 @@ const StockSubscriptionCard: React.FC<StockSubscriptionCardProps> = ({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => handleCopyToClipboard(subscription.credentials!.email, subscription.id, "Email")}
+                onClick={() => handleCopyToClipboard(subscription.credentials!.email || "", subscription.id, "Email")}
               >
                 {copiedId === subscription.id && copiedField === "Email" ? (
                   <Check className="h-4 w-4" />
@@ -93,7 +104,7 @@ const StockSubscriptionCard: React.FC<StockSubscriptionCardProps> = ({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => handleCopyToClipboard(subscription.credentials!.password, subscription.id, "Password")}
+                onClick={() => handleCopyToClipboard(subscription.credentials!.password || "", subscription.id, "Password")}
               >
                 {copiedId === subscription.id && copiedField === "Password" ? (
                   <Check className="h-4 w-4" />

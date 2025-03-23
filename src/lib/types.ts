@@ -1,3 +1,4 @@
+
 export interface Customer {
   id: string;
   name: string;
@@ -58,7 +59,7 @@ export interface MonthlyPricing {
 export interface Service {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   price: number;
   wholesalePrice: number;
   image?: string;
