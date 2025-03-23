@@ -8,14 +8,19 @@ interface SalesSummaryStatsProps {
   totalCustomers: number;
   totalProducts: number;
   averageOrderValue: number;
+  totalServices?: number; // Added for backward compatibility
 }
 
 const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
   totalSales,
   totalCustomers,
   totalProducts,
-  averageOrderValue
+  averageOrderValue,
+  totalServices
 }) => {
+  // Use totalServices if provided, otherwise fall back to totalProducts
+  const displayTotal = totalServices !== undefined ? totalServices : totalProducts;
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       <StatsCard
@@ -36,7 +41,7 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
       />
       <StatsCard
         title="Products Sold"
-        value={totalProducts.toString()}
+        value={displayTotal.toString()}
         description="Unique products"
         icon={<ShoppingBag className="h-5 w-5" />}
         trend=""

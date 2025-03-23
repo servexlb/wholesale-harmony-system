@@ -50,7 +50,7 @@ const DesktopOrdersTable: React.FC<DesktopOrdersTableProps> = ({
                 key={order.id}
                 order={order}
                 customer={customerMap.get(order.customerId)}
-                product={productMap.get(order.serviceId)}
+                service={productMap.get(order.serviceId)}
               />
             ))
           )}

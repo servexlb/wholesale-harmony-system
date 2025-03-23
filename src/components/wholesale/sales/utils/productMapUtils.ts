@@ -51,3 +51,7 @@ export const getServiceById = (serviceMap, serviceId) => {
   
   return service;
 };
+
+// For backward compatibility, aliases for the product-related functions
+export const createProductMap = createServiceMap;
+export const getProductById = getServiceById;

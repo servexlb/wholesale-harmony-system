@@ -9,17 +9,21 @@ interface OrderTableRowProps {
   order: WholesaleOrder;
   customer: Customer | undefined;
   service: { id: string, name: string, type?: string } | undefined;
+  product?: { id: string, name: string, type?: string } | undefined; // Added for backward compatibility
 }
 
-const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service }) => {
+const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service, product }) => {
+  // Use service if provided, otherwise fall back to product for backward compatibility
+  const displayItem = service || product;
+
   return (
     <TableRow>
       <TableCell className="font-mono text-xs">{order.id}</TableCell>
       <TableCell>{customer?.name || "Unknown"}</TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          {service?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
-          {service?.name || "Unknown Service"}
+          {displayItem?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
+          {displayItem?.name || "Unknown Service"}
         </div>
       </TableCell>
       <TableCell>{order.quantity}</TableCell>

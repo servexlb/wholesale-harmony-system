@@ -28,11 +28,29 @@ export interface Service {
   image: string;
   deliveryTime: string;
   featured: boolean;
-  type?: "subscription" | "recharge" | "service";
+  type?: "subscription" | "recharge" | "service" | "giftcard";
   availableMonths?: number[];
   apiUrl?: string;
   features?: string[];
   value?: number;
+  minQuantity?: number;
+}
+
+// Added Product type for backward compatibility
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  wholesalePrice: number;
+  image: string;
+  category: string;
+  featured?: boolean;
+  type?: "subscription" | "recharge" | "service" | "giftcard";
+  value?: number;
+  deliveryTime?: string;
+  availableMonths?: number[];
+  apiUrl?: string;
   minQuantity?: number;
 }
 

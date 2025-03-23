@@ -3,7 +3,7 @@ import React, { memo, useMemo } from 'react';
 import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { createProductMap } from './utils/productMapUtils';
+import { createServiceMap } from './utils/productMapUtils';
 import DesktopOrdersTable from './DesktopOrdersTable';
 import MobileOrdersList from './MobileOrdersList';
 
@@ -18,7 +18,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
   // Create a memoized product lookup map
   const productMap = useMemo(() => {
     console.log('Creating product map');
-    const map = createProductMap();
+    const map = createServiceMap();
     console.log('Product map size:', map.size);
     return map;
   }, []);

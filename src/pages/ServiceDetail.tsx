@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Tag, Check, CreditCard, Zap, RotateCw, Minus, Plus } from 'lucide-react';
@@ -37,16 +36,13 @@ const ServiceDetail = () => {
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
   const [accountId, setAccountId] = useState("");
 
-  // Get current user ID
   const userId = localStorage.getItem('currentUserId') || 'guest';
   
-  // Get user-specific balance from localStorage
   const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
   const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
 
   useEffect(() => {
     if (id) {
-      // Fetch service data
       setLoading(true);
       setTimeout(() => {
         const foundService = getServiceById(id);
@@ -62,16 +58,10 @@ const ServiceDetail = () => {
     }
   }, [id]);
 
-  // Helper to determine if service is a subscription
   const isSubscription = service?.type === "subscription";
-  
-  // Helper to determine if service is a recharge
   const isRecharge = service?.type === "recharge";
-  
-  // Helper to determine if service is a gift card
-  const isGiftCard = service?.type === "giftcard";
-  
-  // Helper to determine if service should use months feature
+  const isGiftCard = service?.type === "giftcard" || service?.type === "service";
+
   const shouldUseMonths = isSubscription || 
     (category?.name.toLowerCase().includes('streaming') || 
     category?.name.toLowerCase().includes('vpn') || 
@@ -79,11 +69,9 @@ const ServiceDetail = () => {
     category?.name.toLowerCase().includes('productivity'));
 
   const showPurchaseConfirmation = () => {
-    // Reset fields
     setAccountId("");
     setQuantity(1);
     
-    // For subscriptions, set default selected duration
     if (shouldUseMonths) {
       if (service?.availableMonths && service.availableMonths.length > 0) {
         setSelectedDuration(service.availableMonths[0].toString());
@@ -96,7 +84,6 @@ const ServiceDetail = () => {
   };
 
   const handleBuyNow = () => {
-    // Validate account ID for recharge services
     if (isRecharge && !accountId.trim()) {
       toast.error("Account ID required", {
         description: "Please enter your account ID for this recharge"
@@ -107,27 +94,22 @@ const ServiceDetail = () => {
     console.log("Buy now clicked for service:", service);
     setIsPurchasing(true);
     
-    // Calculate final price based on months or quantity
     const finalPrice = shouldUseMonths 
       ? (service?.price || 0) * parseInt(selectedDuration)
       : (service?.price || 0) * quantity;
     
-    // Check if user has sufficient balance
     if (userBalance < finalPrice) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to make this purchase"
       });
       setIsPurchasing(false);
-      // Redirect to payment page
       navigate("/payment");
       return;
     }
 
-    // Deduct the price from user balance immediately
     const newBalance = userBalance - finalPrice;
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
 
-    // Create order with pending status
     const order = {
       id: `order-${Date.now()}`,
       serviceId: service?.id,
@@ -139,13 +121,11 @@ const ServiceDetail = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // Save order to user-specific storage
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
     customerOrders.push(order);
     localStorage.setItem(customerOrdersKey, JSON.stringify(customerOrders));
 
-    // In a real app, you would send this to your backend
     console.log("Created order:", order);
     
     toast.success("Purchase successful!", {
@@ -155,7 +135,6 @@ const ServiceDetail = () => {
     setIsPurchasing(false);
     setIsConfirmDialogOpen(false);
     
-    // Redirect to dashboard
     navigate("/dashboard");
   };
 
@@ -172,7 +151,7 @@ const ServiceDetail = () => {
     if (!isNaN(value) && value > 0) {
       setQuantity(value);
     } else if (e.target.value === '') {
-      setQuantity(1); // Reset to 1 if input is cleared
+      setQuantity(1);
     }
   };
 
@@ -419,7 +398,6 @@ const ServiceDetail = () => {
         </div>
       </main>
       
-      {/* Purchase Confirmation Dialog */}
       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -447,7 +425,6 @@ const ServiceDetail = () => {
               </div>
             )}
             
-            {/* Subscription duration selection */}
             {shouldUseMonths ? (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -512,7 +489,6 @@ const ServiceDetail = () => {
               </div>
             )}
             
-            {/* Account ID field for recharge services */}
             {isRecharge && (
               <div className="space-y-2 mb-4">
                 <label className="text-sm font-medium">
@@ -539,7 +515,6 @@ const ServiceDetail = () => {
               </span>
             </div>
             
-            {/* Additional details based on service type */}
             {shouldUseMonths && (
               <div className="flex justify-between items-center mt-2">
                 <span className="font-medium">Duration:</span>
