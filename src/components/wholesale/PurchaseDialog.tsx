@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -11,35 +12,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { useCart } from '@/hooks/use-cart';
-import { Product, Service } from '@/lib/types';
-import { getAllServices } from '@/lib/productManager';
+import { Product, Service, Customer, WholesaleOrder } from '@/lib/types';
 import { services as mockServices } from '@/lib/mockData';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { loadServices } from '@/lib/productManager';
 
 interface PurchaseDialogProps {
   children: React.ReactNode;
   customerName: string;
-  setCustomerName: (value: string) => void;
   customerEmail: string;
-  setCustomerEmail: (value: string) => void;
   customerPhone: string;
-  setCustomerPhone: (value: string) => void;
   customerAddress: string;
-  setCustomerAddress: (value: string) => void;
   customerCompany: string;
-  setCustomerCompany: (value: string) => void;
   customerNotes: string;
-  setCustomerNotes: (value: string) => void;
   onPurchase: () => void;
   isSubmitting: boolean;
   isMobile: boolean;
 }
 
+// Define a separate interface for the component as it's used in Wholesale.tsx
+interface WholesalePurchaseDialogProps {
+  onOpenChange: (value: boolean) => void;
+  customers: Customer[];
+  products: Service[];
+  selectedCustomer: string;
+  currentWholesaler: string;
+  onOrderPlaced: (order: WholesaleOrder) => void;
+}
+
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   children,
   customerName,
-  setCustomerName,
   customerEmail,
   customerPhone,
   customerAddress,
@@ -49,15 +52,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isSubmitting,
   isMobile
 }) => {
-  const { items, totalPrice, clearCart } = useCart();
   const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<any[]>([]);
+  const [totalPrice, setTotalPrice] = useState(0);
   const [services, setServices] = useState<Service[]>([]);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [customerError, setCustomerError] = useState('');
   
   useEffect(() => {
     // Load services from product manager
-    const loadedServices = getAllServices();
+    const loadedServices = loadServices();
     
     // If no services from product manager, fall back to mockData
     const servicesToUse = loadedServices.length > 0 ? loadedServices : mockServices;
@@ -78,13 +82,18 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     clearCart();
   };
   
+  const clearCart = () => {
+    setItems([]);
+    setTotalPrice(0);
+  };
+  
   const toggleCustomerForm = () => {
     setShowCustomerForm(!showCustomerForm);
   };
 
   const filteredServices = services.filter(
     service => service.availableForCustomers !== false
-  ) as unknown as Product[];
+  );
   
   const hasUnavailableServices = items.some(item => {
     return !filteredServices.find(service => service.id === item.id);
@@ -152,7 +161,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <Input
                     id="name"
                     value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -161,7 +169,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     id="email"
                     type="email"
                     value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -170,7 +177,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                     id="phone"
                     type="tel"
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -178,7 +184,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <Input
                     id="address"
                     value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -186,7 +191,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   <Input
                     id="company"
                     value={customerCompany}
-                    onChange={(e) => setCustomerCompany(e.target.value)}
                   />
                 </div>
               </div>
@@ -195,7 +199,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <Input
                   id="notes"
                   value={customerNotes}
-                  onChange={(e) => setCustomerNotes(e.target.value)}
                 />
               </div>
             </>

@@ -1,9 +1,9 @@
+
 import React from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
-import { Product } from "@/lib/types";
-import { Order } from "@/lib/types";
+import { Product, Order } from "@/lib/types";
 
 interface ProductCardProps {
   product: Product;

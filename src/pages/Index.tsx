@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Product } from '@/lib/types';
 import { loadProducts, PRODUCT_EVENTS, initProductManager, serviceToProduct } from '@/lib/productManager';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +23,7 @@ const Index = () => {
   const [sortBy, setSortBy] = useState('default');
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const navigate = useNavigate();
   
   useEffect(() => {
     initProductManager();
@@ -88,6 +90,10 @@ const Index = () => {
     
     setFilteredProducts(result);
   }, [searchTerm, category, sortBy, products]);
+  
+  const handleProductClick = (product: Product) => {
+    navigate(`/products/${product.id}`);
+  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -183,7 +189,11 @@ const Index = () => {
               </div>
             ) : (
               filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onClick={handleProductClick}
+                />
               ))
             )}
           </div>

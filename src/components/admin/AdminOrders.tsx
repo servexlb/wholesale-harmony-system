@@ -69,15 +69,15 @@ const AdminOrders = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return "warning";
+        return "warning" as const;
       case "processing":
-        return "secondary";
+        return "secondary" as const;
       case "completed":
-        return "success";
+        return "default" as const;
       case "cancelled":
-        return "destructive";
+        return "destructive" as const;
       default:
-        return "outline";
+        return "outline" as const;
     }
   };
 
@@ -221,7 +221,7 @@ const AdminOrders = () => {
                       </TableCell>
                       <TableCell>
                         {order.credentialStatus ? (
-                          <Badge variant={order.credentialStatus === "assigned" ? "success" : "outline"}>
+                          <Badge variant={order.credentialStatus === "assigned" ? "default" : "outline"}>
                             {order.credentialStatus.charAt(0).toUpperCase() + order.credentialStatus.slice(1)}
                           </Badge>
                         ) : (

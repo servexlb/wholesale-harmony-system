@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Service } from "@/lib/types";
+import { Service, Order } from "@/lib/types";
 import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import PurchaseSuccessDialog from "../PurchaseSuccessDialog";

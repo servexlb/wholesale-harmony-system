@@ -18,6 +18,15 @@ const Wholesale = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
   
+  // For purchase dialog component
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerCompany, setCustomerCompany] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   // Initialize hooks
   const { 
     isAuthenticated, 
@@ -95,6 +104,16 @@ const Wholesale = () => {
       console.error('Error handling purchase for customer:', error);
     }
   };
+  
+  // Handle purchase submission
+  const handlePurchaseSubmit = () => {
+    setIsSubmitting(true);
+    // Implement your purchase logic here
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setPurchaseDialogOpen(false);
+    }, 1000);
+  };
 
   // If not authenticated, show login screen
   if (!isAuthenticated) {
@@ -114,14 +133,18 @@ const Wholesale = () => {
         {/* Show the inline purchase form when open */}
         {purchaseDialogOpen && (
           <PurchaseDialog
-            open={purchaseDialogOpen}
-            onOpenChange={setPurchaseDialogOpen}
-            customers={wholesalerCustomers}
-            products={availableServices}
-            selectedCustomer={selectedCustomerId}
-            currentWholesaler={currentWholesaler}
-            onOrderPlaced={handleOrderPlaced}
-          />
+            customerName={customerName}
+            customerEmail={customerEmail}
+            customerPhone={customerPhone}
+            customerAddress={customerAddress}
+            customerCompany={customerCompany}
+            customerNotes={customerNotes}
+            onPurchase={handlePurchaseSubmit}
+            isSubmitting={isSubmitting}
+            isMobile={false}
+          >
+            <Button>Open Purchase Dialog</Button>
+          </PurchaseDialog>
         )}
         
         <WholesaleTabContent 
