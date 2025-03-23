@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,8 +38,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [quantity, setQuantity] = useState<number>(1);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const [purchaseHistory, setPurchaseHistory] = useState<WholesaleOrder[]>([]);
+  const [selectedDuration, setSelectedDuration] = useState<string>("1");
   
-  // Effect to reset product selection when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedProduct('');
@@ -48,7 +47,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   }, [open]);
   
-  // Effect to update selected customer when initialSelectedCustomer changes
   useEffect(() => {
     if (open && initialSelectedCustomer) {
       setSelectedCustomer(initialSelectedCustomer);
@@ -65,7 +63,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     [customers, selectedCustomer]
   );
 
-  // Get wholesaler balance from localStorage
   const getUserBalance = useCallback(() => {
     const userBalanceStr = localStorage.getItem(`userBalance_${currentWholesaler}`);
     return userBalanceStr ? parseFloat(userBalanceStr) : 0;
@@ -88,23 +85,19 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
 
-    // Calculate total price
     const totalPrice = product.wholesalePrice * quantity;
     
-    // Check if user has sufficient balance
     const currentBalance = getUserBalance();
     if (currentBalance < totalPrice) {
       toast.error("Insufficient balance", {
         description: "You don't have enough funds to place this order"
       });
       
-      // Close dialog and redirect to payment page
       onOpenChange(false);
       navigate("/payment");
       return;
     }
     
-    // Deduct the price from user balance
     const newBalance = currentBalance - totalPrice;
     localStorage.setItem(`userBalance_${currentWholesaler}`, newBalance.toString());
     
@@ -140,8 +133,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     return <Package className="h-4 w-4 text-green-500" />;
   }, []);
 
-  // Show current balance
   const currentBalance = getUserBalance();
+  const isSubscription = selectedProductData?.type === 'subscription';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,7 +168,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select a customer" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" className="z-50 max-h-60 overflow-auto">
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
                     <div className="flex flex-col">
@@ -216,15 +209,42 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             selectedProductId={selectedProduct}
           />
           
-          <div>
-            <label className="text-sm font-medium mb-1 block">Quantity</label>
-            <Input 
-              type="number" 
-              min="1"
-              value={quantity.toString()}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-            />
-          </div>
+          {isSubscription && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Duration (Months)</label>
+              <Select 
+                value={selectedDuration} 
+                onValueChange={setSelectedDuration}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select months" />
+                </SelectTrigger>
+                <SelectContent 
+                  position="popper" 
+                  className="z-50 w-full"
+                  align="center"
+                  sideOffset={5}
+                >
+                  <SelectItem value="1">1 month</SelectItem>
+                  <SelectItem value="3">3 months</SelectItem>
+                  <SelectItem value="6">6 months</SelectItem>
+                  <SelectItem value="12">12 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {!isSubscription && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Quantity</label>
+              <Input 
+                type="number" 
+                min="1"
+                value={quantity.toString()}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              />
+            </div>
+          )}
           
           {selectedProductData && (
             <div className="p-4 bg-muted/40 rounded-md">
@@ -253,17 +273,22 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <span className="text-sm text-muted-foreground">Price per unit:</span>
                 <span className="font-medium">
                   ${selectedProductData.wholesalePrice.toFixed(2)}
+                  {isSubscription ? '/month' : ''}
                 </span>
               </div>
               
               <div className="flex justify-between font-medium">
                 <span>Total price:</span>
                 <span className="text-primary">
-                  ${(selectedProductData.wholesalePrice * quantity).toFixed(2)}
+                  ${isSubscription 
+                    ? (selectedProductData.wholesalePrice * parseInt(selectedDuration)).toFixed(2)
+                    : (selectedProductData.wholesalePrice * quantity).toFixed(2)}
                 </span>
               </div>
 
-              {currentBalance < (selectedProductData.wholesalePrice * quantity) && (
+              {currentBalance < (isSubscription 
+                ? selectedProductData.wholesalePrice * parseInt(selectedDuration)
+                : selectedProductData.wholesalePrice * quantity) && (
                 <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
                   Warning: Your balance is insufficient for this purchase. Please add funds before proceeding.
                 </div>
@@ -278,7 +303,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </Button>
           <Button 
             onClick={handlePurchaseSubmit}
-            disabled={!selectedProduct || !selectedCustomer || (selectedProductData && currentBalance < (selectedProductData.wholesalePrice * quantity))}
+            disabled={!selectedProduct || !selectedCustomer || (selectedProductData && currentBalance < (
+              isSubscription 
+                ? selectedProductData.wholesalePrice * parseInt(selectedDuration)
+                : selectedProductData.wholesalePrice * quantity
+            ))}
           >
             Place Order
           </Button>
