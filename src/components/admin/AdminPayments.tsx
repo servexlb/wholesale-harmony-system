@@ -32,80 +32,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Payment, PaymentStatus } from "@/lib/types";
+import { Payment, PaymentStatus, CustomerNotification } from "@/lib/types";
 import { Check, X, AlertTriangle, ExternalLink, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { useFirestore } from "@/hooks/useFirestore";
 import { toast } from "@/lib/toast";
-
-const mockPayments: Payment[] = [
-  {
-    id: "pmt-1",
-    orderId: "ord-1",
-    userId: "user1",
-    userEmail: "john.doe@example.com",
-    userName: "John Doe",
-    amount: 250.00,
-    method: "bank_transfer",
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    receiptUrl: "https://example.com/receipt1.pdf",
-    transactionId: "tx_12345",
-  },
-  {
-    id: "pmt-2",
-    orderId: "ord-2",
-    userId: "user2",
-    userEmail: "jane.smith@example.com",
-    userName: "Jane Smith",
-    amount: 100.00,
-    method: "paypal",
-    status: "pending",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    transactionId: "tx_67890",
-  },
-  {
-    id: "pmt-3",
-    orderId: "ord-3",
-    userId: "user3",
-    userEmail: "alex.johnson@example.com",
-    userName: "Alex Johnson",
-    amount: 75.50,
-    method: "credit_card",
-    status: "approved",
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    reviewedAt: new Date(Date.now() - 86400000).toISOString(),
-    transactionId: "tx_54321",
-  },
-  {
-    id: "pmt-4",
-    orderId: "ord-4",
-    userId: "user4",
-    userEmail: "sarah.parker@example.com",
-    userName: "Sarah Parker",
-    amount: 180.00,
-    method: "usdt",
-    status: "pending",
-    createdAt: new Date(Date.now() - 43200000).toISOString(),
-    transactionId: "tx_usdt789",
-  },
-  {
-    id: "pmt-5",
-    orderId: "ord-5",
-    userId: "user5",
-    userEmail: "mike.wilson@example.com",
-    userName: "Mike Wilson",
-    amount: 320.00,
-    method: "wish_money",
-    status: "pending",
-    createdAt: new Date(Date.now() - 21600000).toISOString(),
-    transactionId: "tx_wish123",
-  }
-];
+import { addCustomerBalance } from "@/lib/data";
 
 const AdminPayments: React.FC = () => {
-  const [payments, setPayments] = useState<Payment[]>(mockPayments);
-  const [filteredPayments, setFilteredPayments] = useState<Payment[]>(mockPayments);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -115,7 +51,10 @@ const AdminPayments: React.FC = () => {
   const { updateDocument } = useFirestore("payments");
 
   useEffect(() => {
-    setPayments(mockPayments);
+    const storedPayments = localStorage.getItem('payments');
+    const parsedPayments = storedPayments ? JSON.parse(storedPayments) : [];
+    
+    setPayments(parsedPayments);
   }, []);
 
   useEffect(() => {
@@ -138,6 +77,27 @@ const AdminPayments: React.FC = () => {
     setDetailsOpen(true);
   };
 
+  const notifyCustomer = (userId: string, type: 'payment_approved' | 'payment_rejected', amount: number, paymentId: string) => {
+    const notificationsKey = `customerNotifications_${userId}`;
+    const existingNotifications = JSON.parse(localStorage.getItem(notificationsKey) || '[]');
+    
+    const notification: CustomerNotification = {
+      id: `custnotif-${Date.now()}`,
+      userId: userId,
+      type: type,
+      message: type === 'payment_approved' 
+        ? `Your payment of $${amount.toFixed(2)} has been approved` 
+        : `Your payment of $${amount.toFixed(2)} has been rejected`,
+      createdAt: new Date().toISOString(),
+      read: false,
+      paymentId: paymentId,
+      amount: amount
+    };
+    
+    existingNotifications.push(notification);
+    localStorage.setItem(notificationsKey, JSON.stringify(existingNotifications));
+  };
+
   const handleStatusChange = async (paymentId: string, newStatus: PaymentStatus) => {
     try {
       const updatedPayments = payments.map(payment => 
@@ -151,14 +111,22 @@ const AdminPayments: React.FC = () => {
           : payment
       );
       
+      localStorage.setItem('payments', JSON.stringify(updatedPayments));
       setPayments(updatedPayments);
+      
+      if (newStatus === "approved" && selectedPayment && selectedPayment.userId) {
+        const userId = selectedPayment.userId;
+        addCustomerBalance(userId, selectedPayment.amount);
+        
+        notifyCustomer(userId, 'payment_approved', selectedPayment.amount, selectedPayment.id);
+        
+        toast.success(`Added $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.userName}'s balance`);
+      } else if (newStatus === "rejected" && selectedPayment && selectedPayment.userId) {
+        notifyCustomer(selectedPayment.userId, 'payment_rejected', selectedPayment.amount, selectedPayment.id);
+      }
       
       toast.success(`Payment ${newStatus === "approved" ? "approved" : "rejected"} successfully`);
       setDetailsOpen(false);
-      
-      if (newStatus === "approved" && selectedPayment) {
-        toast.success(`Added $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.userName}'s balance`);
-      }
     } catch (error) {
       console.error("Error updating payment status:", error);
       toast.error("Failed to update payment status");
@@ -412,7 +380,7 @@ const AdminPayments: React.FC = () => {
                   
                   <Button 
                     type="button" 
-                    variant="default"
+                    variant="success"
                     onClick={() => handleStatusChange(selectedPayment.id, 'approved')}
                   >
                     <Check className="mr-2 h-4 w-4" />

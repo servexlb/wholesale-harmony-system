@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, UserCog, CreditCard, KeyRound, Calendar } from 'lucide-react';
+import { Bell, Check, UserCog, CreditCard, KeyRound, Calendar, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +20,12 @@ import {
   markAllNotificationsAsRead 
 } from '@/lib/data';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 const AdminNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Load notifications when component mounts
   useEffect(() => {
@@ -43,6 +45,20 @@ const AdminNotifications: React.FC = () => {
     setNotifications(getAdminNotifications());
   };
 
+  const handleNavigate = (notification: NotificationType) => {
+    if (notification.type === 'payment_request') {
+      navigate('/admin/payments');
+    } else if (notification.type === 'new_order') {
+      navigate('/admin/orders');
+    } else {
+      navigate('/admin/issues');
+    }
+    
+    // Mark as read when clicked
+    handleReadNotification(notification.id);
+    setOpen(false);
+  };
+
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -54,6 +70,8 @@ const AdminNotifications: React.FC = () => {
         return <KeyRound className="h-4 w-4 text-purple-500" />;
       case 'new_order':
         return <Calendar className="h-4 w-4 text-green-500" />;
+      case 'payment_request':
+        return <DollarSign className="h-4 w-4 text-emerald-500" />;
       default:
         return null;
     }
@@ -61,7 +79,7 @@ const AdminNotifications: React.FC = () => {
 
   // Get formatted message based on notification type
   const getNotificationMessage = (notification: NotificationType) => {
-    const { type, customerName, serviceName } = notification;
+    const { type, customerName, serviceName, amount, paymentMethod } = notification;
     switch (type) {
       case 'profile_fix':
         return `${customerName} requested a profile fix for ${serviceName}`;
@@ -71,6 +89,8 @@ const AdminNotifications: React.FC = () => {
         return `${customerName} requested password reset for ${serviceName}`;
       case 'new_order':
         return `${customerName} purchased ${serviceName}`;
+      case 'payment_request':
+        return `${customerName} sent ${amount?.toFixed(2) || '0.00'} via ${paymentMethod || 'unknown method'}`;
       default:
         return 'Unknown notification';
     }
@@ -117,7 +137,8 @@ const AdminNotifications: React.FC = () => {
             {notifications.map((notification) => (
               <DropdownMenuItem 
                 key={notification.id}
-                className={`flex flex-col items-start p-3 cursor-default ${notification.read ? '' : 'bg-muted/40'}`}
+                className={`flex flex-col items-start p-3 cursor-pointer ${notification.read ? '' : 'bg-muted/40'}`}
+                onClick={() => handleNavigate(notification)}
               >
                 <div className="flex items-start gap-2 w-full">
                   <div className="mt-1">
@@ -134,7 +155,10 @@ const AdminNotifications: React.FC = () => {
                       variant="ghost" 
                       size="sm" 
                       className="h-6 w-6 p-0"
-                      onClick={() => handleReadNotification(notification.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReadNotification(notification.id);
+                      }}
                     >
                       <Check className="h-3 w-3" />
                     </Button>

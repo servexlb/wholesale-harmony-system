@@ -1,3 +1,4 @@
+
 export interface Customer {
   id: string;
   name: string;
@@ -113,7 +114,7 @@ export interface User {
 
 export interface AdminNotification {
   id: string;
-  type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order';
+  type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request';
   subscriptionId: string;
   userId: string;
   customerName: string;
@@ -121,6 +122,9 @@ export interface AdminNotification {
   createdAt: string;
   read: boolean;
   orderId?: string;
+  paymentId?: string;
+  amount?: number;
+  paymentMethod?: string;
 }
 
 export interface SupportTicket {
@@ -146,12 +150,14 @@ export interface TicketResponse {
 export interface CustomerNotification {
   id: string;
   userId: string;
-  type: 'profile_fixed' | 'payment_resolved' | 'password_reset' | 'order_completed';
+  type: 'profile_fixed' | 'payment_resolved' | 'password_reset' | 'order_completed' | 'payment_approved' | 'payment_rejected';
   message: string;
   createdAt: string;
   read: boolean;
   subscriptionId?: string;
   serviceName?: string;
+  paymentId?: string;
+  amount?: number;
 }
 
 export interface ServiceCategory {

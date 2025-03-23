@@ -9,7 +9,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { WalletCards, ReceiptCheck, CreditCard } from 'lucide-react';
+import { CheckCircle, WalletCards, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CredentialDisplay from './CredentialDisplay';
 
@@ -69,7 +69,7 @@ const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <ReceiptCheck className="mr-2 h-5 w-5 text-green-500" />
+            <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
             Purchase Successful
           </DialogTitle>
           <DialogDescription>
@@ -80,7 +80,7 @@ const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
         <div className="py-4">
           <div className="bg-green-50 p-4 rounded-md mb-4 flex items-start">
             <div className="bg-green-100 p-2 rounded-full mr-3">
-              <ReceiptCheck className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div>
               <p className="font-medium text-green-800">${amount.toFixed(2)} has been deducted</p>

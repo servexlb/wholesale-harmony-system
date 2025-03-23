@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,6 +100,68 @@ const UserPaymentOptions = () => {
     setTimeout(() => setCopied(false), 2000);
   };
   
+  // Function to create admin notification for payments
+  const createPaymentNotification = (paymentMethod: string, amount: number) => {
+    // Get existing notifications
+    const existingNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+    
+    // Get user info
+    let userName = "Unknown User";
+    if (userId) {
+      const userInfo = localStorage.getItem(`userData_${userId}`);
+      if (userInfo) {
+        const parsedUser = JSON.parse(userInfo);
+        userName = parsedUser.name || userName;
+      } else {
+        const customer = getCustomerById(userId);
+        if (customer) {
+          userName = customer.name || userName;
+        }
+      }
+    }
+    
+    // Create payment ID
+    const paymentId = `pmt-${Date.now()}`;
+    
+    // Create payment record
+    const payment = {
+      id: paymentId,
+      orderId: "manual-topup",
+      amount: amount,
+      method: paymentMethod,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      userId: userId,
+      userName: userName,
+    };
+    
+    // Save payment record
+    const payments = JSON.parse(localStorage.getItem('payments') || '[]');
+    payments.push(payment);
+    localStorage.setItem('payments', JSON.stringify(payments));
+    
+    // Create notification
+    const notification = {
+      id: `notif-${Date.now()}`,
+      type: "payment_request",
+      subscriptionId: "",
+      userId: userId,
+      customerName: userName,
+      serviceName: "Account Balance Top-up",
+      createdAt: new Date().toISOString(),
+      read: false,
+      paymentId: paymentId,
+      amount: amount,
+      paymentMethod: paymentMethod
+    };
+    
+    // Add to notifications and save
+    existingNotifications.push(notification);
+    localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
+    
+    return paymentId;
+  }
+  
   const updateUserBalance = (newAmount: number) => {
     const newBalance = userBalance + newAmount;
     
@@ -125,20 +186,16 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Simulate processing time
-    setTimeout(() => {
-      updateUserBalance(amount);
-      
-      toast.success(`Payment of $${amount.toFixed(2)} processed successfully!`, {
-        description: "Your balance has been updated."
-      });
-      
-      resetForm();
-      setIsProcessing(false);
-      
-      // Redirect back to dashboard after successful payment
-      setTimeout(() => navigate("/dashboard"), 1500);
-    }, 1500);
+    // Create payment notification for admin
+    createPaymentNotification("credit_card", amount);
+    
+    // Notify user that payment is pending admin approval
+    toast.success(`Payment request of $${amount.toFixed(2)} has been submitted`, {
+      description: "Your payment is pending admin approval."
+    });
+    
+    resetForm();
+    setIsProcessing(false);
   };
   
   const handleWishMoneySubmit = (e: React.FormEvent) => {
@@ -151,20 +208,16 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Simulate processing time
-    setTimeout(() => {
-      updateUserBalance(amount);
-      
-      toast.success("Wish Money payment processed successfully!", {
-        description: "Your balance has been updated."
-      });
-      
-      resetForm();
-      setIsProcessing(false);
-      
-      // Redirect back to dashboard after successful payment
-      setTimeout(() => navigate("/dashboard"), 1500);
-    }, 1500);
+    // Create payment notification for admin
+    createPaymentNotification("wish_money", amount);
+    
+    // Notify user that payment is pending admin approval
+    toast.success("Wish Money payment request submitted", {
+      description: "Your payment is pending admin approval."
+    });
+    
+    resetForm();
+    setIsProcessing(false);
   };
   
   const handleBinancePaySubmit = (e: React.FormEvent) => {
@@ -177,20 +230,16 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Simulate processing time
-    setTimeout(() => {
-      updateUserBalance(amount);
-      
-      toast.success("Binance Pay transaction processed successfully!", { 
-        description: "Your balance has been updated."
-      });
-      
-      resetForm();
-      setIsProcessing(false);
-      
-      // Redirect back to dashboard after successful payment
-      setTimeout(() => navigate("/dashboard"), 1500);
-    }, 1500);
+    // Create payment notification for admin
+    createPaymentNotification("usdt", amount);
+    
+    // Notify user that payment is pending admin approval
+    toast.success("USDT payment request submitted", { 
+      description: "Your payment is pending admin approval."
+    });
+    
+    resetForm();
+    setIsProcessing(false);
   };
   
   const resetForm = () => {
