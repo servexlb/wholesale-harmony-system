@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +12,8 @@ import { Product, MonthlyPricing } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-// Default image to use when no image is selected
 const DEFAULT_IMAGE = "/placeholder.svg";
 
-// All available service categories
 const serviceCategories = [
   { id: "streaming", name: "Streaming Services" },
   { id: "gaming", name: "Gaming Credits" },
@@ -36,7 +33,6 @@ interface ProductFormProps {
 const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }) => {
   const isNewProduct = !product?.id || product.id.includes('new-product');
 
-  // Product state
   const [formData, setFormData] = useState<Product>({
     id: product?.id || `product-${Date.now()}`,
     name: product?.name || "",
@@ -52,32 +48,33 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     requiresId: product?.requiresId || false,
     availableMonths: product?.availableMonths || [1, 3, 6, 12],
     monthlyPricing: product?.monthlyPricing || [],
-    features: product?.features || []
+    features: product?.features || [],
+    availableForCustomers: product?.availableForCustomers !== undefined ? product.availableForCustomers : true
   });
 
-  // UI state
   const [activeTab, setActiveTab] = useState("basic");
   const [imagePreview, setImagePreview] = useState<string>(product?.image || DEFAULT_IMAGE);
   const [featureInput, setFeatureInput] = useState("");
-  const [availableForCustomers, setAvailableForCustomers] = useState<boolean>(true);
+  const [availableForCustomers, setAvailableForCustomers] = useState<boolean>(
+    product?.availableForCustomers !== undefined ? product.availableForCustomers : true
+  );
 
-  // Update form when product prop changes
   useEffect(() => {
     if (product) {
       setFormData({
         ...product,
-        // Ensure required fields have default values
         description: product.description || "",
         wholesalePrice: product.wholesalePrice || 0,
         image: product.image || DEFAULT_IMAGE,
         categoryId: product.categoryId || product.category?.toLowerCase() || "uncategorized",
-        features: product.features || []
+        features: product.features || [],
+        availableForCustomers: product.availableForCustomers !== undefined ? product.availableForCustomers : true
       });
       setImagePreview(product.image || DEFAULT_IMAGE);
+      setAvailableForCustomers(product.availableForCustomers !== undefined ? product.availableForCustomers : true);
     }
   }, [product]);
 
-  // Handle regular input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -86,7 +83,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }));
   };
 
-  // Handle number input changes
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -95,25 +91,25 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }));
   };
 
-  // Handle switch changes
   const handleSwitchChange = (name: string, checked: boolean) => {
+    if (name === 'availableForCustomers') {
+      setAvailableForCustomers(checked);
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: checked
     }));
   };
 
-  // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value,
-      // If changing category, update categoryId
       ...(name === 'categoryId' ? { category: serviceCategories.find(c => c.id === value)?.name || value } : {})
     }));
   };
 
-  // Handle image selection
   const handleImageSelect = (imageUrl: string) => {
     setImagePreview(imageUrl);
     setFormData(prev => ({
@@ -122,10 +118,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }));
   };
 
-  // Handle image selection from the uploaded images
   const selectFromUploaded = () => {
     try {
-      // Get uploaded images from localStorage
       const uploadedImages = JSON.parse(localStorage.getItem('uploadedImages') || '[]');
       
       if (uploadedImages.length === 0) {
@@ -133,7 +127,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
         return;
       }
       
-      // For simplicity, just use the first image (in a real app, you'd show a selection UI)
       if (uploadedImages.length > 0) {
         handleImageSelect(uploadedImages[0].url);
         toast.success("Image selected from uploaded images");
@@ -144,7 +137,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }
   };
 
-  // Handle adding a feature
   const handleAddFeature = () => {
     if (featureInput.trim()) {
       setFormData(prev => ({
@@ -155,7 +147,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }
   };
 
-  // Handle removing a feature
   const handleRemoveFeature = (index: number) => {
     setFormData(prev => ({
       ...prev,
@@ -163,23 +154,24 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }));
   };
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.name) {
       toast.error("Product name is required");
       return;
     }
     
-    // If this is a new product and we're using the default image, warn the user
     if (isNewProduct && formData.image === DEFAULT_IMAGE) {
       toast.warning("Using default image. Consider adding a custom image for better visibility.");
     }
     
-    // Submit the form data
-    onSubmit(formData);
+    const productData = {
+      ...formData,
+      availableForCustomers
+    };
+    
+    onSubmit(productData);
   };
 
   return (
@@ -191,7 +183,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
           <TabsTrigger value="advanced">Advanced</TabsTrigger>
         </TabsList>
 
-        {/* Basic Info Tab */}
         <TabsContent value="basic" className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -316,13 +307,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
             <Switch 
               id="availableForCustomers" 
               checked={availableForCustomers} 
-              onCheckedChange={(checked) => setAvailableForCustomers(checked)} 
+              onCheckedChange={(checked) => handleSwitchChange('availableForCustomers', checked)} 
             />
             <Label htmlFor="availableForCustomers">Available for Customer Purchase</Label>
           </div>
         </TabsContent>
 
-        {/* Pricing Tab */}
         <TabsContent value="pricing" className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -389,7 +379,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
           )}
         </TabsContent>
 
-        {/* Advanced Tab */}
         <TabsContent value="advanced" className="space-y-4 pt-4">
           <div className="flex items-center space-x-2">
             <Checkbox 

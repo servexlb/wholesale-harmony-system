@@ -432,6 +432,23 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                 </Tabs>
               )}
               
+              {selectedProductId && (
+                <div className="mt-4 p-4 bg-muted/40 rounded-md">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Price:</span>
+                    <span className="font-medium">
+                      ${availableProducts.find(p => p.id === selectedProductId)?.price.toFixed(2) || "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-medium">
+                    <span>Total price:</span>
+                    <span className="text-primary">
+                      ${(availableProducts.find(p => p.id === selectedProductId)?.price || 0) * parseInt(selectedDuration || "1")}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setShowPurchaseDialog(false)}>
                   Cancel

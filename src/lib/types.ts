@@ -1,4 +1,3 @@
-
 export interface Customer {
   id: string;
   name: string;
@@ -61,20 +60,18 @@ export interface Service {
   name: string;
   description?: string;
   price: number;
-  wholesalePrice?: number;
+  wholesalePrice: number;
   image?: string;
+  category: string;
   categoryId?: string;
-  category?: string;
   featured?: boolean;
-  type?: ServiceType;
-  value?: number;
+  type?: 'subscription' | 'giftcard' | 'recharge' | 'service';
   deliveryTime?: string;
-  availableMonths?: number[];
-  apiUrl?: string;
-  minQuantity?: number;
   requiresId?: boolean;
+  availableMonths?: number[];
   monthlyPricing?: MonthlyPricing[];
   features?: string[];
+  availableForCustomers?: boolean;
 }
 
 export interface Product {
