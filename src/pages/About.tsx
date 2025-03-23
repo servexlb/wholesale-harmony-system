@@ -1,253 +1,167 @@
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import Header from '@/components/Header';
+import React from "react";
+import { motion } from "framer-motion";
+import MainLayout from "@/components/MainLayout";
+import { Briefcase, Users, Globe, Shield, Zap, Award } from "lucide-react";
 
-const About = () => {
+const AboutPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="pt-24 px-6 container mx-auto max-w-7xl">
+    <MainLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        className="container mx-auto px-4 py-12"
+      >
         {/* Hero Section */}
-        <motion.section 
-          className="py-16 md:py-24 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="max-w-3xl mx-auto">
-            <motion.h1 
-              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              About Wholesale System
-            </motion.h1>
-            <motion.p 
-              className="mt-6 text-lg text-muted-foreground"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              We connect discerning customers with premium products while providing wholesalers with powerful business tools.
-            </motion.p>
-          </div>
-        </motion.section>
-        
-        {/* About Content */}
-        <section className="mb-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <img 
-                src="https://images.unsplash.com/photo-1577401239170-897942555fb3?q=80&w=2000&auto=format&fit=crop" 
-                alt="Our showroom" 
-                className="w-full h-auto rounded-lg shadow-md"
-              />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="space-y-6"
-            >
-              <h2 className="text-3xl font-semibold">Our Story</h2>
-              <p className="text-muted-foreground">
-                Founded in 2010, Wholesale System began with a simple mission: to bridge the gap between manufacturers, wholesalers, and customers. We believe that quality products should be accessible to everyone, while providing powerful business tools for our wholesale partners.
-              </p>
-              <p className="text-muted-foreground">
-                Our curated collection of home goods, kitchenware, and decor items are sourced from artisans and manufacturers who share our commitment to quality craftsmanship and sustainable practices.
-              </p>
-              <p className="text-muted-foreground">
-                For our wholesale partners, we've developed a suite of tools to help streamline inventory management, customer relationships, and sales tracking.
-              </p>
-            </motion.div>
-          </div>
-        </section>
-        
-        {/* Values Section */}
-        <section className="mb-20">
-          <motion.h2 
-            className="text-3xl font-semibold text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold mb-4">About ServexLB</h1>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            We're on a mission to make digital services accessible, affordable, and reliable for everyone.
+          </p>
+        </div>
+
+        {/* Our Story */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
           >
-            Our Values
-          </motion.h2>
-          
+            <h2 className="text-3xl font-bold mb-6">Our Story</h2>
+            <p className="text-lg text-muted-foreground mb-4">
+              Founded in 2020, ServexLB began with a simple idea: to create a one-stop platform where users could access premium digital services at affordable prices.
+            </p>
+            <p className="text-lg text-muted-foreground mb-4">
+              What started as a small operation has grown into a trusted platform serving thousands of customers worldwide. Our commitment to quality, reliability, and customer satisfaction remains at the core of everything we do.
+            </p>
+            <p className="text-lg text-muted-foreground">
+              Today, we offer a wide range of digital services including streaming subscriptions, gaming accounts, software licenses, and more – all with instant delivery and dedicated support.
+            </p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center justify-center"
+          >
+            <div className="relative w-full max-w-md h-80 bg-gradient-to-r from-primary/20 to-primary/10 rounded-2xl overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-4xl font-bold text-primary/40">ServexLB</div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Values */}
+        <div className="mb-20">
+          <h2 className="text-3xl font-bold text-center mb-12">Our Values</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <motion.div
-              className="bg-white p-8 rounded-lg shadow-sm border text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
+              transition={{ delay: 0.4 }}
+              className="bg-card p-8 rounded-xl shadow-sm"
             >
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-medium mb-4">Quality</h3>
+              <Shield className="h-12 w-12 text-primary mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Trust & Reliability</h3>
               <p className="text-muted-foreground">
-                We never compromise on quality. Every product in our catalog undergoes rigorous testing and review.
+                We prioritize building trust through consistent, reliable service and transparent practices.
               </p>
             </motion.div>
-            
             <motion.div
-              className="bg-white p-8 rounded-lg shadow-sm border text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              transition={{ delay: 0.5 }}
+              className="bg-card p-8 rounded-xl shadow-sm"
             >
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-medium mb-4">Transparency</h3>
+              <Users className="h-12 w-12 text-primary mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Customer-First</h3>
               <p className="text-muted-foreground">
-                We believe in open communication with both our customers and wholesale partners.
+                Every decision we make puts our customers' needs and satisfaction at the forefront.
               </p>
             </motion.div>
-            
             <motion.div
-              className="bg-white p-8 rounded-lg shadow-sm border text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
+              transition={{ delay: 0.6 }}
+              className="bg-card p-8 rounded-xl shadow-sm"
             >
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-medium mb-4">Efficiency</h3>
+              <Zap className="h-12 w-12 text-primary mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Innovation</h3>
               <p className="text-muted-foreground">
-                Our systems are designed to save time and reduce complexity for our wholesale partners.
+                We continuously improve our platform and services to stay ahead of industry trends.
               </p>
             </motion.div>
-          </div>
-        </section>
-        
-        {/* Team Section */}
-        <section className="mb-20">
-          <motion.h2 
-            className="text-3xl font-semibold text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            Our Team
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <motion.div
-              className="bg-white p-6 rounded-lg shadow-sm border text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=500&auto=format&fit=crop" 
-                  alt="Sarah Johnson" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-lg font-medium">Sarah Johnson</h3>
-              <p className="text-sm text-muted-foreground mb-2">Founder & CEO</p>
-            </motion.div>
-            
-            <motion.div
-              className="bg-white p-6 rounded-lg shadow-sm border text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1615109398623-88346a601842?q=80&w=500&auto=format&fit=crop" 
-                  alt="Michael Chen" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-lg font-medium">Michael Chen</h3>
-              <p className="text-sm text-muted-foreground mb-2">Product Director</p>
-            </motion.div>
-            
-            <motion.div
-              className="bg-white p-6 rounded-lg shadow-sm border text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4">
-                <img 
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=500&auto=format&fit=crop" 
-                  alt="Emily Rodriguez" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-lg font-medium">Emily Rodriguez</h3>
-              <p className="text-sm text-muted-foreground mb-2">Wholesale Relations</p>
-            </motion.div>
-          </div>
-        </section>
-      </main>
-      
-      {/* Footer */}
-      <footer className="bg-white border-t">
-        <div className="container mx-auto max-w-7xl px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-lg font-medium mb-4">Wholesale System</h3>
-              <p className="text-muted-foreground">
-                Premium products for discerning customers and wholesale partners.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a href="/" className="text-muted-foreground hover:text-primary transition-colors">
-                    Home
-                  </a>
-                </li>
-                <li>
-                  <a href="/about" className="text-muted-foreground hover:text-primary transition-colors">
-                    About
-                  </a>
-                </li>
-                <li>
-                  <a href="/wholesale" className="text-muted-foreground hover:text-primary transition-colors">
-                    Wholesale
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-4">Contact</h3>
-              <p className="text-muted-foreground">
-                123 Design Street<br />
-                Creativity City, CO 12345<br />
-                info@wholesalesystem.com
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Wholesale System. All rights reserved.</p>
           </div>
         </div>
-      </footer>
-    </div>
+
+        {/* Team */}
+        <div className="mb-20">
+          <h2 className="text-3xl font-bold text-center mb-12">Our Leadership Team</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7 }}
+              className="text-center"
+            >
+              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-16 w-16 text-primary/60" />
+              </div>
+              <h3 className="text-xl font-semibold">Sarah Johnson</h3>
+              <p className="text-muted-foreground">Founder & CEO</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-center"
+            >
+              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-16 w-16 text-primary/60" />
+              </div>
+              <h3 className="text-xl font-semibold">Michael Chen</h3>
+              <p className="text-muted-foreground">CTO</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.9 }}
+              className="text-center"
+            >
+              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
+                <Users className="h-16 w-16 text-primary/60" />
+              </div>
+              <h3 className="text-xl font-semibold">David Rodriguez</h3>
+              <p className="text-muted-foreground">Head of Operations</p>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
+          className="text-center bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 p-12 rounded-2xl"
+        >
+          <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            Discover why thousands of customers trust ServexLB for their digital service needs.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="/services" className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-lg font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+              Browse Services
+            </a>
+            <a href="/contact" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-8 py-3 text-lg font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+              Contact Us
+            </a>
+          </div>
+        </motion.div>
+      </motion.div>
+    </MainLayout>
   );
 };
 
-export default About;
+export default AboutPage;

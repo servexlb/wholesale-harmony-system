@@ -23,6 +23,8 @@ import Wholesale from "./pages/Wholesale";
 import TransactionHistory from "./pages/TransactionHistory";
 import Support from "./pages/Support";
 import Account from "./pages/Account";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,8 @@ const App = () => (
               <Route path="/dashboard/transaction-history" element={<TransactionHistory />} />
               <Route path="/support" element={<Support />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AnimatePresence>

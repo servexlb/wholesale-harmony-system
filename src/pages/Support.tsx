@@ -1,6 +1,7 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +9,23 @@ import SupportTicketForm from "@/components/SupportTicketForm";
 import { MessageSquare, FileQuestion, LifeBuoy, BookOpen, Share2 } from "lucide-react";
 
 const Support: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<string>("contact");
+  
+  // Get tab from URL parameter if it exists
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["contact", "faq", "guides", "community"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+  
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
+
   return (
     <MainLayout>
       <motion.div
@@ -19,7 +37,7 @@ const Support: React.FC = () => {
         <div className="mx-auto max-w-4xl">
           <h1 className="text-3xl font-bold mb-6">Support Center</h1>
           
-          <Tabs defaultValue="contact" className="mb-8">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
               <TabsTrigger value="contact">Contact Us</TabsTrigger>
               <TabsTrigger value="faq">FAQs</TabsTrigger>

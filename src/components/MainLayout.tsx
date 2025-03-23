@@ -76,17 +76,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, showFooter = true }) 
                 <ul className="space-y-2">
                   <li><Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">About Us</Link></li>
                   <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
-                  <li><Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service</Link></li>
-                  <li><Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</Link></li>
+                  <li><Link to="/wholesale" className="text-muted-foreground hover:text-primary transition-colors">Wholesale</Link></li>
+                  <li><Link to="/support" className="text-muted-foreground hover:text-primary transition-colors">Support</Link></li>
                 </ul>
               </div>
               
               <div>
                 <h3 className="text-lg font-semibold mb-4">Support</h3>
                 <ul className="space-y-2">
-                  <li><Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors">FAQ</Link></li>
-                  <li><Link to="/support" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
-                  <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">Report an Issue</Link></li>
+                  <li><Link to="/support?tab=faq" className="text-muted-foreground hover:text-primary transition-colors">FAQ</Link></li>
+                  <li><Link to="/support?tab=guides" className="text-muted-foreground hover:text-primary transition-colors">Help Center</Link></li>
+                  <li><Link to="/support?tab=contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Support</Link></li>
+                  <li><Link to="/support?tab=community" className="text-muted-foreground hover:text-primary transition-colors">Community</Link></li>
                 </ul>
               </div>
             </div>
