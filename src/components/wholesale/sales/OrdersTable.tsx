@@ -16,7 +16,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
   const isMobile = useIsMobile();
   
   // Create a memoized product lookup map
-  const productMap = useMemo(() => createProductMap(), []);
+  const productMap = useMemo(() => {
+    console.log('Creating product map');
+    const map = createProductMap();
+    console.log('Product map size:', map.size);
+    return map;
+  }, []);
   
   // Create a memoized customer lookup map
   const customerMap = useMemo(() => {

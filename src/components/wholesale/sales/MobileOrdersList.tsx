@@ -3,11 +3,12 @@ import React from 'react';
 import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import MobileOrderCard from './MobileOrderCard';
+import { getProductById } from './utils/productMapUtils';
 
 interface MobileOrdersListProps {
   displayOrders: WholesaleOrder[];
   customerMap: Map<string, Customer>;
-  productMap: Map<string, { id: string, name: string, type?: string }>;
+  productMap: Map<string, { id: string, name: string, type?: string, price?: number }>;
 }
 
 const MobileOrdersList: React.FC<MobileOrdersListProps> = ({ 
@@ -28,7 +29,7 @@ const MobileOrdersList: React.FC<MobileOrdersListProps> = ({
               key={order.id}
               order={order}
               customer={customerMap.get(order.customerId)}
-              product={productMap.get(order.serviceId)}
+              product={getProductById(productMap, order.serviceId)}
             />
           ))}
         </div>
