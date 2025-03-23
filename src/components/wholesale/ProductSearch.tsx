@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Calendar, Zap, Package } from 'lucide-react';
-import { Service } from '@/lib/types';
+import { Service, ServiceType } from '@/lib/types';
 
 interface ProductSearchProps {
   products: Service[]; // Changed from Product to Service
@@ -33,7 +33,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         
       if (activeTab === 'all') return matchesSearch;
       if (activeTab === 'subscription') return matchesSearch && product.type === 'subscription';
-      if (activeTab === 'recharge') return matchesSearch && product.type === 'recharge';
+      if (activeTab === 'recharge') return matchesSearch && (product.type === 'recharge' || product.type === 'topup');
       if (activeTab === 'giftcard') return matchesSearch && (product.type === 'giftcard' || !product.type);
       
       return matchesSearch;
@@ -62,9 +62,9 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
     return categorizedProducts;
   }, [filteredProducts, products]);
 
-  const renderProductIcon = useCallback((type?: string) => {
+  const renderProductIcon = useCallback((type?: ServiceType) => {
     if (type === 'subscription') return <Calendar className="h-4 w-4 text-blue-500" />;
-    if (type === 'recharge') return <Zap className="h-4 w-4 text-amber-500" />;
+    if (type === 'recharge' || type === 'topup') return <Zap className="h-4 w-4 text-amber-500" />;
     return <Package className="h-4 w-4 text-green-500" />;
   }, []);
 

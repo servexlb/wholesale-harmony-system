@@ -1,5 +1,4 @@
-
-import { Product, Service, MonthlyPricing } from './types';
+import { Product, Service, MonthlyPricing, ServiceType } from './types';
 import { toast } from 'sonner';
 
 // Event names for product changes
@@ -17,7 +16,7 @@ export const serviceToProduct = (service: Service): Product => {
   return {
     id: service.id,
     name: service.name,
-    description: service.description,
+    description: service.description || "",
     price: service.price,
     wholesalePrice: service.wholesalePrice,
     image: service.image,
@@ -32,6 +31,8 @@ export const serviceToProduct = (service: Service): Product => {
     minQuantity: service.minQuantity,
     requiresId: service.requiresId,
     monthlyPricing: service.monthlyPricing,
+    features: service.features,
+    availableForCustomers: service.availableForCustomers
   };
 };
 
@@ -42,7 +43,7 @@ export const productToService = (product: Product): Service => {
     name: product.name,
     description: product.description,
     price: product.price,
-    wholesalePrice: product.wholesalePrice,
+    wholesalePrice: product.wholesalePrice || 0,
     image: product.image,
     categoryId: product.categoryId || product.category.toLowerCase().replace(/\s+/g, '-') || 'uncategorized',
     category: product.category,
@@ -55,6 +56,8 @@ export const productToService = (product: Product): Service => {
     requiresId: product.requiresId,
     value: product.value,
     monthlyPricing: product.monthlyPricing,
+    features: product.features,
+    availableForCustomers: product.availableForCustomers
   };
 };
 

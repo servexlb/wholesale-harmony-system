@@ -50,7 +50,7 @@ const WholesaleLayout: React.FC<WholesaleLayoutProps> = ({
     if (!showSearch) {
       setTimeout(() => {
         const searchInput = document.querySelector('input[type="search"]');
-        if (searchInput) {
+        if (searchInput instanceof HTMLElement) {
           searchInput.focus();
         }
       }, 100);

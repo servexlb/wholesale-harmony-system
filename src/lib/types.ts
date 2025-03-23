@@ -65,13 +65,16 @@ export interface Service {
   category: string;
   categoryId?: string;
   featured?: boolean;
-  type?: 'subscription' | 'giftcard' | 'recharge' | 'service';
+  type?: ServiceType;
   deliveryTime?: string;
   requiresId?: boolean;
   availableMonths?: number[];
   monthlyPricing?: MonthlyPricing[];
   features?: string[];
   availableForCustomers?: boolean;
+  value?: number;
+  minQuantity?: number;
+  apiUrl?: string;
 }
 
 export interface Product {
@@ -93,6 +96,7 @@ export interface Product {
   requiresId?: boolean;
   monthlyPricing?: MonthlyPricing[];
   features?: string[];
+  availableForCustomers?: boolean;
 }
 
 export type UserRole = 'admin' | 'customer' | 'wholesale';

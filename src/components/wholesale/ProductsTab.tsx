@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/ServiceCard';
 import { Customer } from '@/lib/data';
-import { Service } from '@/lib/types';
+import { Service, ServiceType } from '@/lib/types';
 import { WholesaleOrder } from '@/lib/types';
 import { toast } from '@/lib/toast';
 import {
@@ -76,7 +77,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
       if (showSubscriptionsOnly) {
         filtered = filtered.filter(service => service.type === 'subscription');
       } else if (showRechargesOnly) {
-        filtered = filtered.filter(service => service.type === 'recharge');
+        filtered = filtered.filter(service => service.type === 'recharge' || service.type === 'topup');
       }
       
       setFilteredServices(filtered);
@@ -111,7 +112,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   };
 
   const subscriptionsCount = services.filter(s => s.type === 'subscription').length;
-  const rechargesCount = services.filter(s => s.type === 'recharge').length;
+  const rechargesCount = services.filter(s => s.type === 'recharge' || s.type === 'topup').length;
   const regularServicesCount = services.filter(s => !s.type || s.type === 'service').length;
 
   return (
@@ -167,7 +168,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
               setShowSubscriptionsOnly(false);
             }}
           >
-            Recharges Only
+            Recharges & Top-ups Only
           </Button>
           {(showSubscriptionsOnly || showRechargesOnly || searchQuery) && (
             <Button variant="ghost" size="sm" onClick={handleResetFilters}>
@@ -268,7 +269,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                         <span className="font-medium">{selectedService.minQuantity}</span>
                       </div>
                     )}
-                    {selectedService.value && (
+                    {selectedService.value !== undefined && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Value:</span>
                         <span className="font-medium">${selectedService.value.toFixed(2)}</span>

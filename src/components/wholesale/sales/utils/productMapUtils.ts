@@ -21,7 +21,10 @@ export const createServiceMap = () => {
         name: service.name,
         type: service.type || 'service',
         price: service.wholesalePrice || service.price,
-        category: service.category || service.categoryId || 'Uncategorized' // Ensure category is always present
+        category: service.category || service.categoryId || 'Uncategorized', // Ensure category is always present
+        value: service.value,
+        apiUrl: service.apiUrl,
+        minQuantity: service.minQuantity
       });
     });
   }
