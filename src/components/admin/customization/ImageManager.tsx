@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
-// Interface for the image data structure
 interface UploadedImage {
   id: string;
   name: string;
@@ -19,7 +17,6 @@ interface UploadedImage {
 }
 
 const ImageManager = () => {
-  // State management
   const [images, setImages] = useState<UploadedImage[]>(() => {
     const storedImages = localStorage.getItem("uploadedImages");
     return storedImages ? JSON.parse(storedImages) : [
@@ -38,11 +35,11 @@ const ImageManager = () => {
   const [imageDetails, setImageDetails] = useState({
     name: '',
     location: '',
-    url: ''
+    url: '',
+    size: undefined as number | undefined
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Save images to localStorage whenever they change
   React.useEffect(() => {
     if (images.length > 0) {
       localStorage.setItem("uploadedImages", JSON.stringify(images));
@@ -52,17 +49,13 @@ const ImageManager = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Create a preview URL for the image
       const reader = new FileReader();
       reader.onload = () => {
         setPreviewImage(reader.result as string);
-        
-        // In a real app, you'd upload this to a server and get a URL
-        // For now, we'll use the data URL
         setImageDetails(prev => ({
           ...prev,
           url: reader.result as string,
-          name: file.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+          name: file.name.replace(/\.[^/.]+$/, ""),
           size: file.size
         }));
       };
@@ -79,7 +72,6 @@ const ImageManager = () => {
   };
 
   const handleAddImage = () => {
-    // Reset form state
     setImageDetails({
       name: '',
       location: '',
@@ -107,7 +99,6 @@ const ImageManager = () => {
 
   const handleDeleteConfirm = () => {
     if (imageToDelete) {
-      // Filter out the image to delete
       const updatedImages = images.filter(img => img.id !== imageToDelete.id);
       setImages(updatedImages);
       setShowDeleteDialog(false);
@@ -117,7 +108,6 @@ const ImageManager = () => {
   };
 
   const saveNewImage = () => {
-    // Validation
     if (!imageDetails.name.trim()) {
       toast.error("Please enter an image name");
       return;
@@ -127,7 +117,6 @@ const ImageManager = () => {
       return;
     }
 
-    // Create new image object
     const newImage: UploadedImage = {
       id: `img-${Date.now()}`,
       name: imageDetails.name,
@@ -137,7 +126,6 @@ const ImageManager = () => {
       size: imageDetails.size
     };
 
-    // Add to state
     setImages([...images, newImage]);
     setIsAddDialogOpen(false);
     toast.success("Image added successfully");
@@ -146,7 +134,6 @@ const ImageManager = () => {
   const saveEditedImage = () => {
     if (!selectedImage) return;
     
-    // Validation
     if (!imageDetails.name.trim()) {
       toast.error("Please enter an image name");
       return;
@@ -156,7 +143,6 @@ const ImageManager = () => {
       return;
     }
 
-    // Update image
     const updatedImages = images.map(img => 
       img.id === selectedImage.id 
         ? { 
@@ -175,9 +161,7 @@ const ImageManager = () => {
 
   const handleImageError = useCallback((imageId: string, event: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error(`Failed to load image ${imageId}`);
-    // Replace with default placeholder
     event.currentTarget.src = '/placeholder.svg';
-    // Log this error
     const errorLog = JSON.parse(localStorage.getItem('imageErrorLog') || '[]');
     errorLog.push({
       imageId,
@@ -186,7 +170,6 @@ const ImageManager = () => {
     });
     localStorage.setItem('imageErrorLog', JSON.stringify(errorLog));
     
-    // Notify admin
     toast.error("Image failed to load", {
       description: "The image has been replaced with a placeholder",
       action: {
@@ -246,7 +229,7 @@ const ImageManager = () => {
                   alt={image.name}
                   className="object-cover w-full h-full"
                   onError={(e) => handleImageError(image.id, e)}
-                  loading="lazy" // Lazy loading for performance
+                  loading="lazy"
                 />
               </div>
             </CardContent>
@@ -272,7 +255,6 @@ const ImageManager = () => {
         ))}
       </div>
 
-      {/* Add Image Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -368,7 +350,6 @@ const ImageManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Image Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -461,7 +442,6 @@ const ImageManager = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
