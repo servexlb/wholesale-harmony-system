@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,25 +27,18 @@ import {
   saveCredentialStock,
   generateRandomPassword
 } from '@/lib/credentialUtils';
+import { loadServices } from '@/lib/productManager';
+import { supabase } from "@/integrations/supabase/client";
 
 const getServices = (): Service[] => {
   const storedServices = localStorage.getItem('services');
   return storedServices ? JSON.parse(storedServices) : [];
 };
 
-const mockServices = [
-  { id: "s1", name: "Premium Email Service" },
-  { id: "s2", name: "VPN Subscription" },
-  { id: "s3", name: "Streaming Service" },
-  { id: "service-netflix", name: "Netflix" },
-  { id: "service-disney", name: "Disney+" },
-  { id: "service-spotify", name: "Spotify" },
-];
-
 const AdminDigitalInventory: React.FC = () => {
   const convertToDigitalItems = (stock: CredentialStock[]): DigitalItem[] => {
     return stock.map(item => {
-      const service = mockServices.find(s => s.id === item.serviceId) || { name: item.serviceId };
+      const service = availableServices.find(s => s.id === item.serviceId) || { name: item.serviceId };
       return {
         ...item,
         serviceName: service.name
@@ -57,7 +49,7 @@ const AdminDigitalInventory: React.FC = () => {
   const [inventory, setInventory] = useState<DigitalItem[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [bulkImport, setBulkImport] = useState(false);
-  const [selectedService, setSelectedService] = useState(mockServices[0]?.id || "");
+  const [selectedService, setSelectedService] = useState("");
   const [newCredentials, setNewCredentials] = useState({ email: "", password: "", username: "", pinCode: "" });
   const [bulkCredentials, setBulkCredentials] = useState("");
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -66,21 +58,70 @@ const AdminDigitalInventory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const [availableServices, setAvailableServices] = useState<Array<{id: string, name: string}>>([]);
   
-  const loadInventory = useCallback(() => {
+  const loadInventory = useCallback(async () => {
+    // Try to get from Supabase first
+    try {
+      const { data: supabaseStock, error } = await supabase
+        .from('credential_stock')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (supabaseStock && supabaseStock.length > 0) {
+        setInventory(convertToDigitalItems(supabaseStock as CredentialStock[]));
+        return;
+      }
+    } catch (err) {
+      console.error('Error fetching from Supabase:', err);
+    }
+    
+    // Fallback to local storage
     const stock = getAllCredentialStock();
     setInventory(convertToDigitalItems(stock));
-  }, []);
+  }, [availableServices]);
 
   useEffect(() => {
+    // Load all available services
+    const loadAllServices = async () => {
+      // First try to get from services data
+      const services = loadServices();
+      // Then get from products data
+      const allServices = [
+        ...services,
+        ...dataProducts.map(p => ({
+          id: p.id,
+          name: p.name
+        }))
+      ];
+      
+      // Deduplicate services by id
+      const uniqueServices = Array.from(
+        new Map(allServices.map(item => [item.id, item])).values()
+      );
+      
+      setAvailableServices(uniqueServices);
+      // Set default selected service if services exist
+      if (uniqueServices.length > 0 && !selectedService) {
+        setSelectedService(uniqueServices[0].id);
+      }
+    };
+    
+    loadAllServices();
     loadInventory();
     
     window.addEventListener('credential-stock-updated', loadInventory);
+    window.addEventListener('service-updated', loadAllServices);
+    window.addEventListener('service-added', loadAllServices);
     
     return () => {
       window.removeEventListener('credential-stock-updated', loadInventory);
+      window.removeEventListener('service-updated', loadAllServices);
+      window.removeEventListener('service-added', loadAllServices);
     };
-  }, [loadInventory]);
+  }, [loadInventory, selectedService]);
 
   useEffect(() => {
     const servicesAsProducts: Product[] = services.map(service => ({
@@ -152,7 +193,7 @@ const AdminDigitalInventory: React.FC = () => {
       return;
     }
 
-    const serviceName = mockServices.find(s => s.id === selectedService)?.name || "";
+    const serviceName = availableServices.find(s => s.id === selectedService)?.name || "";
     const newItems: DigitalItem[] = [];
     
     for (let i = 0; i < quantity; i++) {
@@ -194,7 +235,7 @@ const AdminDigitalInventory: React.FC = () => {
     }
 
     const lines = bulkCredentials.split('\n').filter(line => line.trim());
-    const serviceName = mockServices.find(s => s.id === selectedService)?.name || "";
+    const serviceName = availableServices.find(s => s.id === selectedService)?.name || "";
     
     const newItems: DigitalItem[] = [];
     
@@ -550,11 +591,15 @@ const AdminDigitalInventory: React.FC = () => {
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
                 >
-                  {mockServices.map(service => (
-                    <option key={service.id} value={service.id}>
-                      {service.name}
-                    </option>
-                  ))}
+                  {availableServices.length === 0 ? (
+                    <option value="">No services available</option>
+                  ) : (
+                    availableServices.map(service => (
+                      <option key={service.id} value={service.id}>
+                        {service.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
               
@@ -767,4 +812,3 @@ const AdminDigitalInventory: React.FC = () => {
 };
 
 export default AdminDigitalInventory;
-
