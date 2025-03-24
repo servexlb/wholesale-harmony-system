@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,13 +47,18 @@ const UserPaymentOptions = () => {
         
         if (error) {
           console.error('Error fetching user balance:', error);
-          // Fallback to localStorage or user object
+          // Fallback to user object
           setUserBalance(user.balance || 0);
           return;
         }
         
         if (data) {
           setUserBalance(data.balance || 0);
+          // Update user object for consistency
+          if (user.balance !== data.balance) {
+            // Only update the user state if balance has changed
+            updateUser({ ...user, balance: data.balance });
+          }
         }
       } catch (error) {
         console.error('Error in fetchUserBalance:', error);
@@ -63,7 +67,14 @@ const UserPaymentOptions = () => {
     };
     
     fetchUserBalance();
-  }, [user, isAuthenticated, navigate]);
+    
+    // Set up interval to refresh balance every minute
+    const intervalId = setInterval(() => {
+      fetchUserBalance();
+    }, 60000); // 60 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [user, isAuthenticated, navigate, updateUser]);
   
   // If not authenticated, show login required component
   if (!isAuthenticated || !user) {
@@ -259,7 +270,7 @@ const UserPaymentOptions = () => {
       
       // Notify user that payment is pending admin approval
       toast.success("USDT payment request submitted", { 
-        description: "Your payment is pending admin approval."
+        description: "Your payment is pending admin approval"
       });
       
       resetForm();

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -202,6 +203,7 @@ export function useWholesaleData(currentWholesaler: string) {
       
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
+        // Add order to database first
         const { error } = await supabase
           .from('wholesale_orders')
           .insert({
@@ -224,6 +226,60 @@ export function useWholesaleData(currentWholesaler: string) {
         if (error) {
           console.error('Error saving order to Supabase:', error);
           toast.error('Error saving order to database');
+          return;
+        }
+        
+        // Update user balance to reflect the order
+        const totalPrice = order.totalPrice || 0;
+        
+        // Get current user balance
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', session.session.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching user balance:', profileError);
+          toast.error('Error updating balance');
+          return;
+        }
+        
+        const currentBalance = profileData?.balance || 0;
+        const newBalance = currentBalance - totalPrice;
+        
+        // Update the balance in Supabase
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ balance: newBalance })
+          .eq('id', session.session.user.id);
+          
+        if (updateError) {
+          console.error('Error updating user balance:', updateError);
+          toast.error('Error updating balance');
+          return;
+        }
+        
+        // Also update localStorage for fallback
+        localStorage.setItem(`userBalance_${session.session.user.id}`, newBalance.toString());
+        
+        // Create payment record
+        const paymentId = `pmt-${Date.now()}`;
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert({
+            id: paymentId,
+            user_id: session.session.user.id,
+            amount: totalPrice,
+            method: 'account_balance',
+            status: 'completed',
+            description: `Wholesale order for ${order.customerName || 'customer'}`,
+            order_id: order.id,
+            user_name: order.customerName
+          });
+          
+        if (paymentError) {
+          console.error('Error creating payment record:', paymentError);
         }
       }
       

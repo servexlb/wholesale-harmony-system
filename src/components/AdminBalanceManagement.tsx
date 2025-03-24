@@ -1,48 +1,90 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserRole, User } from "@/lib/types";
 import { toast } from "sonner";
-import { Search, Plus, Minus } from "lucide-react";
-
-// Mock users data - in a real app, this would come from your API/database
-const mockUsers: User[] = [
-  {
-    id: "u1",
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+1 555-123-4567",
-    role: "customer",
-    balance: 125.50,
-    createdAt: "2023-01-15T08:30:00Z"
-  },
-  {
-    id: "u2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    phone: "+1 555-987-6543",
-    role: "wholesale",
-    balance: 350.75,
-    createdAt: "2023-02-20T10:15:00Z"
-  },
-  {
-    id: "u3",
-    name: "Admin User",
-    email: "admin@example.com",
-    role: "admin",
-    balance: 0,
-    createdAt: "2023-01-01T00:00:00Z"
-  }
-];
+import { Search, Plus, Minus, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminBalanceManagement = () => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [amount, setAmount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch users from Supabase
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch users from profiles table
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
+          
+        if (error) {
+          console.error('Error fetching users:', error);
+          toast.error('Failed to load user data');
+          // Fall back to mock data
+          setUsers(getMockUsers());
+        } else if (data) {
+          // Transform to match User interface
+          const formattedUsers: User[] = data.map(profile => ({
+            id: profile.id,
+            name: profile.name || 'Unknown User',
+            email: profile.email || '',
+            phone: profile.phone || '',
+            role: 'customer', // Default role
+            balance: profile.balance || 0,
+            createdAt: profile.created_at
+          }));
+          
+          setUsers(formattedUsers);
+        }
+      } catch (error) {
+        console.error('Error in fetchUsers:', error);
+        setUsers(getMockUsers());
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+  
+  // Mock users data as fallback
+  const getMockUsers = (): User[] => [
+    {
+      id: "u1",
+      name: "John Doe",
+      email: "john@example.com",
+      phone: "+1 555-123-4567",
+      role: "customer",
+      balance: 125.50,
+      createdAt: "2023-01-15T08:30:00Z"
+    },
+    {
+      id: "u2",
+      name: "Jane Smith",
+      email: "jane@example.com",
+      phone: "+1 555-987-6543",
+      role: "wholesale",
+      balance: 350.75,
+      createdAt: "2023-02-20T10:15:00Z"
+    },
+    {
+      id: "u3",
+      name: "Admin User",
+      email: "admin@example.com",
+      role: "admin",
+      balance: 0,
+      createdAt: "2023-01-01T00:00:00Z"
+    }
+  ];
   
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -54,21 +96,107 @@ const AdminBalanceManagement = () => {
     setAmount(0);
   };
   
-  const handleAddBalance = () => {
-    if (!selectedUser || amount <= 0) return;
-    
-    setUsers(users.map(user => 
-      user.id === selectedUser.id 
-        ? { ...user, balance: user.balance + amount } 
-        : user
-    ));
-    
-    setSelectedUser(prev => prev ? { ...prev, balance: prev.balance + amount } : null);
-    toast.success(`Added $${amount.toFixed(2)} to ${selectedUser.name}'s balance`);
-    setAmount(0);
+  const refreshUsers = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+        
+      if (error) {
+        console.error('Error refreshing users:', error);
+        toast.error('Failed to refresh user data');
+        return;
+      }
+      
+      if (data) {
+        // Transform to match User interface
+        const formattedUsers: User[] = data.map(profile => ({
+          id: profile.id,
+          name: profile.name || 'Unknown User',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          role: 'customer', // Default role
+          balance: profile.balance || 0,
+          createdAt: profile.created_at
+        }));
+        
+        setUsers(formattedUsers);
+        
+        // Also update selected user if applicable
+        if (selectedUser) {
+          const updatedSelectedUser = formattedUsers.find(u => u.id === selectedUser.id);
+          if (updatedSelectedUser) {
+            setSelectedUser(updatedSelectedUser);
+          }
+        }
+        
+        toast.success('User data refreshed');
+      }
+    } catch (error) {
+      console.error('Error in refreshUsers:', error);
+      toast.error('Failed to refresh user data');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleRemoveBalance = () => {
+  const handleAddBalance = async () => {
+    if (!selectedUser || amount <= 0) return;
+    
+    try {
+      // Update user balance in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          balance: selectedUser.balance + amount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedUser.id);
+        
+      if (error) {
+        console.error('Error updating user balance:', error);
+        toast.error('Failed to update user balance');
+        return;
+      }
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === selectedUser.id 
+          ? { ...user, balance: user.balance + amount } 
+          : user
+      ));
+      
+      setSelectedUser(prev => prev ? { ...prev, balance: prev.balance + amount } : null);
+      
+      // Create payment record
+      const paymentId = `pmt-${Date.now()}`;
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          id: paymentId,
+          user_id: selectedUser.id,
+          amount: amount,
+          method: 'admin_adjustment',
+          status: 'completed',
+          description: 'Admin balance adjustment (deposit)',
+          user_name: selectedUser.name,
+          user_email: selectedUser.email
+        });
+        
+      if (paymentError) {
+        console.error('Error creating payment record:', paymentError);
+      }
+      
+      toast.success(`Added $${amount.toFixed(2)} to ${selectedUser.name}'s balance`);
+      setAmount(0);
+    } catch (error) {
+      console.error('Error in handleAddBalance:', error);
+      toast.error('An error occurred while updating the balance');
+    }
+  };
+  
+  const handleRemoveBalance = async () => {
     if (!selectedUser || amount <= 0) return;
     
     if (selectedUser.balance < amount) {
@@ -76,21 +204,66 @@ const AdminBalanceManagement = () => {
       return;
     }
     
-    setUsers(users.map(user => 
-      user.id === selectedUser.id 
-        ? { ...user, balance: user.balance - amount } 
-        : user
-    ));
-    
-    setSelectedUser(prev => prev ? { ...prev, balance: prev.balance - amount } : null);
-    toast.success(`Removed $${amount.toFixed(2)} from ${selectedUser.name}'s balance`);
-    setAmount(0);
+    try {
+      // Update user balance in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          balance: selectedUser.balance - amount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedUser.id);
+        
+      if (error) {
+        console.error('Error updating user balance:', error);
+        toast.error('Failed to update user balance');
+        return;
+      }
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === selectedUser.id 
+          ? { ...user, balance: user.balance - amount } 
+          : user
+      ));
+      
+      setSelectedUser(prev => prev ? { ...prev, balance: prev.balance - amount } : null);
+      
+      // Create payment record
+      const paymentId = `pmt-${Date.now()}`;
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          id: paymentId,
+          user_id: selectedUser.id,
+          amount: amount,
+          method: 'admin_adjustment',
+          status: 'completed',
+          description: 'Admin balance adjustment (withdrawal)',
+          user_name: selectedUser.name,
+          user_email: selectedUser.email
+        });
+        
+      if (paymentError) {
+        console.error('Error creating payment record:', paymentError);
+      }
+      
+      toast.success(`Removed $${amount.toFixed(2)} from ${selectedUser.name}'s balance`);
+      setAmount(0);
+    } catch (error) {
+      console.error('Error in handleRemoveBalance:', error);
+      toast.error('An error occurred while updating the balance');
+    }
   };
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">User Balance Management</h2>
+        <Button variant="outline" size="sm" onClick={refreshUsers} disabled={isLoading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -112,7 +285,11 @@ const AdminBalanceManagement = () => {
               </div>
               
               <div className="border rounded-md h-[300px] overflow-y-auto">
-                {filteredUsers.length > 0 ? (
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Loading users...
+                  </div>
+                ) : filteredUsers.length > 0 ? (
                   <div className="divide-y">
                     {filteredUsers.map(user => (
                       <div 
