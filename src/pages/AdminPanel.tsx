@@ -1,3 +1,4 @@
+
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -12,11 +13,12 @@ import AdminCustomersPage from "@/components/admin/AdminCustomersPage";
 import AdminPayments from "@/components/admin/AdminPayments";
 import SubscriptionIssues from "@/components/admin/SubscriptionIssues";
 import AdminChatMessages from "@/components/admin/AdminChatMessages";
+import AdminGmailSettings from "@/components/admin/AdminGmailSettings";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
   Server, LogOut, CreditCard, LayoutDashboard,
-  DollarSign, AlertTriangle, MessageSquare
+  DollarSign, AlertTriangle, MessageSquare, Mail
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 
@@ -120,6 +122,14 @@ const AdminPanel: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 
+                    onClick={() => navigate("/admin/gmail-settings")}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Gmail Integration
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
                     onClick={() => navigate("/admin/inventory")}
                   >
                     <Server className="mr-2 h-4 w-4" />
@@ -187,6 +197,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/issues" element={<SubscriptionIssues />} />
               <Route path="/payments" element={<AdminPayments />} />
               <Route path="/chat-messages" element={<AdminChatMessages />} />
+              <Route path="/gmail-settings" element={<AdminGmailSettings />} />
               <Route path="/inventory" element={<AdminDigitalInventory />} />
               <Route path="/stock-issues" element={<StockIssueManager />} />
               <Route path="/balance" element={<AdminBalanceManagement />} />
