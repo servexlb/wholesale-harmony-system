@@ -1,18 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Service, WholesaleOrder } from '@/lib/types';
-import { toast } from 'sonner';
-import { loadServices, loadPricingFromSupabase } from '@/lib/productManager';
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { WholesaleOrder, Service } from '@/lib/types';
+import { Customer } from '@/lib/data';
+import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PurchaseDialogProps {
-  children: React.ReactNode;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -22,103 +35,79 @@ interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
   isSubmitting: boolean;
   isMobile: boolean;
-  selectedServiceId?: string;
-  selectedCustomerId?: string;
+  children: React.ReactNode;
 }
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
-  children,
-  customerName = '',
-  customerEmail = '',
-  customerPhone = '',
-  customerAddress = '',
-  customerCompany = '',
-  customerNotes = '',
+  customerName: initialCustomerName = '',
+  customerEmail: initialCustomerEmail = '',
+  customerPhone: initialCustomerPhone = '',
+  customerAddress: initialCustomerAddress = '',
+  customerCompany: initialCustomerCompany = '',
+  customerNotes: initialCustomerNotes = '',
   onPurchase,
   isSubmitting,
   isMobile,
-  selectedServiceId,
-  selectedCustomerId,
+  children
 }) => {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(customerName);
-  const [email, setEmail] = useState(customerEmail);
-  const [phone, setPhone] = useState(customerPhone);
-  const [address, setAddress] = useState(customerAddress);
-  const [company, setCompany] = useState(customerCompany);
-  const [notes, setNotes] = useState(customerNotes);
-  const [serviceId, setServiceId] = useState(selectedServiceId || '');
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [duration, setDuration] = useState<number>(1);
-  const [quantity, setQuantity] = useState(1);
-  const [totalPrice, setTotalPrice] = useState(0);
   const [services, setServices] = useState<Service[]>([]);
+  const [serviceId, setServiceId] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [duration, setDuration] = useState(1);
+  const [totalPrice, setTotalPrice] = useState(0);
+  
+  const [customerName, setCustomerName] = useState(initialCustomerName);
+  const [customerEmail, setCustomerEmail] = useState(initialCustomerEmail);
+  const [customerPhone, setCustomerPhone] = useState(initialCustomerPhone);
+  const [customerAddress, setCustomerAddress] = useState(initialCustomerAddress);
+  const [customerCompany, setCustomerCompany] = useState(initialCustomerCompany);
+  const [customerNotes, setCustomerNotes] = useState(initialCustomerNotes);
+  
   const [availableDurations, setAvailableDurations] = useState<number[]>([1]);
   const [pricingData, setPricingData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [customerId, setCustomerId] = useState(selectedCustomerId || '');
+  const [customerId, setCustomerId] = useState('');
 
   // Initialize services
   useEffect(() => {
-    const loadServicesData = async () => {
+    const storedServices = localStorage.getItem('services');
+    if (storedServices) {
       try {
-        const servicesData = loadServices();
-        setServices(servicesData);
-        
-        if (selectedServiceId) {
-          const service = servicesData.find(s => s.id === selectedServiceId);
-          if (service) {
-            setSelectedService(service);
-            setServiceId(selectedServiceId);
-            
-            // Load pricing data from Supabase
-            const pricing = await loadPricingFromSupabase(selectedServiceId);
-            if (pricing && pricing.length > 0) {
-              setPricingData(pricing);
-              setAvailableDurations(pricing.map(p => p.months));
-              setDuration(pricing[0].months);
-              
-              // Set initial price
-              const initialPricing = pricing.find(p => p.months === pricing[0].months);
-              if (initialPricing) {
-                setTotalPrice(initialPricing.wholesalePrice * quantity);
-              } else {
-                setTotalPrice((service.wholesalePrice || 0) * quantity);
-              }
-            } else if (service.availableMonths && service.availableMonths.length > 0) {
-              setAvailableDurations(service.availableMonths);
-              setDuration(service.availableMonths[0]);
-              
-              // Calculate price based on service data
-              if (service.monthlyPricing && service.monthlyPricing.length > 0) {
-                const initialPricing = service.monthlyPricing.find(p => p.months === service.availableMonths[0]);
-                if (initialPricing) {
-                  setTotalPrice(initialPricing.wholesalePrice * quantity);
-                } else {
-                  setTotalPrice((service.wholesalePrice || 0) * duration * quantity);
-                }
-              } else {
-                setTotalPrice((service.wholesalePrice || 0) * duration * quantity);
-              }
-            } else {
-              setAvailableDurations([1, 3, 6, 12]);
-              setDuration(1);
-              setTotalPrice((service.wholesalePrice || 0) * quantity);
-            }
-          }
-        }
+        const parsedServices = JSON.parse(storedServices);
+        setServices(parsedServices);
       } catch (error) {
-        console.error('Error loading services:', error);
-        toast.error('Failed to load service data');
+        console.error('Error parsing services:', error);
+      }
+    }
+    
+    // Listen for custom events that might update service list
+    const handleServiceUpdated = () => {
+      const updatedServices = localStorage.getItem('services');
+      if (updatedServices) {
+        try {
+          const parsedServices = JSON.parse(updatedServices);
+          setServices(parsedServices);
+        } catch (error) {
+          console.error('Error parsing updated services:', error);
+        }
       }
     };
     
-    loadServicesData();
-  }, [selectedServiceId]);
-
-  // Listen for the openPurchaseDialog event
+    window.addEventListener('service-updated', handleServiceUpdated);
+    window.addEventListener('service-added', handleServiceUpdated);
+    window.addEventListener('service-deleted', handleServiceUpdated);
+    
+    return () => {
+      window.removeEventListener('service-updated', handleServiceUpdated);
+      window.removeEventListener('service-added', handleServiceUpdated);
+      window.removeEventListener('service-deleted', handleServiceUpdated);
+    };
+  }, []);
+  
+  // Listen for purchase dialog events
   useEffect(() => {
-    const handleOpenDialog = (event: Event) => {
+    const handleOpenPurchaseDialog = (event: Event) => {
       try {
         const customEvent = event as CustomEvent;
         if (customEvent.detail?.customerId) {
@@ -126,51 +115,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         }
         
         if (customEvent.detail?.serviceId) {
-          const serviceId = customEvent.detail.serviceId;
-          setServiceId(serviceId);
-          
-          const service = services.find(s => s.id === serviceId);
-          if (service) {
-            setSelectedService(service);
-            
-            // Load pricing from Supabase
-            loadPricingFromSupabase(serviceId).then(pricing => {
-              if (pricing && pricing.length > 0) {
-                setPricingData(pricing);
-                setAvailableDurations(pricing.map(p => p.months));
-                setDuration(pricing[0].months);
-                
-                // Set initial price
-                const initialPricing = pricing.find(p => p.months === pricing[0].months);
-                if (initialPricing) {
-                  setTotalPrice(initialPricing.wholesalePrice * quantity);
-                } else {
-                  setTotalPrice((service.wholesalePrice || 0) * quantity);
-                }
-              } else if (service.availableMonths && service.availableMonths.length > 0) {
-                setAvailableDurations(service.availableMonths);
-                setDuration(service.availableMonths[0]);
-                
-                // Calculate price
-                if (service.monthlyPricing && service.monthlyPricing.length > 0) {
-                  const initialPricing = service.monthlyPricing.find(p => p.months === service.availableMonths[0]);
-                  if (initialPricing) {
-                    setTotalPrice(initialPricing.wholesalePrice * quantity);
-                  } else {
-                    setTotalPrice((service.wholesalePrice || 0) * duration * quantity);
-                  }
-                } else {
-                  setTotalPrice((service.wholesalePrice || 0) * duration * quantity);
-                }
-              } else {
-                setAvailableDurations([1, 3, 6, 12]);
-                setDuration(1);
-                setTotalPrice((service.wholesalePrice || 0) * quantity);
-              }
-            }).catch(error => {
-              console.error('Error loading pricing data:', error);
-            });
-          }
+          setServiceId(customEvent.detail.serviceId);
+        }
+        
+        // Check for customer details
+        if (customEvent.detail?.customerName) {
+          setCustomerName(customEvent.detail.customerName);
+        }
+        
+        if (customEvent.detail?.customerEmail) {
+          setCustomerEmail(customEvent.detail.customerEmail);
+        }
+        
+        if (customEvent.detail?.customerPhone) {
+          setCustomerPhone(customEvent.detail.customerPhone);
         }
         
         setOpen(true);
@@ -179,76 +137,134 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       }
     };
 
-    window.addEventListener('openPurchaseDialog', handleOpenDialog);
-    return () => window.removeEventListener('openPurchaseDialog', handleOpenDialog);
-  }, [services]);
+    window.addEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
 
-  // Effect for price calculation when service, duration, or quantity changes
+    return () => {
+      window.removeEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
+    };
+  }, []);
+
+  // Load service pricing
   useEffect(() => {
-    if (selectedService) {
-      // First try to get price from Supabase pricing data
-      const pricingItem = pricingData.find(p => p.months === duration);
-      if (pricingItem) {
-        setTotalPrice(pricingItem.wholesalePrice * quantity);
-        return;
-      }
-      
-      // If not found in Supabase data, try from local service data
-      if (selectedService.monthlyPricing && selectedService.monthlyPricing.length > 0) {
-        const pricing = selectedService.monthlyPricing.find(p => p.months === duration);
-        if (pricing) {
-          setTotalPrice(pricing.wholesalePrice * quantity);
+    if (!serviceId) {
+      setPricingData([]);
+      setAvailableDurations([1]);
+      return;
+    }
+    
+    const fetchPricing = async () => {
+      try {
+        // Try to get pricing from service_pricing table
+        const { data, error } = await supabase
+          .from('service_pricing')
+          .select('*')
+          .eq('service_id', serviceId);
+          
+        if (error) {
+          console.error('Error fetching pricing data:', error);
+          // Fallback to local storage
+          fallbackToLocalPricing();
           return;
         }
-      }
-      
-      // Default calculation
-      setTotalPrice((selectedService.wholesalePrice || 0) * duration * quantity);
-    }
-  }, [selectedService, duration, quantity, pricingData]);
-
-  // Handle service selection change
-  const handleServiceChange = async (value: string) => {
-    setServiceId(value);
-    
-    const service = services.find(s => s.id === value);
-    if (service) {
-      setSelectedService(service);
-      
-      // Load pricing from Supabase
-      setIsLoading(true);
-      try {
-        const pricing = await loadPricingFromSupabase(value);
-        if (pricing && pricing.length > 0) {
-          setPricingData(pricing);
-          setAvailableDurations(pricing.map(p => p.months));
-          setDuration(pricing[0].months);
-        } else if (service.availableMonths && service.availableMonths.length > 0) {
-          setAvailableDurations(service.availableMonths);
-          setDuration(service.availableMonths[0]);
+        
+        if (data && data.length > 0) {
+          // Use the data from the database
+          setPricingData(data);
+          
+          // Extract available durations
+          const durations = data.map(item => item.duration_months);
+          setAvailableDurations(durations.length > 0 ? durations : [1]);
+          
+          // Set default duration to the first available
+          if (durations.length > 0) {
+            setDuration(durations[0]);
+          }
         } else {
-          setAvailableDurations([1, 3, 6, 12]);
-          setDuration(1);
+          // Fallback to local storage
+          fallbackToLocalPricing();
         }
       } catch (error) {
         console.error('Error loading pricing data:', error);
-      } finally {
-        setIsLoading(false);
+        fallbackToLocalPricing();
       }
-    } else {
-      setSelectedService(null);
-      setAvailableDurations([1, 3, 6, 12]);
-      setDuration(1);
-      setTotalPrice(0);
-    }
-  };
-
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    };
     
+    const fallbackToLocalPricing = () => {
+      // Get the selected service
+      const selectedService = services.find(s => s.id === serviceId);
+      
+      if (selectedService) {
+        // If service has monthly pricing information
+        if (selectedService.monthlyPricing && selectedService.monthlyPricing.length > 0) {
+          const durations = selectedService.monthlyPricing.map(item => item.months);
+          setAvailableDurations(durations);
+          
+          // Set default duration to the first available
+          if (durations.length > 0) {
+            setDuration(durations[0]);
+          }
+        } else if (selectedService.availableMonths && selectedService.availableMonths.length > 0) {
+          // Legacy format
+          setAvailableDurations(selectedService.availableMonths);
+          if (selectedService.availableMonths.length > 0) {
+            setDuration(selectedService.availableMonths[0]);
+          }
+        } else {
+          // Default to 1 month
+          setAvailableDurations([1]);
+          setDuration(1);
+        }
+      }
+    };
+    
+    fetchPricing();
+  }, [serviceId, services]);
+
+  // Calculate total price
+  useEffect(() => {
+    if (!serviceId) {
+      setTotalPrice(0);
+      return;
+    }
+    
+    const calculatePrice = () => {
+      // First try to get price from pricing data (from DB)
+      if (pricingData.length > 0) {
+        const pricingItem = pricingData.find(item => item.duration_months === duration);
+        if (pricingItem) {
+          return pricingItem.wholesale_price * quantity;
+        }
+      }
+      
+      // Fallback to service object
+      const selectedService = services.find(s => s.id === serviceId);
+      if (!selectedService) {
+        return 0;
+      }
+      
+      // First try monthly pricing array
+      if (selectedService.monthlyPricing && selectedService.monthlyPricing.length > 0) {
+        const pricingItem = selectedService.monthlyPricing.find(item => item.months === duration);
+        if (pricingItem && pricingItem.wholesalePrice !== undefined) {
+          return pricingItem.wholesalePrice * quantity;
+        }
+      }
+      
+      // Fallback to default wholesale price
+      return (selectedService.wholesalePrice || 0) * quantity * duration;
+    };
+    
+    setTotalPrice(calculatePrice());
+  }, [serviceId, quantity, duration, services, pricingData]);
+  
+  const handleSubmit = async () => {
     if (!serviceId) {
       toast.error('Please select a service');
+      return;
+    }
+    
+    if (!customerName) {
+      toast.error('Please enter a customer name');
       return;
     }
     
@@ -259,233 +275,227 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       serviceId: serviceId,
       quantity: quantity,
       totalPrice: totalPrice,
-      status: 'completed',
+      status: "completed",
       createdAt: new Date().toISOString(),
       durationMonths: duration,
-      customerName: name,
-      customerEmail: email,
-      customerPhone: phone,
-      customerAddress: address,
-      customerCompany: company,
-      notes: notes
+      customerName: customerName,
+      customerEmail: customerEmail,
+      customerPhone: customerPhone,
+      customerAddress: customerAddress,
+      customerCompany: customerCompany,
+      notes: customerNotes
     };
     
-    // Save order to Supabase
-    saveOrderToSupabase(order);
-    
-    // Call the onPurchase callback
-    onPurchase(order);
-    resetForm();
-  };
-
-  // Save order to Supabase
-  const saveOrderToSupabase = async (order: WholesaleOrder) => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) return;
-      
-      // Save to Supabase orders table - use raw INSERT instead of from()
-      const { error } = await supabase
-        .from('wholesale_orders')
-        .insert({
-          service_id: order.serviceId,
-          customer_id: order.customerId,
-          quantity: order.quantity,
-          total_price: order.totalPrice,
-          status: order.status,
-          duration_months: order.durationMonths,
-          customer_name: order.customerName,
-          customer_email: order.customerEmail,
-          customer_phone: order.customerPhone,
-          customer_address: order.customerAddress,
-          customer_company: order.customerCompany,
-          notes: order.notes
-        });
-        
-      if (error) {
-        console.error('Error saving order to Supabase:', error);
+    // Check for credentials if duration > 0
+    if (duration > 0) {
+      const service = services.find(s => s.id === serviceId);
+      if (service?.type === 'subscription' || service?.type === 'service') {
+        // In a real implementation, we might want to add credential fields
+        // For now, we'll just create an empty credentials object
+        order.credentials = {
+          email: '',
+          password: '',
+          username: '',
+          notes: ''
+        };
       }
+    }
+    
+    try {
+      // Save to Supabase
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session) {
+        order.wholesalerId = session.session.user.id;
+      }
+      
+      // Process the order through the parent component's handler
+      onPurchase(order);
+      
+      // Reset the form
+      setServiceId('');
+      setQuantity(1);
+      setDuration(1);
+      setTotalPrice(0);
+      setCustomerName('');
+      setCustomerEmail('');
+      setCustomerPhone('');
+      setCustomerAddress('');
+      setCustomerCompany('');
+      setCustomerNotes('');
+      
+      // Close the dialog
+      setOpen(false);
     } catch (error) {
-      console.error('Error in Supabase operation:', error);
+      console.error('Error submitting purchase:', error);
+      toast.error('Error processing purchase');
     }
   };
 
-  // Reset form after submission
-  const resetForm = () => {
-    setName(customerName);
-    setEmail(customerEmail);
-    setPhone(customerPhone);
-    setAddress(customerAddress);
-    setCompany(customerCompany);
-    setNotes(customerNotes);
-    setServiceId('');
-    setSelectedService(null);
-    setDuration(1);
-    setQuantity(1);
-    setTotalPrice(0);
-    setOpen(false);
-  };
+  const selectedService = services.find(s => s.id === serviceId);
 
   return (
-    <>
-      <div onClick={() => setOpen(true)}>{children}</div>
-      
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={`${isMobile ? 'w-[90%]' : 'max-w-2xl'} overflow-y-auto max-h-[90vh]`}>
-          <DialogHeader>
-            <DialogTitle>New Purchase Order</DialogTitle>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className={isMobile ? "p-4 w-[95vw]" : "max-w-md"}>
+        <DialogHeader>
+          <DialogTitle>Purchase for Customer</DialogTitle>
+          <DialogDescription>
+            Create a new purchase order for this customer.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div>
+            <Label htmlFor="customerName">Customer Name</Label>
+            <Input
+              id="customerName"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Customer Name"
+              className="mt-1"
+              required
+            />
+          </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            {/* Customer Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Customer Information</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input 
-                    id="name" 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
-                    placeholder="Customer name" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    placeholder="customer@example.com" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input 
-                    id="phone" 
-                    value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
-                    placeholder="Phone number" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input 
-                    id="company" 
-                    value={company} 
-                    onChange={(e) => setCompany(e.target.value)} 
-                    placeholder="Company name" 
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input 
-                    id="address" 
-                    value={address} 
-                    onChange={(e) => setAddress(e.target.value)} 
-                    placeholder="Address" 
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="customerEmail">Email</Label>
+              <Input
+                id="customerEmail"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="Email"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="customerPhone">Phone</Label>
+              <Input
+                id="customerPhone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="Phone"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="customerAddress">Address</Label>
+            <Input
+              id="customerAddress"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              placeholder="Address"
+              className="mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="customerCompany">Company</Label>
+            <Input
+              id="customerCompany"
+              value={customerCompany}
+              onChange={(e) => setCustomerCompany(e.target.value)}
+              placeholder="Company"
+              className="mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="service">Service</Label>
+            <Select value={serviceId} onValueChange={setServiceId}>
+              <SelectTrigger id="service" className="mt-1">
+                <SelectValue placeholder="Select a service" />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name} - ${service.wholesalePrice?.toFixed(2)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {selectedService?.type === 'subscription' && (
+            <div>
+              <Label htmlFor="duration">Duration</Label>
+              <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value))}>
+                <SelectTrigger id="duration" className="mt-1">
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDurations.map((months) => (
+                    <SelectItem key={months} value={months.toString()}>
+                      {months} {months === 1 ? 'month' : 'months'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          <div>
+            <Label htmlFor="quantity">Quantity</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              className="mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={customerNotes}
+              onChange={(e) => setCustomerNotes(e.target.value)}
+              placeholder="Any additional notes"
+              className="mt-1"
+            />
+          </div>
+          
+          <div className="bg-muted p-3 rounded-md mt-4">
+            <div className="flex justify-between text-sm">
+              <span>Service:</span>
+              <span>{selectedService?.name || 'None selected'}</span>
             </div>
             
-            {/* Product Selection */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Product Information</h3>
-              <div className="space-y-2">
-                <Label htmlFor="service">Service</Label>
-                <Select 
-                  value={serviceId} 
-                  onValueChange={handleServiceChange}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="service">
-                    <SelectValue placeholder="Select a service" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map(service => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name} (${service.wholesalePrice?.toFixed(2)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {selectedService?.type === 'subscription' && (
+              <div className="flex justify-between text-sm">
+                <span>Duration:</span>
+                <span>{duration} {duration === 1 ? 'month' : 'months'}</span>
               </div>
-              
-              {/* Only show these fields if a service is selected */}
-              {selectedService && (
-                <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="duration">Duration</Label>
-                      <Select 
-                        value={duration.toString()} 
-                        onValueChange={(value) => setDuration(parseInt(value))}
-                        disabled={isLoading}
-                      >
-                        <SelectTrigger id="duration">
-                          <SelectValue placeholder="Select duration" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableDurations.map(months => (
-                            <SelectItem key={months} value={months.toString()}>
-                              {months} {months === 1 ? 'Month' : 'Months'}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="quantity">Quantity</Label>
-                      <Input 
-                        id="quantity" 
-                        type="number" 
-                        min="1" 
-                        value={quantity} 
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} 
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Total Price</Label>
-                    <div className="flex items-center">
-                      <span className="text-xl font-bold">${totalPrice.toFixed(2)}</span>
-                      {isLoading && <span className="ml-2 text-sm text-muted-foreground">Loading pricing...</span>}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedService.name} x {quantity} unit(s) for {duration} month(s)
-                    </p>
-                  </div>
-                </>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea 
-                  id="notes" 
-                  value={notes} 
-                  onChange={(e) => setNotes(e.target.value)} 
-                  placeholder="Additional information or special instructions" 
-                  rows={3} 
-                />
-              </div>
+            )}
+            
+            <div className="flex justify-between text-sm">
+              <span>Quantity:</span>
+              <span>{quantity}</span>
             </div>
             
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting || !serviceId || isLoading}>
-                {isSubmitting ? 'Processing...' : 'Complete Purchase'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+            <div className="flex justify-between font-medium border-t pt-2 mt-2">
+              <span>Total Price:</span>
+              <span>${totalPrice.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting || !serviceId || !customerName}>
+            {isSubmitting ? 'Processing...' : 'Complete Purchase'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

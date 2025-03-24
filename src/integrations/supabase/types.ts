@@ -326,6 +326,48 @@ export type Database = {
         }
         Relationships: []
       }
+      wholesale_customers: {
+        Row: {
+          address: string | null
+          balance: number | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          wholesaler_id: string
+        }
+        Insert: {
+          address?: string | null
+          balance?: number | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          wholesaler_id: string
+        }
+        Update: {
+          address?: string | null
+          balance?: number | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          wholesaler_id?: string
+        }
+        Relationships: []
+      }
       wholesale_orders: {
         Row: {
           created_at: string
@@ -343,6 +385,7 @@ export type Database = {
           status: string
           total_price: number
           updated_at: string
+          wholesaler_id: string | null
         }
         Insert: {
           created_at?: string
@@ -360,6 +403,7 @@ export type Database = {
           status?: string
           total_price: number
           updated_at?: string
+          wholesaler_id?: string | null
         }
         Update: {
           created_at?: string
@@ -377,8 +421,59 @@ export type Database = {
           status?: string
           total_price?: number
           updated_at?: string
+          wholesaler_id?: string | null
         }
         Relationships: []
+      }
+      wholesale_subscriptions: {
+        Row: {
+          created_at: string
+          credentials: Json | null
+          customer_id: string
+          duration_months: number | null
+          end_date: string
+          id: string
+          service_id: string
+          start_date: string
+          status: string
+          updated_at: string
+          wholesaler_id: string
+        }
+        Insert: {
+          created_at?: string
+          credentials?: Json | null
+          customer_id: string
+          duration_months?: number | null
+          end_date: string
+          id?: string
+          service_id: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          wholesaler_id: string
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json | null
+          customer_id?: string
+          duration_months?: number | null
+          end_date?: string
+          id?: string
+          service_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          wholesaler_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wholesale_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "wholesale_customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

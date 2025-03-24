@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { PlusCircle, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import ExportData from "@/components/wholesale/ExportData";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WholesaleUser {
   id: string;
@@ -32,20 +33,58 @@ const WholesaleUserManagement = () => {
 
   // Load saved wholesale users on component mount
   useEffect(() => {
-    const savedUsers = localStorage.getItem('wholesaleUsers');
-    if (savedUsers) {
+    const fetchWholesaleUsers = async () => {
       try {
-        const parsedUsers = JSON.parse(savedUsers);
-        // Add showPassword field if it doesn't exist
-        const formattedUsers = parsedUsers.map((user: any) => ({
-          ...user,
-          showPassword: false
-        }));
-        setWholesaleUsers(formattedUsers);
+        // First try to get users from Supabase
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('role', 'wholesaler');
+          
+        if (error) {
+          console.error('Error fetching wholesale users:', error);
+          loadUsersFromLocalStorage();
+          return;
+        }
+        
+        if (profiles && profiles.length > 0) {
+          // Convert profiles to WholesaleUser format
+          const formattedUsers = profiles.map(profile => ({
+            id: profile.id,
+            username: profile.email?.split('@')[0] || '',
+            password: '••••••••', // We don't store or display actual passwords
+            company: profile.company || '',
+            showPassword: false
+          }));
+          setWholesaleUsers(formattedUsers);
+        } else {
+          // Fallback to localStorage
+          loadUsersFromLocalStorage();
+        }
       } catch (error) {
-        console.error('Error parsing wholesale users:', error);
+        console.error('Error in fetchWholesaleUsers:', error);
+        loadUsersFromLocalStorage();
       }
-    }
+    };
+    
+    const loadUsersFromLocalStorage = () => {
+      const savedUsers = localStorage.getItem('wholesaleUsers');
+      if (savedUsers) {
+        try {
+          const parsedUsers = JSON.parse(savedUsers);
+          // Add showPassword field if it doesn't exist
+          const formattedUsers = parsedUsers.map((user: any) => ({
+            ...user,
+            showPassword: false
+          }));
+          setWholesaleUsers(formattedUsers);
+        } catch (error) {
+          console.error('Error parsing wholesale users:', error);
+        }
+      }
+    };
+    
+    fetchWholesaleUsers();
   }, []);
 
   // Save wholesale users whenever they change
@@ -55,27 +94,89 @@ const WholesaleUserManagement = () => {
     localStorage.setItem('wholesaleUsers', JSON.stringify(usersToSave));
   }, [wholesaleUsers]);
 
-  const handleAddWholesaleUser = (e: React.FormEvent) => {
+  const handleAddWholesaleUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newWholesaleUser.username && newWholesaleUser.password) {
-      setWholesaleUsers(prev => [...prev, {
-        id: `w${prev.length + 1}`,
-        ...newWholesaleUser,
-        showPassword: false
-      }]);
+      try {
+        // Create user in Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+          email: `${newWholesaleUser.username}@wholesaler.com`,
+          password: newWholesaleUser.password,
+          options: {
+            data: {
+              company: newWholesaleUser.company,
+              role: 'wholesaler'
+            }
+          }
+        });
+        
+        if (error) {
+          console.error('Error creating user in Supabase:', error);
+          toast.error(error.message || 'Error creating user');
+          return;
+        }
+        
+        // User created in Supabase
+        const userId = data.user?.id;
+        
+        if (userId) {
+          // Update the profile with company info
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              company: newWholesaleUser.company,
+              role: 'wholesaler'
+            })
+            .eq('id', userId);
+            
+          if (profileError) {
+            console.error('Error updating user profile:', profileError);
+          }
+          
+          // Add user to local state
+          setWholesaleUsers(prev => [...prev, {
+            id: userId,
+            ...newWholesaleUser,
+            showPassword: false
+          }]);
+          
+          toast.success('Wholesale user added successfully');
+        }
+      } catch (error) {
+        console.error('Error in handleAddWholesaleUser:', error);
+        toast.error('Error adding user');
+        
+        // Fallback to local storage
+        setWholesaleUsers(prev => [...prev, {
+          id: `w${prev.length + 1}`,
+          ...newWholesaleUser,
+          showPassword: false
+        }]);
+      }
+      
+      // Reset form
       setNewWholesaleUser({
         username: '',
         password: '',
         company: ''
       });
       setShowAddForm(false);
-      toast.success('Wholesale user added successfully');
     }
   };
 
-  const handleRemoveWholesaleUser = (id: string) => {
-    setWholesaleUsers(prev => prev.filter(user => user.id !== id));
-    toast.success('Wholesale user removed successfully');
+  const handleRemoveWholesaleUser = async (id: string) => {
+    try {
+      // Delete user from Supabase - NOTE: This requires admin privileges
+      // In a real app, you might want to implement this as an admin function
+      // For now, we'll just remove from local state
+      
+      // For localStorage based users
+      setWholesaleUsers(prev => prev.filter(user => user.id !== id));
+      toast.success('Wholesale user removed successfully');
+    } catch (error) {
+      console.error('Error removing user:', error);
+      toast.error('Error removing user');
+    }
   };
 
   const togglePasswordVisibility = (id: string) => {

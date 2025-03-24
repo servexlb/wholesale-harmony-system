@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,6 +38,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     },
   });
 
+  // Update the form submission handler to auto-save to Supabase
   const handleAddCustomer = (data: CustomerFormValues) => {
     // Create a new customer with the form data
     const newCustomer: Customer = {
