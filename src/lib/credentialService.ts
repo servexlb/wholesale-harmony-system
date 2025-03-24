@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Credential } from "@/lib/types";
@@ -23,6 +22,9 @@ export const addCredentialToStock = async (serviceId: string, credentials: Crede
     
     // Dispatch event to notify listeners
     window.dispatchEvent(new CustomEvent('credential-stock-updated'));
+    window.dispatchEvent(new CustomEvent('subscription-added', { 
+      detail: { serviceId }
+    }));
     
     // Return the mapped data
     return data ? mapSupabaseCredentialToLocal(data) : null;
@@ -183,6 +185,9 @@ export const linkCredentialToSubscription = async (subscriptionId: string, crede
     
     if (error) throw error;
     
+    // Dispatch event to notify listeners about this change
+    window.dispatchEvent(new CustomEvent('subscription-updated'));
+    
     return true;
   } catch (error: any) {
     console.error('Error linking credential to subscription:', error);
@@ -275,5 +280,58 @@ export const resolveStockIssue = async (issueId: string, credentialId: string) =
     console.error('Error resolving stock issue:', error);
     toast.error('Failed to resolve stock issue');
     return false;
+  }
+};
+
+/**
+ * Syncs subscriptions with credential stock
+ * This function can be called periodically to ensure all subscriptions have credential stock entries
+ */
+export const syncSubscriptionsWithStock = async () => {
+  try {
+    // Get all subscriptions that have credentials but no credential_stock_id
+    const { data: subscriptions, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .is('credential_stock_id', null)
+      .not('credentials', 'is', null);
+    
+    if (error) throw error;
+    
+    if (!subscriptions || subscriptions.length === 0) {
+      return { added: 0 };
+    }
+    
+    let addedCount = 0;
+    
+    // Add each subscription's credentials to stock
+    for (const subscription of subscriptions) {
+      if (subscription.credentials && subscription.service_id) {
+        const credentials = {
+          email: subscription.credentials.email || '',
+          password: subscription.credentials.password || '',
+          username: subscription.credentials.username || '',
+          pinCode: subscription.credentials.pinCode || ''
+        };
+        
+        // Add to credential stock
+        const newCredential = await addCredentialToStock(subscription.service_id, credentials);
+        
+        if (newCredential) {
+          // Link the credential back to the subscription
+          await linkCredentialToSubscription(subscription.id, newCredential.id);
+          addedCount++;
+        }
+      }
+    }
+    
+    if (addedCount > 0) {
+      toast.success(`Synced ${addedCount} subscriptions with inventory`);
+    }
+    
+    return { added: addedCount };
+  } catch (error: any) {
+    console.error('Error syncing subscriptions with stock:', error);
+    return { added: 0, error };
   }
 };

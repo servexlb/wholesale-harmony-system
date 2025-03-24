@@ -118,3 +118,14 @@ export function mapSupabaseCredentialToLocal(supabaseCred: any): CredentialStock
 export function mapSupabaseCredentialsToLocal(supabaseCredentials: any[]): CredentialStock[] {
   return supabaseCredentials.map(mapSupabaseCredentialToLocal);
 }
+
+// New function to convert subscription credential to stock format
+export function convertSubscriptionToStock(subscription: any): Credential {
+  // Extract credentials from subscription or create empty ones
+  return {
+    email: subscription.credentials?.email || '',
+    password: subscription.credentials?.password || '',
+    username: subscription.credentials?.username || '',
+    pinCode: subscription.credentials?.pinCode || ''
+  };
+}

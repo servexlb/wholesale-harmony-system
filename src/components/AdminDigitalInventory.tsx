@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,7 +62,6 @@ const AdminDigitalInventory: React.FC = () => {
   const [availableServices, setAvailableServices] = useState<Array<{id: string, name: string}>>([]);
   
   const loadInventory = useCallback(async () => {
-    // Try to get from Supabase first
     try {
       const { data: supabaseStock, error } = await supabase
         .from('credential_stock')
@@ -73,7 +71,6 @@ const AdminDigitalInventory: React.FC = () => {
       if (error) throw error;
       
       if (supabaseStock && supabaseStock.length > 0) {
-        // Map the Supabase credentials to our local CredentialStock format
         const mappedCredentials = mapSupabaseCredentialsToLocal(supabaseStock);
         setInventory(convertToDigitalItems(mappedCredentials));
         return;
@@ -82,50 +79,70 @@ const AdminDigitalInventory: React.FC = () => {
       console.error('Error fetching from Supabase:', err);
     }
     
-    // Fallback to local storage
     const stock = getAllCredentialStock();
     setInventory(convertToDigitalItems(stock));
   }, [availableServices]);
 
-  useEffect(() => {
-    // Load all available services
-    const loadAllServices = async () => {
-      // First try to get from services data
-      const services = loadServices();
-      // Then get from products data
-      const allServices = [
-        ...services,
-        ...dataProducts.map(p => ({
-          id: p.id,
-          name: p.name
-        }))
-      ];
-      
-      // Deduplicate services by id
-      const uniqueServices = Array.from(
-        new Map(allServices.map(item => [item.id, item])).values()
-      );
-      
-      setAvailableServices(uniqueServices);
-      // Set default selected service if services exist
-      if (uniqueServices.length > 0 && !selectedService) {
-        setSelectedService(uniqueServices[0].id);
-      }
-    };
+  const loadAllServices = useCallback(async () => {
+    const managedServices = loadServices();
+    const productsAsServices = dataProducts.map(p => ({
+      id: p.id,
+      name: p.name
+    }));
     
+    let subscriptionServices: {id: string, name: string}[] = [];
+    try {
+      const { data: subscriptions, error } = await supabase
+        .from('subscriptions')
+        .select('service_id')
+        .distinct();
+      
+      if (!error && subscriptions) {
+        subscriptionServices = subscriptions.map(sub => {
+          const service = managedServices.find(s => s.id === sub.service_id);
+          return {
+            id: sub.service_id,
+            name: service?.name || `Service ${sub.service_id}`
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching subscription services:', err);
+    }
+    
+    const allServices = [
+      ...managedServices,
+      ...productsAsServices,
+      ...subscriptionServices
+    ];
+    
+    const uniqueServices = Array.from(
+      new Map(allServices.map(item => [item.id, item])).values()
+    );
+    
+    setAvailableServices(uniqueServices);
+    
+    if (uniqueServices.length > 0 && !selectedService) {
+      setSelectedService(uniqueServices[0].id);
+    }
+  }, [selectedService]);
+
+  useEffect(() => {
     loadAllServices();
     loadInventory();
     
     window.addEventListener('credential-stock-updated', loadInventory);
     window.addEventListener('service-updated', loadAllServices);
     window.addEventListener('service-added', loadAllServices);
+    window.addEventListener('subscription-added', loadAllServices);
     
     return () => {
       window.removeEventListener('credential-stock-updated', loadInventory);
       window.removeEventListener('service-updated', loadAllServices);
       window.removeEventListener('service-added', loadAllServices);
+      window.removeEventListener('subscription-added', loadAllServices);
     };
-  }, [loadInventory, selectedService]);
+  }, [loadInventory, loadAllServices]);
 
   useEffect(() => {
     const servicesAsProducts: Product[] = services.map(service => ({
