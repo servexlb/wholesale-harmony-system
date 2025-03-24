@@ -33,15 +33,19 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
     if (onPurchaseForCustomer) {
       onPurchaseForCustomer(customer.id);
     } else {
-      // If no callback is provided, dispatch a custom event
-      window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
+      // If no callback is provided, dispatch a custom event with all necessary customer details
+      const event = new CustomEvent('openPurchaseDialog', { 
         detail: { 
           customerId: customer.id,
           customerName: customer.name,
-          customerEmail: customer.email,
-          customerPhone: customer.phone
+          customerEmail: customer.email || '',
+          customerPhone: customer.phone || '',
+          customerCompany: customer.company || '',
+          showWholesalePrices: true // Flag to indicate wholesale prices should be shown
         }
-      }));
+      });
+      window.dispatchEvent(event);
+      console.log('Dispatched purchase dialog event for customer:', customer.name);
     }
   };
 

@@ -82,11 +82,24 @@ const Wholesale = () => {
     const handleOpenPurchaseDialog = (event: Event) => {
       try {
         const customEvent = event as CustomEvent;
-        if (customEvent.detail?.customerId) {
-          setSelectedCustomerId(customEvent.detail.customerId);
-        } else {
-          setSelectedCustomerId('');
+        if (customEvent.detail) {
+          // Set all customer details from the event
+          if (customEvent.detail.customerId) {
+            setSelectedCustomerId(customEvent.detail.customerId);
+          } else {
+            setSelectedCustomerId('');
+          }
+          
+          // Set other customer details if provided
+          setCustomerName(customEvent.detail.customerName || '');
+          setCustomerEmail(customEvent.detail.customerEmail || '');
+          setCustomerPhone(customEvent.detail.customerPhone || '');
+          setCustomerCompany(customEvent.detail.customerCompany || '');
+          
+          // Log for debugging
+          console.log('Opening purchase dialog with customer details:', customEvent.detail);
         }
+        
         setPurchaseDialogOpen(true);
       } catch (error) {
         console.error('Error opening purchase dialog:', error);
@@ -103,8 +116,18 @@ const Wholesale = () => {
   // Purchase for customer handler
   const handlePurchaseForCustomer = (customerId: string) => {
     try {
+      // Find the customer to get their details
+      const customer = wholesalerCustomers.find(c => c.id === customerId);
+      if (customer) {
+        setCustomerName(customer.name || '');
+        setCustomerEmail(customer.email || '');
+        setCustomerPhone(customer.phone || '');
+        setCustomerCompany(customer.company || '');
+      }
+      
       setSelectedCustomerId(customerId);
       setPurchaseDialogOpen(true);
+      console.log('Opening purchase dialog for customer ID:', customerId);
     } catch (error) {
       console.error('Error handling purchase for customer:', error);
     }
@@ -140,6 +163,8 @@ const Wholesale = () => {
       >
         {/* Show the purchase dialog when needed */}
         <PurchaseDialog
+          open={purchaseDialogOpen}
+          onOpenChange={setPurchaseDialogOpen}
           customerName={customerName}
           customerEmail={customerEmail}
           customerPhone={customerPhone}
