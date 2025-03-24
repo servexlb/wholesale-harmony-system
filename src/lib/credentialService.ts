@@ -1,7 +1,37 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { CredentialStock, StockRequest } from '@/lib/types';
+import { CredentialStock, StockRequest, Credential } from '@/lib/types';
 import { toast } from 'sonner';
+
+// Function to add a credential to stock
+export const addCredentialToStock = async (serviceId: string, credentials: Credential): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('credential_stock')
+      .insert({
+        service_id: serviceId,
+        credentials: credentials,
+        status: 'available',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error adding credential to stock:', error);
+      return false;
+    }
+    
+    // Dispatch an event to notify UI components
+    const stockUpdatedEvent = new CustomEvent('credential-stock-updated');
+    window.dispatchEvent(stockUpdatedEvent);
+    
+    return true;
+  } catch (error) {
+    console.error('Error in addCredentialToStock:', error);
+    return false;
+  }
+};
 
 // Function to check if stock is available for a service
 export const checkStockAvailability = async (serviceId: string): Promise<boolean> => {
