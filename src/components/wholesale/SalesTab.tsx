@@ -43,6 +43,13 @@ const SalesTab: React.FC<SalesTabProps> = ({
     const fetchMetrics = async () => {
       setIsLoading(true);
       try {
+        // Validate wholesalerId is a proper UUID
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wholesalerId)) {
+          console.error('Invalid UUID format for wholesaler_id:', wholesalerId);
+          calculateFromCurrentData();
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('wholesale_metrics')
           .select('*')
@@ -118,6 +125,12 @@ const SalesTab: React.FC<SalesTabProps> = ({
   // Update local metrics in Supabase
   const updateMetrics = async () => {
     if (!wholesalerId) return;
+    
+    // Validate wholesalerId is a proper UUID
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wholesalerId)) {
+      console.error('Invalid UUID format for wholesaler_id:', wholesalerId);
+      return;
+    }
     
     try {
       const metricsData = {

@@ -47,7 +47,7 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
     
     const handleOrderPlaced = async () => {
       console.log('Order placed event detected');
-      if (wholesalerId) {
+      if (wholesalerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wholesalerId)) {
         try {
           const { data, error } = await supabase
             .from('wholesale_metrics')
@@ -73,7 +73,9 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
     
     const handleCustomerAdded = async () => {
       console.log('Customer added event detected in SalesSummaryStats');
-      if (wholesalerId) {
+      setTotalCustomers(prev => prev + 1); // Always update local state immediately for responsiveness
+      
+      if (wholesalerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wholesalerId)) {
         try {
           const { data, error } = await supabase
             .from('wholesale_metrics')
@@ -83,22 +85,13 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
             
           if (error) {
             console.error('Error fetching updated metrics after customer added:', error);
-            // Fallback to local update
-            setTotalCustomers(prev => prev + 1);
           } else if (data) {
             console.log('Customer count updated from database:', data.total_customers);
             setTotalCustomers(data.total_customers);
-          } else {
-            // If no data returned, increment locally
-            setTotalCustomers(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error updating metrics after customer added:', error);
-          // Fallback to local update
-          setTotalCustomers(prev => prev + 1);
         }
-      } else {
-        setTotalCustomers(prev => prev + 1);
       }
     };
     

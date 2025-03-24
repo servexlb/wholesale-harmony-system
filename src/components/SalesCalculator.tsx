@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import SalesSummaryStats from './sales/SalesSummaryStats';
 import MonthlySalesChart from './sales/charts/MonthlySalesChart';
 import SalesDistributionChart from './sales/charts/SalesDistributionChart';
 import { Customer } from '@/lib/data';
@@ -152,15 +151,6 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <SalesSummaryStats 
-        totalSales={totalSales}
-        totalCustomers={totalCustomers}
-        totalProducts={totalServices} // Use totalServices for totalProducts prop
-        averageOrderValue={averageOrderValue}
-        totalServices={totalServices} // Pass totalServices separately
-        wholesalerId={wholesalerId} // Pass the wholesalerId
-      />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <MonthlySalesChart monthlySalesData={monthlySalesData} />
         <SalesDistributionChart 
