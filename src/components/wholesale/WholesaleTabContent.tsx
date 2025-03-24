@@ -51,6 +51,15 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
     }
   }, []);
 
+  // Convert data.ts Customer type to types.ts Customer type
+  const typedCustomers = React.useMemo(() => {
+    return customers.map(customer => ({
+      ...customer,
+      createdAt: customer.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }));
+  }, [customers]);
+
   return (
     <div className="h-full">
       <Tabs value={activeTab} defaultValue={activeTab}>
@@ -71,7 +80,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         
         <TabsContent value="customers" className="h-full">
           <CustomersAndStockTab 
-            customers={customers} 
+            customers={typedCustomers} // Use the converted customers
             wholesalerId={currentWholesaler}
             subscriptions={subscriptions}
             onAddCustomer={onAddCustomer}

@@ -1,4 +1,3 @@
-
 // Add serviceName to Order type:
 export interface Order {
   id: string;
@@ -89,7 +88,8 @@ export interface Service {
   monthlyPricing?: MonthlyPricing[];
   features?: string[];
   availableForCustomers?: boolean;
-  status?: string; // Add status to fix error in mockData
+  status?: string; // Add status for compatibility with mockData
+  createdAt?: string; // Add createdAt for compatibility with mockData
 }
 
 export interface Product {
@@ -256,7 +256,7 @@ export interface Payment {
 }
 
 // Update SubscriptionIssue types
-export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue';
+export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system';
 export type IssueStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
 
 export interface SubscriptionIssue {

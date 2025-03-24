@@ -26,6 +26,7 @@ export interface Customer {
   notes?: string;
   wholesalerId?: string;
   balance: number;
+  createdAt: string; // Add required field from types.ts
 }
 
 export interface Sale {
@@ -36,6 +37,7 @@ export interface Sale {
     productId: string;
     quantity: number;
     priceAtSale: number;
+    name?: string; // Add name property to fix error in AdminOrders
   }[];
   total: number;
   paid: boolean;
@@ -132,7 +134,8 @@ export const customers: Customer[] = [
     company: "Smith Home Goods",
     notes: "Prefers delivery on Tuesdays",
     wholesalerId: "wholesaler1",
-    balance: 0
+    balance: 0,
+    createdAt: "2023-01-01T00:00:00Z" // Add required field
   },
   {
     id: "c2",
@@ -142,7 +145,8 @@ export const customers: Customer[] = [
     company: "Urban Living Co.",
     notes: "",
     wholesalerId: "admin",
-    balance: 0
+    balance: 0,
+    createdAt: "2023-01-02T00:00:00Z" // Add required field
   },
   {
     id: "c3",
@@ -152,7 +156,8 @@ export const customers: Customer[] = [
     company: "Williams Decor",
     notes: "New customer as of Jan 2023",
     wholesalerId: "wholesaler1",
-    balance: 0
+    balance: 0,
+    createdAt: "2023-01-03T00:00:00Z" // Add required field
   },
 ];
 
@@ -314,6 +319,7 @@ export const createSubscriptionIssue = (issueData: {
     type: issueData.type,
     status: "pending" as IssueStatus,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(), // Add the required updatedAt field
     credentials: issueData.credentials
   };
   

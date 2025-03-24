@@ -1,557 +1,464 @@
-import { Service, User, ServiceCategory, Subscription, Order, SupportTicket, TicketResponse, SimpleCustomer, AdminNotification } from './types';
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  wholesalePrice: number;
+  image: string;
+  category: string;
+  categoryId?: string;
+  type?: "subscription" | "recharge" | "giftcard" | "service" | "topup";
+  value?: number;
+  deliveryTime?: string;
+  featured?: boolean;
+  availableMonths?: number[];
+  apiUrl?: string;
+  minQuantity?: number;
+  requiresId?: boolean;
+}
 
-// Mock users
-export const users: User[] = [
-  {
-    id: 'user-1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'customer',
-    balance: 245.50,
-    createdAt: '2023-01-15T08:30:00Z',
-  },
-  {
-    id: 'user-2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'customer',
-    balance: 120.75,
-    createdAt: '2023-02-20T10:15:00Z',
-  },
-  {
-    id: 'user-3',
-    name: 'Admin User',
-    email: 'admin@example.com',
-    role: 'admin',
-    balance: 0,
-    createdAt: '2022-12-01T09:00:00Z',
-  },
-  {
-    id: 'user-4',
-    name: 'Wholesale Client',
-    email: 'wholesale@example.com',
-    role: 'wholesale',
-    balance: 5000,
-    createdAt: '2023-03-10T14:45:00Z',
-  },
-];
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  company?: string;
+  notes?: string;
+  wholesalerId?: string;
+  balance: number;
+  createdAt: string;
+}
 
-// Mock categories
-export const categories: ServiceCategory[] = [
-  {
-    id: 'streaming',
-    name: 'Streaming Services',
-    description: 'Enjoy your favorite movies and TV shows.',
-    icon: 'tv',
-  },
-  {
-    id: 'gaming',
-    name: 'Gaming Credits',
-    description: 'Top up your gaming accounts.',
-    icon: 'gamepad',
-  },
-  {
-    id: 'social',
-    name: 'Social Media',
-    description: 'Boost your social media presence.',
-    icon: 'users',
-  },
-  {
-    id: 'recharge',
-    name: 'Recharge Services',
-    description: 'Recharge your mobile and other services.',
-    icon: 'phone',
-  },
-  {
-    id: 'giftcard',
-    name: 'Gift Cards',
-    description: 'Send gift cards to your loved ones.',
-    icon: 'gift',
-  },
-  {
-    id: 'vpn',
-    name: 'VPN Services',
-    description: 'Secure your internet connection.',
-    icon: 'lock',
-  },
-];
+export interface Sale {
+  id: string;
+  customerId: string;
+  date: string;
+  products: {
+    productId: string;
+    quantity: number;
+    priceAtSale: number;
+  }[];
+  total: number;
+  paid: boolean;
+}
 
-// Export categories as serviceCategories for backward compatibility
-export const serviceCategories = categories;
+export interface Subscription {
+  id: string;
+  customerId: string;
+  productId: string;
+  startDate: string;
+  endDate: string;
+  status: "active" | "expired" | "cancelled";
+  price: number;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+}
 
-// Mock services
-export const services: Service[] = [
-  // Streaming services
+import { 
+  AdminNotification, 
+  SubscriptionIssue, 
+  IssueType, 
+  IssueStatus,
+  CustomerNotification 
+} from '@/lib/types';
+
+export const products: Product[] = [
   {
-    id: 'service-1',
-    name: 'Netflix Premium',
-    description: 'Access to Netflix Premium for high-quality streaming on multiple devices.',
-    price: 15.99,
-    wholesalePrice: 12.99,
-    categoryId: 'streaming',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: '1-2 hours',
-    status: 'active',
-    createdAt: '2023-01-01T12:00:00Z',
-  },
-  {
-    id: 'service-2',
-    name: 'Disney Plus',
-    description: 'Stream Disney, Marvel, Star Wars, and more on Disney Plus.',
-    price: 9.99,
-    wholesalePrice: 7.99,
-    categoryId: 'streaming',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: '1-2 hours',
-    status: 'active',
-    createdAt: '2023-01-02T14:30:00Z',
-  },
-  {
-    id: 'service-3',
-    name: 'Amazon Prime Video',
-    description: 'Stream thousands of movies and TV shows with Amazon Prime Video.',
-    price: 12.99,
-    wholesalePrice: 10.49,
-    categoryId: 'streaming',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: '1-2 hours',
-    status: 'active',
-    createdAt: '2023-01-03T09:45:00Z',
-  },
-  {
-    id: 'service-4',
-    name: 'Hulu Premium',
-    description: 'Ad-free streaming on Hulu with access to exclusive content.',
-    price: 11.99,
-    wholesalePrice: 9.49,
-    categoryId: 'streaming',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: '1-2 hours',
-    status: 'active',
-    createdAt: '2023-01-04T16:20:00Z',
-  },
-  
-  // Gaming services
-  {
-    id: 'service-5',
-    name: 'Xbox Game Pass',
-    description: 'Access hundreds of games with Xbox Game Pass subscription.',
-    price: 14.99,
-    wholesalePrice: 11.99,
-    categoryId: 'gaming',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: '1-2 hours',
-    status: 'active',
-    createdAt: '2023-01-05T11:10:00Z',
-  },
-  {
-    id: 'service-6',
-    name: 'PlayStation Plus',
-    description: 'Get free games monthly and play online with PlayStation Plus.',
-    price: 12.99,
-    wholesalePrice: 10.49,
-    categoryId: 'gaming',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: '1-2 hours',
-    status: 'active',
-    createdAt: '2023-01-06T13:25:00Z',
-  },
-  {
-    id: 'service-7',
-    name: 'Steam Wallet $50',
-    description: 'Add $50 to your Steam Wallet for game purchases.',
-    price: 52.99,
+    id: "p1",
+    name: "Premium Ceramic Vase",
+    description: "Handcrafted ceramic vase with a modern, minimalist design.",
+    price: 89.99,
     wholesalePrice: 49.99,
-    categoryId: 'gaming',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-07T08:05:00Z',
+    image: "https://images.unsplash.com/photo-1602748828300-57c35baaef48?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor"
   },
   {
-    id: 'service-8',
-    name: 'Roblox Gift Card $25',
-    description: 'Get $25 worth of Robux for Roblox games.',
-    price: 27.99,
-    wholesalePrice: 24.99,
-    categoryId: 'gaming',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-08T10:50:00Z',
-  },
-  
-  // Gift cards
-  {
-    id: 'service-9',
-    name: 'Amazon Gift Card $50',
-    description: 'Send a $50 Amazon gift card to anyone via email.',
-    price: 52.99,
-    wholesalePrice: 50.49,
-    categoryId: 'giftcard',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-09T17:30:00Z',
+    id: "p2",
+    name: "Artisanal Coffee Mug",
+    description: "Handmade ceramic mug with a unique glazed finish.",
+    price: 34.99,
+    wholesalePrice: 19.99,
+    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop",
+    category: "Kitchenware"
   },
   {
-    id: 'service-10',
-    name: 'Apple App Store $100',
-    description: 'Get a $100 App Store & iTunes gift card for apps, games, music, and more.',
-    price: 103.99,
-    wholesalePrice: 99.99,
-    categoryId: 'giftcard',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-10T14:15:00Z',
+    id: "p3",
+    name: "Minimalist Wall Clock",
+    description: "Simple yet elegant wall clock with a silent quartz movement.",
+    price: 59.99,
+    wholesalePrice: 32.99,
+    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor"
   },
   {
-    id: 'service-11',
-    name: 'Google Play $25',
-    description: 'Get a $25 Google Play gift card for apps, games, and digital content.',
-    price: 26.99,
-    wholesalePrice: 25.49,
-    categoryId: 'giftcard',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-11T09:20:00Z',
-  },
-  
-  // Recharge services
-  {
-    id: 'service-12',
-    name: 'Mobile Recharge $20',
-    description: 'Recharge any mobile carrier with $20 credit.',
-    price: 21.99,
-    wholesalePrice: 20.49,
-    categoryId: 'recharge',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-12T16:40:00Z',
+    id: "p4",
+    name: "Natural Linen Throw Pillow",
+    description: "Soft, natural linen pillow cover with a feather insert.",
+    price: 49.99,
+    wholesalePrice: 28.99,
+    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop",
+    category: "Textiles"
   },
   {
-    id: 'service-13',
-    name: 'International Calling Card $30',
-    description: 'Make international calls with $30 credit.',
-    price: 31.99,
-    wholesalePrice: 29.99,
-    categoryId: 'recharge',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-13T15:55:00Z',
+    id: "p5",
+    name: "Handwoven Basket",
+    description: "Traditional handwoven basket made from sustainable materials.",
+    price: 79.99,
+    wholesalePrice: 42.99,
+    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop",
+    category: "Storage"
   },
   {
-    id: 'service-14',
-    name: 'Internet Data Pack 10GB',
-    description: 'Add 10GB of data to your mobile plan.',
-    price: 24.99,
-    wholesalePrice: 22.49,
-    categoryId: 'recharge',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-14T11:35:00Z',
-  },
-  
-  // Social media services
-  {
-    id: 'service-15',
-    name: 'Instagram Followers 1000+',
-    description: 'Get 1000+ real Instagram followers for your account.',
-    price: 19.99,
-    wholesalePrice: 15.99,
-    categoryId: 'social',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: '1-3 days',
-    status: 'active',
-    createdAt: '2023-01-15T10:25:00Z',
-  },
-  {
-    id: 'service-16',
-    name: 'YouTube Views 5000+',
-    description: 'Boost your YouTube video with 5000+ views.',
-    price: 29.99,
-    wholesalePrice: 24.99,
-    categoryId: 'social',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: '2-4 days',
-    status: 'active',
-    createdAt: '2023-01-16T13:40:00Z',
-  },
-  {
-    id: 'service-17',
-    name: 'TikTok Likes 2000+',
-    description: 'Get 2000+ likes on your TikTok videos.',
-    price: 14.99,
-    wholesalePrice: 11.99,
-    categoryId: 'social',
-    type: 'one-time',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: '1-2 days',
-    status: 'active',
-    createdAt: '2023-01-17T09:15:00Z',
-  },
-  
-  // VPN services
-  {
-    id: 'service-18',
-    name: 'NordVPN Premium',
-    description: 'Secure your internet with NordVPN Premium subscription.',
-    price: 11.99,
-    wholesalePrice: 9.49,
-    categoryId: 'vpn',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: true,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-18T14:20:00Z',
-  },
-  {
-    id: 'service-19',
-    name: 'ExpressVPN',
-    description: 'High-speed, ultra-secure, and easy-to-use VPN service.',
-    price: 12.99,
-    wholesalePrice: 10.49,
-    categoryId: 'vpn',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-19T16:50:00Z',
-  },
-  {
-    id: 'service-20',
-    name: 'CyberGhost VPN',
-    description: 'Protect your privacy with CyberGhost VPN.',
-    price: 9.99,
-    wholesalePrice: 7.99,
-    categoryId: 'vpn',
-    type: 'subscription',
-    image: '/placeholder.svg',
-    featured: false,
-    deliveryTime: 'Instant',
-    status: 'active',
-    createdAt: '2023-01-20T12:35:00Z',
+    id: "p6",
+    name: "Glass Terrarium",
+    description: "Geometric glass terrarium for displaying small plants and succulents.",
+    price: 69.99,
+    wholesalePrice: 38.99,
+    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop",
+    category: "Plants"
   },
 ];
 
-// Utility functions for getting services and categories
-export const getServiceById = (id: string): Service | undefined => {
-  return services.find(service => service.id === id);
-};
-
-export const getCategoryById = (id: string): ServiceCategory | undefined => {
-  return categories.find(category => category.id === id);
-};
-
-// Mock support tickets
-export const supportTickets: SupportTicket[] = [
+export const customers: Customer[] = [
   {
-    id: 'ticket-1',
-    userId: 'user-1',
-    subject: 'Netflix account not working',
-    description: 'I purchased a Netflix Premium account yesterday but I cannot log in.',
-    status: 'open',
-    priority: 'high',
-    createdAt: '2023-04-10T09:30:00Z',
-    updatedAt: '2023-04-10T09:30:00Z',
-    serviceId: 'service-1',
+    id: "c1",
+    name: "Jane Smith",
+    phone: "+1 (555) 123-4567",
+    email: "jane@example.com",
+    company: "Smith Home Goods",
+    notes: "Prefers delivery on Tuesdays",
+    wholesalerId: "wholesaler1",
+    balance: 0,
+    createdAt: "2023-01-01T00:00:00Z"
   },
   {
-    id: 'ticket-2',
-    userId: 'user-2',
-    subject: 'Wrong gift card code',
-    description: 'The Amazon gift card code I received seems to be invalid or already used.',
-    status: 'in-progress',
-    priority: 'medium',
-    createdAt: '2023-04-11T14:20:00Z',
-    updatedAt: '2023-04-11T15:45:00Z',
-    serviceId: 'service-9',
+    id: "c2",
+    name: "Michael Johnson",
+    phone: "+1 (555) 987-6543",
+    email: "michael@example.com",
+    company: "Urban Living Co.",
+    notes: "",
+    wholesalerId: "admin",
+    balance: 0,
+    createdAt: "2023-01-02T00:00:00Z"
   },
   {
-    id: 'ticket-3',
-    userId: 'user-1',
-    subject: 'Billing question',
-    description: 'I need to understand the billing cycle for my Disney Plus subscription.',
-    status: 'resolved',
-    priority: 'low',
-    createdAt: '2023-04-05T11:10:00Z',
-    updatedAt: '2023-04-06T13:25:00Z',
-    serviceId: 'service-2',
+    id: "c3",
+    name: "Emma Williams",
+    phone: "+1 (555) 456-7890",
+    email: "emma@example.com",
+    company: "Williams Decor",
+    notes: "New customer as of Jan 2023",
+    wholesalerId: "wholesaler1",
+    balance: 0,
+    createdAt: "2023-01-03T00:00:00Z"
   },
 ];
 
-// Mock ticket responses
-export const ticketResponses: TicketResponse[] = [
+export const sales: Sale[] = [
   {
-    id: 'response-1',
-    ticketId: 'ticket-1',
-    message: 'I apologize for the inconvenience. Please provide the email address used for the Netflix account so I can check the status.',
-    createdAt: '2023-04-10T10:15:00Z',
-    sentBy: 'admin',
-    userId: 'user-3',
-    isStaff: true
+    id: "s1",
+    customerId: "c1",
+    date: "2023-05-15",
+    products: [
+      { productId: "p1", quantity: 5, priceAtSale: 49.99 },
+      { productId: "p3", quantity: 3, priceAtSale: 32.99 }
+    ],
+    total: 348.92,
+    paid: true
   },
   {
-    id: 'response-2',
-    ticketId: 'ticket-1',
-    message: 'My email is john@example.com. The account credentials I received were username: netflix_user101 and password: pass123',
-    createdAt: '2023-04-10T10:30:00Z',
-    sentBy: 'user',
-    userId: 'user-1',
-    isStaff: false
+    id: "s2",
+    customerId: "c2",
+    date: "2023-05-20",
+    products: [
+      { productId: "p2", quantity: 10, priceAtSale: 19.99 },
+      { productId: "p4", quantity: 8, priceAtSale: 28.99 }
+    ],
+    total: 431.82,
+    paid: true
   },
   {
-    id: 'response-3',
-    ticketId: 'ticket-2',
-    message: 'I\'ve checked the gift card code and it appears it hasn\'t been activated properly. I\'ll issue a new one for you right away.',
-    createdAt: '2023-04-11T15:45:00Z',
-    sentBy: 'admin',
-    userId: 'user-3',
-    isStaff: true
-  },
-];
-
-// Mock simple customers (for wholesale section)
-export const simpleCustomers: SimpleCustomer[] = [
-  {
-    id: 'customer-1',
-    name: 'Michael Johnson',
-    email: 'michael@example.com',
-    phone: '+1234567890',
-    totalSpent: 450.75,
-    activeSubscriptions: 2,
-    lastPurchase: '2023-04-12T08:45:00Z',
-  },
-  {
-    id: 'customer-2',
-    name: 'Sarah Williams',
-    email: 'sarah@example.com',
-    phone: '+1987654321',
-    totalSpent: 320.50,
-    activeSubscriptions: 1,
-    lastPurchase: '2023-04-08T14:30:00Z',
-  },
-  {
-    id: 'customer-3',
-    name: 'Robert Brown',
-    email: 'robert@example.com',
-    phone: '+1567890123',
-    totalSpent: 780.25,
-    activeSubscriptions: 3,
-    lastPurchase: '2023-04-15T11:20:00Z',
+    id: "s3",
+    customerId: "c3",
+    date: "2023-06-01",
+    products: [
+      { productId: "p5", quantity: 4, priceAtSale: 42.99 },
+      { productId: "p6", quantity: 6, priceAtSale: 38.99 }
+    ],
+    total: 405.90,
+    paid: false
   },
 ];
 
-// Mock admin notifications
+export const subscriptions: Subscription[] = [];
+
 export const adminNotifications: AdminNotification[] = [
   {
-    id: 'notification-1',
-    title: 'New Support Ticket',
-    message: 'A new high-priority support ticket has been created by John Doe.',
-    type: 'ticket',
-    isRead: false,
-    createdAt: '2023-04-16T09:30:00Z',
-    linkTo: '/admin/support/ticket-1',
-    subscriptionId: 'sub-123',
+    id: "n1",
+    type: "profile_fix",
+    subscriptionId: "sub-1",
+    userId: "c1",
+    customerName: "Jane Smith",
+    serviceName: "Premium Ceramic Vase",
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    read: false
   },
   {
-    id: 'notification-2',
-    title: 'Low Stock Alert',
-    message: 'Netflix Premium accounts are running low in stock (5 remaining).',
-    type: 'stock',
-    isRead: true,
-    createdAt: '2023-04-15T14:45:00Z',
-    linkTo: '/admin/inventory/service-1',
-    subscriptionId: 'sub-456',
+    id: "n2",
+    type: "payment_issue",
+    subscriptionId: "sub-3",
+    userId: "c2",
+    customerName: "Michael Johnson",
+    serviceName: "Minimalist Wall Clock",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    read: true
   },
   {
-    id: 'notification-3',
-    title: 'Payment Received',
-    message: 'Payment of $129.99 received from Jane Smith for Disney Plus annual subscription.',
-    type: 'payment',
-    isRead: false,
-    createdAt: '2023-04-16T11:20:00Z',
-    linkTo: '/admin/payments/payment-789',
-    subscriptionId: 'sub-789',
-  },
-  {
-    id: 'notification-4',
-    title: 'Subscription Expired',
-    message: 'HBO Max subscription for customer Michael Johnson has expired.',
-    type: 'subscription',
-    isRead: false,
-    createdAt: '2023-04-15T23:59:00Z',
-    linkTo: '/admin/subscriptions/sub-456',
-    subscriptionId: 'sub-456',
-  },
-  {
-    id: 'notification-5',
-    title: 'New Wholesale Order',
-    message: 'Wholesale Client has placed a bulk order worth $2,499.50.',
-    type: 'order',
-    isRead: true,
-    createdAt: '2023-04-14T16:30:00Z',
-    linkTo: '/admin/orders/order-345',
-    subscriptionId: 'sub-345',
-  },
-  {
-    id: 'notification-6',
-    title: 'System Update Required',
-    message: 'A new system update is available for the admin dashboard.',
-    type: 'system',
-    isRead: false,
-    createdAt: '2023-04-13T08:15:00Z',
-    linkTo: '/admin/settings/updates',
-    subscriptionId: 'sub-567',
-  },
-  {
-    id: 'notification-7',
-    title: 'Refund Processed',
-    message: 'Refund of $24.99 has been processed for customer Robert Brown.',
-    type: 'payment',
-    isRead: true,
-    createdAt: '2023-04-12T13:40:00Z',
-    linkTo: '/admin/payments/refund-123',
-    subscriptionId: 'sub-678',
-  },
+    id: "n3",
+    type: "password_reset",
+    subscriptionId: "sub-2",
+    userId: "c1",
+    customerName: "Jane Smith",
+    serviceName: "Artisanal Coffee Mug",
+    createdAt: new Date(Date.now() - 43200000).toISOString(),
+    read: false
+  }
 ];
+
+export const subscriptionIssues: SubscriptionIssue[] = [];
+export const customerNotifications: CustomerNotification[] = [];
+
+const wholesaleUsers = [
+  { username: 'wholesaler1', password: 'password123' },
+  { username: 'admin', password: 'admin123' }
+];
+
+export const checkWholesalePassword = (password: string): boolean => {
+  return password === 'wholesale2023';
+};
+
+export const checkWholesaleCredentials = (username: string, password: string): boolean => {
+  return wholesaleUsers.some(
+    user => user.username === username && user.password === password
+  );
+};
+
+export const calculateTotalSales = (): number => {
+  return sales.reduce((total, sale) => total + (sale.paid ? sale.total : 0), 0);
+};
+
+export const getCustomerById = (id: string): Customer | undefined => {
+  return customers.find(customer => customer.id === id);
+};
+
+export const getProductById = (id: string): Product | undefined => {
+  return products.find(product => product.id === id);
+};
+
+export const getSalesByCustomerId = (customerId: string): Sale[] => {
+  return sales.filter(sale => sale.customerId === customerId);
+};
+
+export const getSubscriptionsByCustomerId = (customerId: string): Subscription[] => {
+  return subscriptions.filter(subscription => subscription.customerId === customerId);
+};
+
+export const getSubscriptionById = (id: string): Subscription | undefined => {
+  return subscriptions.find(subscription => subscription.id === id);
+};
+
+export const addCustomerBalance = (customerId: string, amount: number): boolean => {
+  const customer = customers.find(c => c.id === customerId);
+  if (customer) {
+    customer.balance += amount;
+    return true;
+  }
+  return false;
+};
+
+export const deductCustomerBalance = (customerId: string, amount: number): boolean => {
+  const customer = customers.find(c => c.id === customerId);
+  if (customer && customer.balance >= amount) {
+    customer.balance -= amount;
+    return true;
+  }
+  return false;
+};
+
+export const addSubscription = (subscription: Subscription): void => {
+  subscriptions.push(subscription);
+};
+
+export const createSubscriptionIssue = (issueData: {
+  subscriptionId: string;
+  userId: string;
+  customerName: string;
+  serviceName: string;
+  type: IssueType;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+}): Promise<boolean> => {
+  const newIssue: SubscriptionIssue = {
+    id: `issue-${Date.now()}`,
+    subscriptionId: issueData.subscriptionId,
+    userId: issueData.userId,
+    customerName: issueData.customerName,
+    serviceName: issueData.serviceName,
+    type: issueData.type,
+    status: "pending" as IssueStatus,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    credentials: issueData.credentials
+  };
+  
+  subscriptionIssues.unshift(newIssue);
+  
+  const newNotification: AdminNotification = {
+    id: `n${adminNotifications.length + 1}`,
+    type: issueData.type,
+    subscriptionId: issueData.subscriptionId,
+    userId: issueData.userId,
+    customerName: issueData.customerName,
+    serviceName: issueData.serviceName,
+    createdAt: new Date().toISOString(),
+    read: false
+  };
+  
+  adminNotifications.unshift(newNotification);
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const getSubscriptionIssues = (): SubscriptionIssue[] => {
+  return subscriptionIssues;
+};
+
+export const resolveSubscriptionIssue = (
+  issueId: string, 
+  resolvedBy: string, 
+  notes?: string
+): Promise<boolean> => {
+  const issue = subscriptionIssues.find(i => i.id === issueId);
+  if (issue) {
+    issue.status = "resolved";
+    issue.resolvedAt = new Date().toISOString();
+    issue.resolvedBy = resolvedBy;
+    if (notes) {
+      issue.notes = notes;
+    }
+  }
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const sendCustomerNotification = (notificationData: {
+  userId: string;
+  type: "profile_fixed" | "payment_resolved" | "password_reset" | "order_completed";
+  message: string;
+  subscriptionId?: string;
+  serviceName?: string;
+}): Promise<boolean> => {
+  const newNotification: CustomerNotification = {
+    id: `cn-${Date.now()}`,
+    userId: notificationData.userId,
+    type: notificationData.type,
+    message: notificationData.message,
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: notificationData.subscriptionId,
+    serviceName: notificationData.serviceName
+  };
+  
+  customerNotifications.unshift(newNotification);
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 500);
+  });
+};
+
+export const getCustomerNotifications = (userId: string): CustomerNotification[] => {
+  return customerNotifications.filter(notification => notification.userId === userId);
+};
+
+export const markCustomerNotificationAsRead = (notificationId: string): void => {
+  const notification = customerNotifications.find(n => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
+  }
+};
+
+export const markAllCustomerNotificationsAsRead = (userId: string): void => {
+  customerNotifications.forEach(notification => {
+    if (notification.userId === userId) {
+      notification.read = true;
+    }
+  });
+};
+
+export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "profile_fix" as IssueType,
+    credentials: subscription?.credentials
+  });
+};
+
+export const reportPaymentIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "payment_issue" as IssueType,
+    credentials: subscription?.credentials
+  });
+};
+
+export const reportPasswordIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "password_reset",
+    credentials: subscription?.credentials
+  });
+};
+
+export const getAdminNotifications = (): AdminNotification[] => {
+  return adminNotifications;
+};
+
+export const markNotificationAsRead = (notificationId: string): void => {
+  const notification = adminNotifications.find(n => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
+  }
+};
+
+export const markAllNotificationsAsRead = (): void => {
+  adminNotifications.forEach(notification => {
+    notification.read = true;
+  });
+};
