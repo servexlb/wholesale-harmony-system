@@ -595,5 +595,7 @@ export const users: User[] = [
     name: "Emily Johnson",
     email: "emily@example.com",
     role: "wholesale",
-
-
+    balance: 0,
+    createdAt: new Date().toISOString()
+  }
+];
