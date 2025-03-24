@@ -112,14 +112,14 @@ const UserPaymentOptions = () => {
       const paymentId = `pmt-${Date.now()}`;
       const payment = {
         id: paymentId,
-        userId: user.id,
+        user_id: user.id,
         amount: amount,
         method: paymentMethod,
         status: "pending",
-        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         description: "Account Balance Top-up",
-        userName: user.name,
-        userEmail: user.email
+        user_name: user.name,
+        user_email: user.email
       };
       
       // Try to save payment to Supabase if available
@@ -139,14 +139,14 @@ const UserPaymentOptions = () => {
       const notification = {
         id: `notif-${Date.now()}`,
         type: "payment_request",
-        userId: user.id,
-        customerName: user.name,
-        serviceName: "Account Balance Top-up",
-        createdAt: new Date().toISOString(),
-        read: false,
-        paymentId: paymentId,
+        user_id: user.id,
+        customer_name: user.name,
+        service_name: "Account Balance Top-up",
+        created_at: new Date().toISOString(),
+        is_read: false,
+        payment_id: paymentId,
         amount: amount,
-        paymentMethod: paymentMethod
+        payment_method: paymentMethod
       };
       
       // Try to save notification to Supabase if available

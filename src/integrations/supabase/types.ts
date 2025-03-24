@@ -9,6 +9,111 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          amount: number | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          id: string
+          is_read: boolean | null
+          link_to: string | null
+          message: string | null
+          payment_method: string | null
+          service_id: string | null
+          service_name: string | null
+          subscription_id: string | null
+          title: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          is_read?: boolean | null
+          link_to?: string | null
+          message?: string | null
+          payment_method?: string | null
+          service_id?: string | null
+          service_name?: string | null
+          subscription_id?: string | null
+          title?: string | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          is_read?: boolean | null
+          link_to?: string | null
+          message?: string | null
+          payment_method?: string | null
+          service_id?: string | null
+          service_name?: string | null
+          subscription_id?: string | null
+          title?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          method: string
+          notes: string | null
+          order_id: string | null
+          receipt_url: string | null
+          reviewed_at: string | null
+          status: string
+          transaction_id: string | null
+          user_email: string | null
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          method: string
+          notes?: string | null
+          order_id?: string | null
+          receipt_url?: string | null
+          reviewed_at?: string | null
+          status: string
+          transaction_id?: string | null
+          user_email?: string | null
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          order_id?: string | null
+          receipt_url?: string | null
+          reviewed_at?: string | null
+          status?: string
+          transaction_id?: string | null
+          user_email?: string | null
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           balance: number | null
@@ -57,6 +162,42 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          credentials: Json | null
+          duration_months: number | null
+          end_date: string
+          id: string
+          service_id: string
+          start_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credentials?: Json | null
+          duration_months?: number | null
+          end_date: string
+          id?: string
+          service_id: string
+          start_date?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json | null
+          duration_months?: number | null
+          end_date?: string
+          id?: string
+          service_id?: string
+          start_date?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }

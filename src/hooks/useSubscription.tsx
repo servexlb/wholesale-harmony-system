@@ -37,9 +37,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       const { data: supabaseSubscriptions, error: supabaseError } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('userId', user.id)
+        .eq('user_id', user.id)
         .eq('status', 'active')
-        .order('endDate', { ascending: false })
+        .order('end_date', { ascending: false })
         .limit(1);
       
       if (supabaseError) {
@@ -50,7 +50,18 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (supabaseSubscriptions && supabaseSubscriptions.length > 0) {
-        const latestSubscription = supabaseSubscriptions[0];
+        // Map the Supabase subscription to our Subscription type
+        const latestSubscription: Subscription = {
+          id: supabaseSubscriptions[0].id,
+          userId: supabaseSubscriptions[0].user_id,
+          serviceId: supabaseSubscriptions[0].service_id,
+          startDate: supabaseSubscriptions[0].start_date,
+          endDate: supabaseSubscriptions[0].end_date,
+          status: supabaseSubscriptions[0].status as 'active' | 'expired' | 'cancelled',
+          durationMonths: supabaseSubscriptions[0].duration_months,
+          credentials: supabaseSubscriptions[0].credentials
+        };
+        
         setSubscription(latestSubscription);
         setHasActiveSubscription(true);
         setIsLoading(false);
