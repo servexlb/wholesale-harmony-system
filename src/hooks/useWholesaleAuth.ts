@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
@@ -140,6 +141,7 @@ export function useWholesaleAuth() {
       setIsAuthenticated(true);
       localStorage.setItem('wholesaleAuthenticated', 'true');
       
+      // Fix the null check issue by using optional chaining and fallback
       const userId = data?.user?.id || username;
       localStorage.setItem('wholesalerId', userId);
       

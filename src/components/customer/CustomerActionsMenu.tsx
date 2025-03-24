@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MoreHorizontal, PlusCircle, CreditCard, PackageOpen, Edit, Trash } from 'lucide-react';
 import { toast } from '@/lib/toast';
@@ -42,6 +43,7 @@ interface CustomerActionsMenuProps {
   onPurchaseForCustomer?: (customerId: string) => void;
   onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
   onDeleteCustomer?: (customerId: string) => void;
+  onCopyContact?: () => void; // Add this line to fix the type error
 }
 
 const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
