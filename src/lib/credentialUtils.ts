@@ -124,10 +124,24 @@ export function convertSubscriptionToStock(subscription: any): Credential {
   // Safely extract credentials from subscription with type checking
   const credentials = subscription.credentials || {};
   
+  // Check if credentials is an object
+  if (typeof credentials !== 'object' || Array.isArray(credentials)) {
+    console.warn('Invalid credentials format in subscription, using empty values');
+    return {
+      email: '',
+      password: '',
+      username: '',
+      pinCode: ''
+    };
+  }
+  
+  // Now we know credentials is an object, extract the properties safely
+  const credentialsObj = credentials as Record<string, unknown>;
+  
   return {
-    email: typeof credentials === 'object' && credentials.email ? String(credentials.email) : '',
-    password: typeof credentials === 'object' && credentials.password ? String(credentials.password) : '',
-    username: typeof credentials === 'object' && credentials.username ? String(credentials.username) : '',
-    pinCode: typeof credentials === 'object' && credentials.pinCode ? String(credentials.pinCode) : ''
+    email: typeof credentialsObj.email === 'string' ? credentialsObj.email : '',
+    password: typeof credentialsObj.password === 'string' ? credentialsObj.password : '',
+    username: typeof credentialsObj.username === 'string' ? credentialsObj.username : '',
+    pinCode: typeof credentialsObj.pinCode === 'string' ? credentialsObj.pinCode : ''
   };
 }

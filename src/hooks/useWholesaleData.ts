@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -11,7 +10,6 @@ export function useWholesaleData(currentWholesaler: string) {
   const [customersData, setCustomersData] = useState<Customer[]>([]);
   const [services, setServices] = useState<Service[]>([]);
 
-  // Load services from product manager
   useEffect(() => {
     setServices(loadServices());
     
@@ -30,7 +28,6 @@ export function useWholesaleData(currentWholesaler: string) {
     };
   }, []);
 
-  // Load saved data from localStorage on component mount
   useEffect(() => {
     const savedOrders = localStorage.getItem('wholesaleOrders');
     const savedSubscriptions = localStorage.getItem('wholesaleSubscriptions');
@@ -49,7 +46,6 @@ export function useWholesaleData(currentWholesaler: string) {
     }
   }, []);
   
-  // Save orders, subscriptions and customers to localStorage whenever they change
   useEffect(() => {
     if (orders.length > 0) {
       localStorage.setItem('wholesaleOrders', JSON.stringify(orders));
@@ -82,12 +78,9 @@ export function useWholesaleData(currentWholesaler: string) {
       return updatedOrders.slice(0, 100);
     });
     
-    // Find the service to check if it's a subscription
     const service = services.find(s => s.id === order.serviceId);
     
-    // If it's a subscription product or has credentials, create a subscription
     if (service?.type === 'subscription' || order.credentials) {
-      // Calculate end date based on the duration months or default to 30 days
       const durationMonths = order.durationMonths || 1;
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + durationMonths);
@@ -108,16 +101,11 @@ export function useWholesaleData(currentWholesaler: string) {
         return updatedSubscriptions.slice(0, 100);
       });
       
-      // Automatically add to credential stock if credentials exist
       if (order.credentials && order.serviceId) {
         try {
-          // Use the convertSubscriptionToStock utility to safely handle credentials
-          const stockCredentials = {
-            email: order.credentials.email || '',
-            password: order.credentials.password || '',
-            username: order.credentials.username || '',
-            pinCode: order.credentials.pinCode || ''
-          };
+          const stockCredentials = convertSubscriptionToStock({
+            credentials: order.credentials
+          });
           
           addCredentialToStock(order.serviceId, stockCredentials);
         } catch (error) {

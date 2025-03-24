@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Credential } from "@/lib/types";
@@ -307,16 +308,20 @@ export const syncSubscriptionsWithStock = async () => {
     // Add each subscription's credentials to stock
     for (const subscription of subscriptions) {
       if (subscription.credentials && subscription.service_id) {
-        // Fix: Type check and safe access to credential properties
+        // Check if credentials is an object first
+        if (typeof subscription.credentials !== 'object' || Array.isArray(subscription.credentials)) {
+          console.error('Invalid credentials format:', subscription.credentials);
+          continue;
+        }
+        
+        // Now we know credentials is an object, not an array, extract the properties safely
+        const credentialsObj = subscription.credentials as Record<string, unknown>;
+        
         const credentials: Credential = {
-          email: typeof subscription.credentials === 'object' && subscription.credentials?.email ? 
-            String(subscription.credentials.email) : '',
-          password: typeof subscription.credentials === 'object' && subscription.credentials?.password ? 
-            String(subscription.credentials.password) : '',
-          username: typeof subscription.credentials === 'object' && subscription.credentials?.username ? 
-            String(subscription.credentials.username) : '',
-          pinCode: typeof subscription.credentials === 'object' && subscription.credentials?.pinCode ? 
-            String(subscription.credentials.pinCode) : ''
+          email: typeof credentialsObj.email === 'string' ? credentialsObj.email : '',
+          password: typeof credentialsObj.password === 'string' ? credentialsObj.password : '',
+          username: typeof credentialsObj.username === 'string' ? credentialsObj.username : '',
+          pinCode: typeof credentialsObj.pinCode === 'string' ? credentialsObj.pinCode : ''
         };
         
         // Add to credential stock
