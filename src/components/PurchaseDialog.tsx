@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Clock } from "lucide-react";
 import { Service } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -26,8 +28,8 @@ interface PurchaseDialogProps {
 
 export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   service,
-  quantity,
-  duration,
+  quantity: initialQuantity,
+  duration: initialDuration,
   open,
   onOpenChange,
   onPurchase,
@@ -36,10 +38,30 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [accountId, setAccountId] = useState('');
   const [notes, setNotes] = useState('');
+  const [quantity, setQuantity] = useState(initialQuantity);
+  const [duration, setDuration] = useState(initialDuration.toString());
+  const [availableDurations, setAvailableDurations] = useState<string[]>(['1', '3', '6', '12']);
 
-  const totalPrice = service.type === 'subscription'
-    ? service.price * duration
-    : service.price * quantity;
+  // Reset values when dialog opens
+  useEffect(() => {
+    if (open) {
+      setQuantity(initialQuantity);
+      setDuration(initialDuration.toString());
+      setAccountId('');
+      setNotes('');
+    }
+  }, [open, initialQuantity, initialDuration]);
+
+  // Calculate total price based on service type and duration
+  const calculateTotalPrice = () => {
+    if (service.type === 'subscription') {
+      return service.price * parseInt(duration);
+    } else {
+      return service.price * quantity;
+    }
+  };
+
+  const totalPrice = calculateTotalPrice();
 
   const handlePurchase = () => {
     if (service.requiresId && !accountId.trim()) {
@@ -63,6 +85,8 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }, 1500);
   };
 
+  const isSubscription = service.type === 'subscription';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -81,12 +105,32 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <span>{service.name}</span>
             </div>
             
-            {service.type === 'subscription' ? (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Duration:</span>
-                <span>{duration} {duration === 1 ? 'month' : 'months'}</span>
+            {isSubscription && (
+              <div className="space-y-2">
+                <Label htmlFor="duration" className="text-sm">Subscription Duration</Label>
+                <Select 
+                  value={duration} 
+                  onValueChange={setDuration}
+                >
+                  <SelectTrigger id="duration" className="w-full">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDurations.map((months) => (
+                      <SelectItem key={months} value={months}>
+                        {months} {parseInt(months) === 1 ? 'month' : 'months'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3 mr-1" />
+                  <span>Subscription will renew every {duration} {parseInt(duration) === 1 ? 'month' : 'months'}</span>
+                </div>
               </div>
-            ) : (
+            )}
+            
+            {!isSubscription && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Quantity:</span>
                 <span>{quantity}</span>
@@ -95,7 +139,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Price:</span>
-              <span>${service.price.toFixed(2)} {service.type === 'subscription' ? '/month' : 'each'}</span>
+              <span>${service.price.toFixed(2)} {isSubscription ? '/month' : 'each'}</span>
             </div>
             
             <div className="flex justify-between font-medium border-t pt-2 mt-2">

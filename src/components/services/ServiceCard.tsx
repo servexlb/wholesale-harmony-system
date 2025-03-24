@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,7 +63,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
   };
 
-  // Get icon based on service type
   const getTypeIcon = () => {
     switch(service.type) {
       case 'subscription':
@@ -83,7 +81,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
   };
 
-  // Get price display based on service type
   const getPriceDisplay = () => {
     if (service.type === 'subscription') {
       return `${isWholesale 
@@ -101,12 +98,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   };
 
   const showPurchaseConfirmation = () => {
+    setQuantity(1);
+    setDuration(1);
     setIsConfirmDialogOpen(true);
   };
 
   const handlePurchase = () => {
     setIsConfirmDialogOpen(false);
-    // Additional logic could be added here if needed
     toast.success('Purchase completed', {
       description: `Your purchase of ${service.name} was successful`,
     });
@@ -201,12 +199,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             )}
           </div>
           
-          {/* Buy Button */}
           <Button 
             className="w-full mt-3"
             size="sm"
             onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering the card click
+              e.stopPropagation();
               showPurchaseConfirmation();
             }}
             disabled={isPurchasing}
@@ -250,7 +247,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         )}
       </CardFooter>
       
-      {/* Purchase Dialog */}
       <PurchaseDialog
         service={service}
         quantity={quantity}
