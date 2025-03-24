@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ShoppingCart, Info, Check, Clock, Star, Gift, Zap, Infinity, CreditCard
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
+import PurchaseDialog from '@/components/PurchaseDialog';
 
 interface ServiceCardProps {
   service: Service;
@@ -27,6 +29,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [duration, setDuration] = useState(1);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -98,6 +102,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const showPurchaseConfirmation = () => {
     setIsConfirmDialogOpen(true);
+  };
+
+  const handlePurchase = () => {
+    setIsConfirmDialogOpen(false);
+    // Additional logic could be added here if needed
+    toast.success('Purchase completed', {
+      description: `Your purchase of ${service.name} was successful`,
+    });
   };
 
   return (
@@ -189,7 +201,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             )}
           </div>
           
-          {/* Added Buy Button */}
+          {/* Buy Button */}
           <Button 
             className="w-full mt-3"
             size="sm"
@@ -238,9 +250,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         )}
       </CardFooter>
       
-      {/* Purchase Confirmation Dialog */}
-      
-      
+      {/* Purchase Dialog */}
+      <PurchaseDialog
+        service={service}
+        quantity={quantity}
+        duration={duration}
+        open={isConfirmDialogOpen}
+        onOpenChange={setIsConfirmDialogOpen}
+        onPurchase={handlePurchase}
+      />
     </Card>
   );
 };
