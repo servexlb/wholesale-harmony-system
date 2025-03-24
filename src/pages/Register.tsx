@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,7 +30,6 @@ const Register: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
-  // If user is already authenticated, redirect to dashboard
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
@@ -41,11 +39,9 @@ const Register: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
-    // Clear error when user starts typing again
     setError(null);
   };
 
-  // Validate email format
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -55,7 +51,6 @@ const Register: React.FC = () => {
     e.preventDefault();
     setError(null);
     
-    // Validate email format
     if (!isValidEmail(formData.email)) {
       setError("Please enter a valid email address");
       return;
@@ -74,7 +69,6 @@ const Register: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Using Supabase directly for more detailed error handling
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -95,7 +89,6 @@ const Register: React.FC = () => {
       
       toast.success("Account created successfully!");
       
-      // Check if email confirmation is required
       if (data?.user && !data.user.confirmed_at) {
         toast.info("Please check your email to confirm your account");
         navigate("/login");
@@ -114,9 +107,7 @@ const Register: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    // Handle Google sign-up
     toast({
-      title: "Coming Soon",
       description: "Google sign-up will be available soon.",
     });
   };

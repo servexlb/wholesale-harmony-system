@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -35,14 +34,12 @@ const Login: React.FC = () => {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  // Check if user is already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
-  // Check if user was logged out
   useEffect(() => {
     const logoutParam = new URLSearchParams(location.search).get('logout');
     if (logoutParam === 'true') {
@@ -53,7 +50,6 @@ const Login: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
-    // Clear error when user starts typing
     setError(null);
   };
 
@@ -63,7 +59,6 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Using Supabase directly for better error handling
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
@@ -136,7 +131,6 @@ const Login: React.FC = () => {
     setOauthError(null);
     
     toast({
-      title: "Coming Soon",
       description: "Google login will be available soon.",
     });
   };

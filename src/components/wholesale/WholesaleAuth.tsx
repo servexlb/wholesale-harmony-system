@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Eye, EyeOff, User, Lock } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 
@@ -23,9 +23,6 @@ const WholesaleAuth: React.FC<WholesaleAuthProps> = ({ onLoginSuccess, isLoggedO
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [company, setCompany] = useState('');
-  const [email, setEmail] = useState('');
   
   // Load saved username from localStorage if available
   useEffect(() => {
@@ -68,46 +65,8 @@ const WholesaleAuth: React.FC<WholesaleAuthProps> = ({ onLoginSuccess, isLoggedO
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      if (!username || !password || !email) {
-        toast.error('Please fill in all required fields');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Create account in Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            wholesale_username: username,
-            company: company,
-            role: 'wholesaler'
-          }
-        }
-      });
-      
-      if (error) {
-        console.error('Registration error:', error);
-        toast.error(error.message || 'Error creating account');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      toast.success('Account created! Please check your email to confirm your account');
-      setIsRegistering(false);
-      
-    } catch (error) {
-      console.error('Registration error:', error);
-      toast.error('An error occurred during registration');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const openWhatsApp = () => {
+    window.open('https://wa.me/96178991908', '_blank');
   };
 
   const togglePasswordVisibility = () => {
@@ -125,167 +84,101 @@ const WholesaleAuth: React.FC<WholesaleAuthProps> = ({ onLoginSuccess, isLoggedO
         <Card className="w-full">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold mb-2">
-              {isRegistering ? 'Create Wholesale Account' : 'Wholesale Access'}
+              Wholesale Access
             </CardTitle>
             <CardDescription>
-              {isRegistering 
-                ? 'Sign up for a wholesale account to access exclusive pricing and features' 
-                : 'Enter your credentials to access the wholesale portal'}
+              {isLoggedOut 
+                ? "You've been logged out. Please login again to access the wholesale portal."
+                : "Enter your credentials to access the wholesale portal"}
             </CardDescription>
           </CardHeader>
           
           <CardContent>
-            {isRegistering ? (
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="Enter username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="pl-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company (Optional)</Label>
-                  <Input
-                    id="company"
+                    id="username"
                     type="text"
-                    placeholder="Enter company name"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Enter username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className="pl-10"
                   />
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Creating Account...' : 'Register'}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="Enter username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="pl-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="rememberMe" 
-                    checked={rememberMe} 
-                    onCheckedChange={(checked) => setRememberMe(!!checked)} 
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pl-10"
                   />
-                  <label
-                    htmlFor="rememberMe"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1"
+                    onClick={togglePasswordVisibility}
                   >
-                    Remember me
-                  </label>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isSubmitting}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="rememberMe" 
+                  checked={rememberMe} 
+                  onCheckedChange={(checked) => setRememberMe(!!checked)} 
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  {isSubmitting ? 'Logging in...' : 'Login'}
+                  Remember me
+                </label>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Logging in...' : 'Login'}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Don't have wholesale access?
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={openWhatsApp}
+                >
+                  <MessageCircle className="h-4 w-4 text-green-500" />
+                  Contact us on WhatsApp
                 </Button>
-              </form>
-            )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Please message us at +96178991908 to request wholesale access.
+                  Our team will create an account for you.
+                </p>
+              </div>
+            </div>
           </CardContent>
-          
-          <CardFooter className="flex justify-center">
-            <Button
-              variant="link"
-              onClick={() => setIsRegistering(!isRegistering)}
-              className="text-sm"
-            >
-              {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
-            </Button>
-          </CardFooter>
         </Card>
       </motion.div>
     </div>
