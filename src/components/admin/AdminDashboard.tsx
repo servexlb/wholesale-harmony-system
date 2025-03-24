@@ -5,13 +5,63 @@ import { motion } from "framer-motion";
 import { Users, ShoppingCart, DollarSign } from "lucide-react";
 import { sales, customers } from "@/lib/data";
 import { WholesaleOrder } from "@/lib/types";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeOrders, setActiveOrders] = useState(0);
   const [revenue, setRevenue] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch data from Supabase on component mount
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch total users (customers + wholesale customers)
+        const { count: wholesaleCustomerCount, error: wholesaleCustomerError } = await supabase
+          .from('wholesale_customers')
+          .select('*', { count: 'exact', head: true });
+        
+        if (wholesaleCustomerError) {
+          console.error('Error fetching wholesale customers:', wholesaleCustomerError);
+        }
+        
+        // Fetch total orders
+        const { count: wholesaleOrderCount, error: wholesaleOrderError } = await supabase
+          .from('wholesale_orders')
+          .select('*', { count: 'exact', head: true });
+        
+        if (wholesaleOrderError) {
+          console.error('Error fetching wholesale orders:', wholesaleOrderError);
+        }
+        
+        // Fetch total revenue
+        const { data: revenueData, error: revenueError } = await supabase
+          .from('wholesale_orders')
+          .select('total_price');
+        
+        if (revenueError) {
+          console.error('Error fetching revenue data:', revenueError);
+        }
+        
+        // Update state with fetched data
+        setTotalUsers((wholesaleCustomerCount || 0) + customers.length);
+        setActiveOrders(wholesaleOrderCount || 0);
+        
+        // Calculate total revenue from Supabase + local data
+        const supabaseRevenue = revenueData?.reduce((sum, order) => sum + (order.total_price || 0), 0) || 0;
+        const localRevenue = sales.filter(sale => sale.paid).reduce((acc, sale) => acc + sale.total, 0);
+        setRevenue(supabaseRevenue + localRevenue);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+    
     // Set up listeners for customer changes and order updates
     const handleCustomerAdded = () => {
       updateCustomerCount();
@@ -22,7 +72,7 @@ const AdminDashboard = () => {
       updateRevenue();
     };
     
-    // Initial data load
+    // Initial data load for fallback
     updateCustomerCount();
     updateOrdersCount();
     updateRevenue();
@@ -37,27 +87,65 @@ const AdminDashboard = () => {
     };
   }, []);
   
-  const updateCustomerCount = () => {
-    // Check for real customers from data.ts
-    let customerCount = customers.length;
-    
-    // Also check wholesale customers
-    const wholesaleCustomers = localStorage.getItem('wholesaleCustomers');
-    if (wholesaleCustomers) {
-      try {
-        const parsedWholesaleCustomers = JSON.parse(wholesaleCustomers);
-        if (Array.isArray(parsedWholesaleCustomers)) {
-          customerCount += parsedWholesaleCustomers.length;
-        }
-      } catch (err) {
-        console.error("Error parsing wholesale customers:", err);
+  const updateCustomerCount = async () => {
+    try {
+      // Get count from Supabase
+      const { count, error } = await supabase
+        .from('wholesale_customers')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('Error fetching customer count:', error);
+        // Fall back to local data if Supabase fails
+        setTotalUsers(customers.length);
+      } else {
+        // Combine Supabase data with local data
+        setTotalUsers((count || 0) + customers.length);
       }
+    } catch (error) {
+      console.error('Error updating customer count:', error);
+      
+      // Fallback to checking localStorage if Supabase fails
+      let customerCount = customers.length;
+      
+      // Also check wholesale customers
+      const wholesaleCustomers = localStorage.getItem('wholesaleCustomers');
+      if (wholesaleCustomers) {
+        try {
+          const parsedWholesaleCustomers = JSON.parse(wholesaleCustomers);
+          if (Array.isArray(parsedWholesaleCustomers)) {
+            customerCount += parsedWholesaleCustomers.length;
+          }
+        } catch (err) {
+          console.error("Error parsing wholesale customers:", err);
+        }
+      }
+      
+      setTotalUsers(customerCount);
     }
-    
-    setTotalUsers(customerCount);
   };
   
-  const updateOrdersCount = () => {
+  const updateOrdersCount = async () => {
+    try {
+      // Get count from Supabase
+      const { count, error } = await supabase
+        .from('wholesale_orders')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('Error fetching order count:', error);
+        // Fall back to local data
+        fallbackOrdersCount();
+      } else {
+        setActiveOrders(count || 0);
+      }
+    } catch (error) {
+      console.error('Error updating orders count:', error);
+      fallbackOrdersCount();
+    }
+  };
+  
+  const fallbackOrdersCount = () => {
     let ordersCount = 0;
     
     // Check for customer orders in localStorage
@@ -89,7 +177,33 @@ const AdminDashboard = () => {
     setActiveOrders(ordersCount);
   };
   
-  const updateRevenue = () => {
+  const updateRevenue = async () => {
+    try {
+      // Get revenue data from Supabase
+      const { data, error } = await supabase
+        .from('wholesale_orders')
+        .select('total_price');
+      
+      if (error) {
+        console.error('Error fetching revenue data:', error);
+        // Fall back to local data
+        fallbackRevenueCalculation();
+      } else {
+        // Calculate revenue from Supabase data
+        const supabaseRevenue = data?.reduce((sum, order) => sum + (order.total_price || 0), 0) || 0;
+        
+        // Add revenue from paid sales in data.ts
+        const localRevenue = sales.filter(sale => sale.paid).reduce((acc, sale) => acc + sale.total, 0);
+        
+        setRevenue(supabaseRevenue + localRevenue);
+      }
+    } catch (error) {
+      console.error('Error updating revenue:', error);
+      fallbackRevenueCalculation();
+    }
+  };
+  
+  const fallbackRevenueCalculation = () => {
     let totalRevenue = 0;
     
     // Calculate revenue from paid sales in data.ts
@@ -129,15 +243,19 @@ const AdminDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.div 
-            className="text-2xl font-bold"
-            key={totalUsers}
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            {totalUsers.toLocaleString()}
-          </motion.div>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-muted animate-pulse rounded"></div>
+          ) : (
+            <motion.div 
+              className="text-2xl font-bold"
+              key={totalUsers}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              {totalUsers.toLocaleString()}
+            </motion.div>
+          )}
           <p className="text-xs text-gray-500">{userPercentChange} from last month</p>
         </CardContent>
       </Card>
@@ -149,15 +267,19 @@ const AdminDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.div 
-            className="text-2xl font-bold"
-            key={activeOrders}
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeOrders}
-          </motion.div>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-muted animate-pulse rounded"></div>
+          ) : (
+            <motion.div 
+              className="text-2xl font-bold"
+              key={activeOrders}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeOrders}
+            </motion.div>
+          )}
           <p className="text-xs text-gray-500">{orderPercentChange} from last month</p>
         </CardContent>
       </Card>
@@ -169,15 +291,19 @@ const AdminDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.div 
-            className="text-2xl font-bold"
-            key={revenue}
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            ${revenue.toLocaleString()}
-          </motion.div>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-muted animate-pulse rounded"></div>
+          ) : (
+            <motion.div 
+              className="text-2xl font-bold"
+              key={revenue}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              ${revenue.toLocaleString()}
+            </motion.div>
+          )}
           <p className="text-xs text-gray-500">{revenuePercentChange} from last month</p>
         </CardContent>
       </Card>

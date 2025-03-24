@@ -368,6 +368,48 @@ export type Database = {
         }
         Relationships: []
       }
+      wholesale_metrics: {
+        Row: {
+          average_order_value: number
+          created_at: string | null
+          id: string
+          monthly_sales: Json | null
+          sales_by_customer: Json | null
+          sales_by_service: Json | null
+          total_customers: number
+          total_sales: number
+          total_services: number
+          updated_at: string | null
+          wholesaler_id: string
+        }
+        Insert: {
+          average_order_value?: number
+          created_at?: string | null
+          id?: string
+          monthly_sales?: Json | null
+          sales_by_customer?: Json | null
+          sales_by_service?: Json | null
+          total_customers?: number
+          total_sales?: number
+          total_services?: number
+          updated_at?: string | null
+          wholesaler_id: string
+        }
+        Update: {
+          average_order_value?: number
+          created_at?: string | null
+          id?: string
+          monthly_sales?: Json | null
+          sales_by_customer?: Json | null
+          sales_by_service?: Json | null
+          total_customers?: number
+          total_sales?: number
+          total_services?: number
+          updated_at?: string | null
+          wholesaler_id?: string
+        }
+        Relationships: []
+      }
       wholesale_orders: {
         Row: {
           created_at: string

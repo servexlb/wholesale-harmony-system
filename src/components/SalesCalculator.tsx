@@ -6,15 +6,18 @@ import MonthlySalesChart from './sales/charts/MonthlySalesChart';
 import SalesDistributionChart from './sales/charts/SalesDistributionChart';
 import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SalesCalculatorProps {
   orders?: WholesaleOrder[];
   customers?: Customer[];
+  wholesalerId?: string;
 }
 
 const SalesCalculator: React.FC<SalesCalculatorProps> = ({
   orders = [],
-  customers = []
+  customers = [],
+  wholesalerId
 }) => {
   // Calculate real stats from the orders data
   const {
@@ -155,6 +158,7 @@ const SalesCalculator: React.FC<SalesCalculatorProps> = ({
         totalProducts={totalServices} // Use totalServices for totalProducts prop
         averageOrderValue={averageOrderValue}
         totalServices={totalServices} // Pass totalServices separately
+        wholesalerId={wholesalerId} // Pass the wholesalerId
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

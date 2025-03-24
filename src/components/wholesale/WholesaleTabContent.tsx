@@ -89,6 +89,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
           <SalesTab 
             orders={orders}
             customers={wholesalerCustomers}
+            wholesalerId={currentWholesaler}
           />
         </TabsContent>
         
