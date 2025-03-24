@@ -6,7 +6,11 @@ import MainLayout from "@/components/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SupportTicketForm from "@/components/SupportTicketForm";
-import { MessageSquare, FileQuestion, LifeBuoy, BookOpen, Share2 } from "lucide-react";
+import { MessageSquare, FileQuestion, LifeBuoy, BookOpen, Share2, Ticket } from "lucide-react";
+import ChatButton from "@/components/support/ChatButton";
+import PrioritySupport from "@/components/support/PrioritySupport";
+import UserTickets from "@/components/support/UserTickets";
+import { toast } from "sonner";
 
 const Support: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,7 +19,7 @@ const Support: React.FC = () => {
   // Get tab from URL parameter if it exists
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam && ["contact", "faq", "guides", "community"].includes(tabParam)) {
+    if (tabParam && ["contact", "faq", "guides", "community", "tickets"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
@@ -24,6 +28,18 @@ const Support: React.FC = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setSearchParams({ tab: value });
+  };
+
+  const handleGuideClick = (guideName: string) => {
+    toast.info(`Opening guide: ${guideName}`, {
+      description: "This would open the detailed guide in a real app",
+    });
+  };
+
+  const handleCommunityActionClick = (platform: string) => {
+    toast.info(`Redirecting to ${platform}`, {
+      description: `You would be redirected to our ${platform} in a real app`,
+    });
   };
 
   return (
@@ -38,8 +54,9 @@ const Support: React.FC = () => {
           <h1 className="text-3xl font-bold mb-6">Support Center</h1>
           
           <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
               <TabsTrigger value="contact">Contact Us</TabsTrigger>
+              <TabsTrigger value="tickets">My Tickets</TabsTrigger>
               <TabsTrigger value="faq">FAQs</TabsTrigger>
               <TabsTrigger value="guides">Guides</TabsTrigger>
               <TabsTrigger value="community">Community</TabsTrigger>
@@ -61,9 +78,7 @@ const Support: React.FC = () => {
                     <p className="text-sm text-muted-foreground mb-4">
                       Available Monday to Friday, 9 AM - 6 PM EST.
                     </p>
-                    <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
-                      Start Chat
-                    </button>
+                    <ChatButton />
                   </CardContent>
                 </Card>
                 
@@ -81,14 +96,16 @@ const Support: React.FC = () => {
                     <p className="text-sm text-muted-foreground mb-4">
                       24/7 availability for Premium users.
                     </p>
-                    <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
-                      Contact Priority Support
-                    </button>
+                    <PrioritySupport />
                   </CardContent>
                 </Card>
               </div>
               
               <SupportTicketForm />
+            </TabsContent>
+            
+            <TabsContent value="tickets" className="space-y-6 mt-6">
+              <UserTickets />
             </TabsContent>
             
             <TabsContent value="faq" className="space-y-6 mt-6">
@@ -139,22 +156,42 @@ const Support: React.FC = () => {
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium mb-2">Getting Started</h3>
                       <p className="text-sm text-muted-foreground mb-3">Learn the basics of navigating and using our platform.</p>
-                      <button className="text-primary text-sm font-medium">Read Guide →</button>
+                      <button 
+                        className="text-primary text-sm font-medium"
+                        onClick={() => handleGuideClick("Getting Started")}
+                      >
+                        Read Guide →
+                      </button>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium mb-2">Streaming Services Setup</h3>
                       <p className="text-sm text-muted-foreground mb-3">How to set up and start using your streaming accounts.</p>
-                      <button className="text-primary text-sm font-medium">Read Guide →</button>
+                      <button 
+                        className="text-primary text-sm font-medium"
+                        onClick={() => handleGuideClick("Streaming Services Setup")}
+                      >
+                        Read Guide →
+                      </button>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium mb-2">Managing Subscriptions</h3>
                       <p className="text-sm text-muted-foreground mb-3">How to view, manage and renew your active subscriptions.</p>
-                      <button className="text-primary text-sm font-medium">Read Guide →</button>
+                      <button 
+                        className="text-primary text-sm font-medium"
+                        onClick={() => handleGuideClick("Managing Subscriptions")}
+                      >
+                        Read Guide →
+                      </button>
                     </div>
                     <div className="border rounded-lg p-4">
                       <h3 className="font-medium mb-2">Account Recovery</h3>
                       <p className="text-sm text-muted-foreground mb-3">Steps to recover or reset account credentials.</p>
-                      <button className="text-primary text-sm font-medium">Read Guide →</button>
+                      <button 
+                        className="text-primary text-sm font-medium"
+                        onClick={() => handleGuideClick("Account Recovery")}
+                      >
+                        Read Guide →
+                      </button>
                     </div>
                   </div>
                 </CardContent>
@@ -177,17 +214,32 @@ const Support: React.FC = () => {
                     <div className="border rounded-lg p-4 text-center">
                       <h3 className="font-medium mb-2">Discord</h3>
                       <p className="text-sm text-muted-foreground mb-3">Join our community Discord for real-time discussions.</p>
-                      <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors w-full">Join Discord</button>
+                      <button 
+                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors w-full"
+                        onClick={() => handleCommunityActionClick("Discord")}
+                      >
+                        Join Discord
+                      </button>
                     </div>
                     <div className="border rounded-lg p-4 text-center">
                       <h3 className="font-medium mb-2">Forums</h3>
                       <p className="text-sm text-muted-foreground mb-3">Browse our community forums for tips and solutions.</p>
-                      <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors w-full">Visit Forums</button>
+                      <button 
+                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors w-full"
+                        onClick={() => handleCommunityActionClick("Forums")}
+                      >
+                        Visit Forums
+                      </button>
                     </div>
                     <div className="border rounded-lg p-4 text-center">
                       <h3 className="font-medium mb-2">Knowledge Base</h3>
                       <p className="text-sm text-muted-foreground mb-3">Explore our extensive knowledge base articles.</p>
-                      <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors w-full">Browse Articles</button>
+                      <button 
+                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors w-full"
+                        onClick={() => handleCommunityActionClick("Knowledge Base")}
+                      >
+                        Browse Articles
+                      </button>
                     </div>
                   </div>
                 </CardContent>

@@ -6,20 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { Upload, Image as ImageIcon, Send } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-interface SupportTicketFormValues {
-  subject: string;
-  description: string;
-}
+const ticketSchema = z.object({
+  subject: z.string().min(5, "Subject must be at least 5 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters")
+});
+
+type SupportTicketFormValues = z.infer<typeof ticketSchema>;
 
 const SupportTicketForm: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const form = useForm<SupportTicketFormValues>({
+    resolver: zodResolver(ticketSchema),
     defaultValues: {
       subject: "",
       description: ""
@@ -39,6 +46,11 @@ const SupportTicketForm: React.FC = () => {
   };
 
   const onSubmit = (data: SupportTicketFormValues) => {
+    if (!user) {
+      toast.error("You must be logged in to submit a ticket");
+      return;
+    }
+
     setIsSubmitting(true);
     
     // In a real app, you would upload the image and send the form data to your backend
@@ -48,7 +60,7 @@ const SupportTicketForm: React.FC = () => {
       const tickets = JSON.parse(localStorage.getItem('supportTickets') || '[]');
       const newTicket = {
         id: `ticket-${Date.now()}`,
-        userId: "current-user-id", // In a real app, you'd get this from auth context
+        userId: user.id || "guest-user", // Use actual user ID from auth context
         subject: data.subject,
         description: data.description,
         imageUrl: imagePreview,
@@ -67,7 +79,9 @@ const SupportTicketForm: React.FC = () => {
       setIsSubmitting(false);
       
       // Show success message
-      toast.success("Your support ticket has been submitted successfully!");
+      toast.success("Your support ticket has been submitted successfully!", {
+        description: "We'll get back to you shortly.",
+      });
     }, 1500);
   };
 
@@ -155,7 +169,7 @@ const SupportTicketForm: React.FC = () => {
             <div className="pt-4">
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || !user}
                 className="w-full sm:w-auto"
               >
                 {isSubmitting ? (
@@ -167,6 +181,11 @@ const SupportTicketForm: React.FC = () => {
                   </>
                 )}
               </Button>
+              {!user && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  You must be logged in to submit a support ticket.
+                </p>
+              )}
             </div>
           </form>
         </Form>
