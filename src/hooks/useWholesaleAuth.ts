@@ -141,8 +141,8 @@ export function useWholesaleAuth() {
       setIsAuthenticated(true);
       localStorage.setItem('wholesaleAuthenticated', 'true');
       
-      // Fix the type issue with better null checking and fallback
-      const userId = data?.user?.id || username;
+      // Properly handle the null case with optional chaining and nullish coalescing
+      const userId = data?.session?.user?.id ?? username;
       localStorage.setItem('wholesalerId', userId);
       
       setCurrentWholesaler(userId);
