@@ -25,6 +25,7 @@ export interface Order {
     password?: string;
     email?: string;
     notes?: string;
+    pinCode?: string;
     [key: string]: any;
   };
   credentialStatus?: 'available' | 'pending' | 'assigned';

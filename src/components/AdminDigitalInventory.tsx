@@ -1,908 +1,318 @@
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Mail, Key, PlusCircle, Trash2, Server, ShoppingCart, Search, User, Hash, Copy } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlusCircle, RefreshCw, FileText, Layers, Archive } from "lucide-react";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Product, Service, ServiceType, CredentialStock, Credential, DigitalItem } from "@/lib/types";
-import { products as dataProducts } from "@/lib/data";
-import { 
-  getAllCredentialStock, 
-  addCredentialToStock, 
-  deleteCredentialFromStock,
-  updateCredentialInStock,
-  saveCredentialStock,
-  mapSupabaseCredentialsToLocal
-} from '@/lib/credentialUtils';
-import { loadServices, loadProducts } from '@/lib/productManager';
-import { supabase } from "@/integrations/supabase/client";
+import { getAvailableCredentials } from '@/lib/credentialService';
+import { loadServices } from '@/lib/productManager';
+import { Service, DigitalItem } from '@/lib/types';
+import CredentialManager from '@/components/admin/CredentialManager';
+import StockIssueManager from '@/components/admin/StockIssueManager';
 
-const getServices = (): Service[] => {
-  const storedServices = localStorage.getItem('services');
-  return storedServices ? JSON.parse(storedServices) : [];
-};
-
-const AdminDigitalInventory: React.FC = () => {
-  const convertToDigitalItems = (stock: CredentialStock[]): DigitalItem[] => {
-    return stock.map(item => {
-      const service = availableServices.find(s => s.id === item.serviceId) || { name: item.serviceId };
-      return {
-        ...item,
-        serviceName: service.name
-      };
-    });
-  };
-
+const AdminDigitalInventory = () => {
+  const [activeTab, setActiveTab] = useState('stock');
   const [inventory, setInventory] = useState<DigitalItem[]>([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [bulkImport, setBulkImport] = useState(false);
-  const [selectedService, setSelectedService] = useState("");
-  const [newCredentials, setNewCredentials] = useState({ email: "", password: "", username: "", pinCode: "" });
-  const [bulkCredentials, setBulkCredentials] = useState("");
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [showProductSelector, setShowProductSelector] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [quantity, setQuantity] = useState(1);
-  const [availableServices, setAvailableServices] = useState<Array<{id: string, name: string}>>([]);
-  // Set auto-add new products to false by default
-  const [autoAddNewProducts, setAutoAddNewProducts] = useState(false);
-  
-  const loadInventory = useCallback(async () => {
-    try {
-      const { data: supabaseStock, error } = await supabase
-        .from('credential_stock')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      if (supabaseStock && supabaseStock.length > 0) {
-        const mappedCredentials = mapSupabaseCredentialsToLocal(supabaseStock);
-        setInventory(convertToDigitalItems(mappedCredentials));
-        return;
-      }
-    } catch (err) {
-      console.error('Error fetching from Supabase:', err);
-    }
-    
-    const stock = getAllCredentialStock();
-    setInventory(convertToDigitalItems(stock));
-  }, [availableServices]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [services, setServices] = useState<Service[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [newCredential, setNewCredential] = useState({
+    email: '',
+    password: '',
+    username: '',
+    notes: ''
+  });
 
-  // Auto add all products and services that aren't already in inventory - now controlled by a setting
-  const autoAddAllProductsToInventory = useCallback(() => {
-    if (!autoAddNewProducts) return;
-    
-    // Get all products and services
-    const products = loadProducts();
-    const services = loadServices();
-    
-    // Get existing services in inventory
-    const existingServiceIds = new Set(inventory.map(item => item.serviceId));
-    
-    // Find products/services not yet in inventory
-    const productsToAdd = [...products, ...services].filter(p => 
-      !existingServiceIds.has(p.id) && p.type === 'subscription'
-    );
-    
-    if (productsToAdd.length === 0) return;
-    
-    // Add each product to inventory with empty credentials
-    const newItems: DigitalItem[] = [];
-    
-    productsToAdd.forEach(product => {
-      const credentials = {
-        email: "",
-        password: "", // No auto-generated password
-        username: "",
-        pinCode: ""
-      };
-      
-      const newItem = addCredentialToStock(product.id, credentials);
-      const digitalItem: DigitalItem = {
-        ...newItem,
-        serviceName: product.name
-      };
-      
-      newItems.push(digitalItem);
-    });
-    
-    if (newItems.length > 0) {
-      setInventory(prev => [...prev, ...newItems]);
-      toast.success(`Auto-added ${newItems.length} new products to inventory`, {
-        description: "Empty credentials were created for each product"
-      });
-    }
-  }, [inventory, autoAddNewProducts]);
-
-  const loadAllServices = useCallback(async () => {
-    const managedServices = loadServices();
-    const managedProducts = loadProducts();
-    const productsAsServices = dataProducts.map(p => ({
-      id: p.id,
-      name: p.name
-    }));
-    
-    let subscriptionServices: {id: string, name: string}[] = [];
-    try {
-      const { data: subscriptions, error } = await supabase
-        .from('subscriptions')
-        .select('service_id');
-      
-      if (!error && subscriptions) {
-        // Use client-side filtering for unique service IDs
-        const uniqueServiceIds = Array.from(new Set(subscriptions.map(sub => sub.service_id)));
-        
-        subscriptionServices = uniqueServiceIds.map(serviceId => {
-          const service = managedServices.find(s => s.id === serviceId);
-          return {
-            id: serviceId,
-            name: service?.name || `Service ${serviceId}`
-          };
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching subscription services:', err);
-    }
-    
-    const allServices = [
-      ...managedServices,
-      ...managedProducts,
-      ...productsAsServices,
-      ...subscriptionServices
-    ];
-    
-    const uniqueServices = Array.from(
-      new Map(allServices.map(item => [item.id, item])).values()
-    );
-    
-    setAvailableServices(uniqueServices);
-    
-    if (uniqueServices.length > 0 && !selectedService) {
-      setSelectedService(uniqueServices[0].id);
-    }
-  }, [selectedService]);
-
+  // Load services and inventory data
   useEffect(() => {
-    loadAllServices();
-    loadInventory();
+    const loadData = async () => {
+      setIsLoading(true);
+      
+      // Load services
+      const services = loadServices();
+      setServices(services);
+      
+      // Initialize inventory data structure
+      const inventoryItems: DigitalItem[] = [];
+      
+      // For each service, get available credentials
+      for (const service of services) {
+        try {
+          const credentials = await getAvailableCredentials(service.id);
+          
+          // Map credentials to the expected format
+          const items = credentials.map(cred => ({
+            ...cred,
+            serviceName: service.name
+          }));
+          
+          inventoryItems.push(...items);
+        } catch (error) {
+          console.error(`Error fetching credentials for ${service.name}:`, error);
+        }
+      }
+      
+      setInventory(inventoryItems);
+      setIsLoading(false);
+    };
     
-    window.addEventListener('credential-stock-updated', loadInventory);
-    window.addEventListener('service-updated', loadAllServices);
-    window.addEventListener('service-added', loadAllServices);
-    window.addEventListener('subscription-added', loadAllServices);
-    window.addEventListener('product-added', loadAllServices);
-    window.addEventListener('product-updated', loadAllServices);
+    loadData();
+    
+    // Listen for updates to credential stock
+    const handleStockUpdated = () => {
+      loadData();
+    };
+    
+    window.addEventListener('credential-stock-updated', handleStockUpdated);
+    window.addEventListener('stock-issue-resolved', handleStockUpdated);
     
     return () => {
-      window.removeEventListener('credential-stock-updated', loadInventory);
-      window.removeEventListener('service-updated', loadAllServices);
-      window.removeEventListener('service-added', loadAllServices);
-      window.removeEventListener('subscription-added', loadAllServices);
-      window.removeEventListener('product-added', loadAllServices);
-      window.removeEventListener('product-updated', loadAllServices);
+      window.removeEventListener('credential-stock-updated', handleStockUpdated);
+      window.removeEventListener('stock-issue-resolved', handleStockUpdated);
     };
-  }, [loadInventory, loadAllServices]);
-
-  // Effect to auto add products is still used but controlled by the autoAddNewProducts state
-  useEffect(() => {
-    autoAddAllProductsToInventory();
-  }, [availableServices, autoAddAllProductsToInventory]);
-
-  useEffect(() => {
-    const servicesAsProducts: Product[] = getServices().map(service => ({
-      id: service.id,
-      name: service.name,
-      description: service.description || "",
-      price: service.price,
-      wholesalePrice: service.wholesalePrice,
-      image: service.image || "",
-      category: service.categoryId ? `Category ${service.categoryId}` : 'Uncategorized',
-      categoryId: service.categoryId || 'uncategorized',
-      featured: service.featured || false,
-      type: service.type as ServiceType,
-      deliveryTime: service.deliveryTime || "",
-      apiUrl: service.apiUrl,
-      availableMonths: service.availableMonths,
-      value: service.value,
-      minQuantity: service.type === "subscription" ? 1 : undefined,
-      requiresId: service.requiresId ?? false
-    }));
-    
-    const formattedDataProducts = dataProducts.map(product => {
-      return {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        wholesalePrice: product.wholesalePrice,
-        image: product.image, 
-        category: product.category,
-        categoryId: product.categoryId || product.category || 'uncategorized',
-        featured: product.featured || false,
-        type: (product.type || "subscription") as ServiceType,
-        deliveryTime: product.deliveryTime || "",
-        apiUrl: product.apiUrl,
-        availableMonths: product.availableMonths,
-        value: product.value,
-        minQuantity: 'minQuantity' in product && product.minQuantity !== undefined 
-          ? Number(product.minQuantity) 
-          : undefined,
-        requiresId: product.requiresId ?? false
-      };
-    });
-    
-    // Add all managed products
-    const managedProducts = loadProducts();
-    
-    const combinedProducts = [...formattedDataProducts, ...servicesAsProducts, ...managedProducts];
-    setAllProducts(combinedProducts);
-    setFilteredProducts(combinedProducts);
   }, []);
 
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredProducts(allProducts);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = allProducts.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        product.description.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query)
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchQuery, allProducts]);
-
-  const handleAddItem = () => {
-    if (!selectedService || !newCredentials.email || !newCredentials.password) {
-      toast.error("Missing Information", {
-        description: "Please fill in at least email and password fields",
-      });
-      return;
-    }
-
-    const serviceName = availableServices.find(s => s.id === selectedService)?.name || "";
-    const newItems: DigitalItem[] = [];
+  const handleRefresh = async () => {
+    setIsLoading(true);
     
-    for (let i = 0; i < quantity; i++) {
-      const credentials = {
-        email: newCredentials.email,
-        password: newCredentials.password,
-        username: newCredentials.username || "",
-        pinCode: newCredentials.pinCode || ""
-      };
+    try {
+      // Re-initialize inventory data structure
+      const inventoryItems: DigitalItem[] = [];
       
-      const newItem = addCredentialToStock(selectedService, {
-        email: credentials.email || '',
-        password: credentials.password || '',
-        username: credentials.username,
-        pinCode: credentials.pinCode
-      });
-      const digitalItem: DigitalItem = {
-        ...newItem,
-        serviceName
-      };
-      
-      newItems.push(digitalItem);
-    }
-
-    setInventory(prev => [...prev, ...newItems]);
-    setNewCredentials({ email: "", password: "", username: "", pinCode: "" });
-    toast.success("Items Added", {
-      description: `${quantity} digital inventory item(s) have been added successfully`,
-    });
-    setQuantity(1);
-  };
-
-  const handleBulkImport = () => {
-    if (!selectedService || !bulkCredentials) {
-      toast.error("Missing Information", {
-        description: "Please select a service and enter credentials",
-      });
-      return;
-    }
-
-    const lines = bulkCredentials.split('\n').filter(line => line.trim());
-    const serviceName = availableServices.find(s => s.id === selectedService)?.name || "";
-    
-    const newItems: DigitalItem[] = [];
-    
-    lines.forEach(line => {
-      const parts = line.split(':').map(part => part.trim());
-      const [email, password, username, pinCode] = parts;
-      
-      if (email && password) {
-        for (let i = 0; i < quantity; i++) {
-          const credentials = { 
-            email, 
-            password,
-            username: username || "",
-            pinCode: pinCode || ""
-          };
+      // For each service, get available credentials
+      for (const service of services) {
+        try {
+          const credentials = await getAvailableCredentials(service.id);
           
-          const newItem = addCredentialToStock(selectedService, {
-            email: credentials.email || '',
-            password: credentials.password || '',
-            username: credentials.username,
-            pinCode: credentials.pinCode
-          });
-          const digitalItem: DigitalItem = {
-            ...newItem,
-            serviceName
-          };
+          // Map credentials to the expected format
+          const items = credentials.map(cred => ({
+            ...cred,
+            serviceName: service.name
+          }));
           
-          newItems.push(digitalItem);
+          inventoryItems.push(...items);
+        } catch (error) {
+          console.error(`Error fetching credentials for ${service.name}:`, error);
         }
       }
-    });
-
-    if (newItems.length > 0) {
-      setInventory(prev => [...prev, ...newItems]);
-      setBulkCredentials("");
-      toast.success("Bulk Import Successful", {
-        description: `Added ${newItems.length} items to inventory`,
-      });
-      setQuantity(1);
-    } else {
-      toast.error("Import Failed", {
-        description: "No valid credentials found. Use format: email:password[:username][:pinCode]",
-      });
-    }
-  };
-
-  const duplicateItem = (item: DigitalItem) => {
-    const duplicatedItems: DigitalItem[] = [];
-    
-    for (let i = 0; i < quantity; i++) {
-      const newItem = addCredentialToStock(item.serviceId, {...item.credentials});
-      const digitalItem: DigitalItem = {
-        ...newItem,
-        serviceName: item.serviceName
-      };
       
-      duplicatedItems.push(digitalItem);
-    }
-    
-    setInventory(prev => [...prev, ...duplicatedItems]);
-    
-    toast.success("Items Duplicated", {
-      description: `${quantity} copies of the item have been added to inventory`,
-    });
-    setQuantity(1);
-  };
-
-  const handleDeleteItem = (id: string) => {
-    deleteCredentialFromStock(id);
-    setInventory(inventory.filter(item => item.id !== id));
-    toast.success("Item Removed", {
-      description: "Digital inventory item has been removed",
-    });
-  };
-
-  const handleAddToInventory = (productId: string) => {
-    if (selectedProducts.includes(productId)) {
-      setSelectedProducts(selectedProducts.filter(id => id !== productId));
-    } else {
-      setSelectedProducts([...selectedProducts, productId]);
+      setInventory(inventoryItems);
+      toast.success('Inventory refreshed');
+    } catch (error) {
+      console.error('Error refreshing inventory:', error);
+      toast.error('Failed to refresh inventory');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAddSelectedProducts = () => {
-    const productsToAdd: DigitalItem[] = [];
-    
-    selectedProducts.forEach(productId => {
-      const product = allProducts.find(p => p.id === productId);
-      
-      for (let i = 0; i < quantity; i++) {
-        const credentials = {
-          email: "",
-          password: "", // No auto-generated password
-          username: "",
-          pinCode: ""
-        };
-        
-        const newItem = addCredentialToStock(product?.id || "", credentials);
-        const digitalItem: DigitalItem = {
-          ...newItem,
-          serviceName: product?.name || ""
-        };
-        
-        productsToAdd.push(digitalItem);
-      }
-    });
-    
-    setInventory(prev => [...prev, ...productsToAdd]);
-    toast.success("Products Added to Inventory", {
-      description: `Added ${productsToAdd.length} products to inventory. You can now add credentials for them.`,
-    });
-    setSelectedProducts([]);
-    setShowProductSelector(false);
-    setQuantity(1);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedProducts.length === filteredProducts.length) {
-      setSelectedProducts([]);
-    } else {
-      setSelectedProducts(filteredProducts.map(product => product.id));
-    }
-  };
-
-  const updateCredential = (itemId: string, field: keyof Credential, value: string) => {
-    const itemToUpdate = inventory.find(item => item.id === itemId);
-    
-    if (!itemToUpdate) {
-      console.error(`Item with id ${itemId} not found in inventory`);
+  // Handle adding new credentials
+  const handleAddCredential = async () => {
+    if (!selectedService) {
+      toast.error('Please select a service');
       return;
     }
     
-    const updatedCredentials = {
-      ...itemToUpdate.credentials,
-      [field]: value
-    };
+    if (!newCredential.email || !newCredential.password) {
+      toast.error('Email and password are required');
+      return;
+    }
     
-    const validatedCredentials = {
-      email: updatedCredentials.email || "",
-      password: updatedCredentials.password || "",
-      username: updatedCredentials.username,
-      pinCode: updatedCredentials.pinCode
-    };
+    setIsLoading(true);
     
-    const result = updateCredentialInStock(itemId, {
-      credentials: validatedCredentials
-    });
-    
-    if (result) {
-      const updatedInventory = inventory.map(item => {
-        if (item.id === itemId) {
-          return {
-            ...item,
-            credentials: validatedCredentials
-          };
-        }
-        return item;
+    try {
+      // Import the function dynamically
+      const { addCredentialToStock } = await import('@/lib/credentialService');
+      
+      const success = await addCredentialToStock(selectedService.id, {
+        email: newCredential.email,
+        password: newCredential.password,
+        username: newCredential.username || '',
+        notes: newCredential.notes || ''
       });
       
-      setInventory(updatedInventory);
-    } else {
-      toast.error("Update Failed", {
-        description: `Could not update ${String(field)} for item ${itemId.substring(0, 8)}...`,
-      });
+      if (success) {
+        toast.success(`Credential added to ${selectedService.name} stock`);
+        setDialogOpen(false);
+        setNewCredential({
+          email: '',
+          password: '',
+          username: '',
+          notes: ''
+        });
+        handleRefresh();
+      } else {
+        toast.error('Failed to add credential');
+      }
+    } catch (error) {
+      console.error('Error adding credential:', error);
+      toast.error('Failed to add credential');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const availableCount = inventory.filter(item => item.status === "available").length;
-  const deliveredCount = inventory.filter(item => item.status === "assigned").length;
+  // Group inventory items by service name
+  const groupedInventory = inventory.reduce((groups, item) => {
+    const serviceName = item.serviceName;
+    if (!groups[serviceName]) {
+      groups[serviceName] = [];
+    }
+    groups[serviceName].push(item);
+    return groups;
+  }, {} as Record<string, DigitalItem[]>);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Digital Inventory</h2>
-        <div className="flex gap-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Select Products
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Select Products for Inventory</SheetTitle>
-                <SheetDescription>
-                  Choose which products you want to add to your digital inventory
-                </SheetDescription>
-              </SheetHeader>
-              <div className="my-4">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Checkbox 
-                    id="auto-add" 
-                    checked={autoAddNewProducts} 
-                    onCheckedChange={(checked) => setAutoAddNewProducts(!!checked)} 
-                  />
-                  <Label htmlFor="auto-add">Automatically add new products to inventory</Label>
-                </div>
-                
-                <div className="relative mb-4">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search products..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {filteredProducts.length} of {allProducts.length} products
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleSelectAll}
-                  >
-                    {selectedProducts.length === filteredProducts.length ? "Deselect All" : "Select All"}
-                  </Button>
-                </div>
-                
-                <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-4">
-                  {filteredProducts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No products found matching your search.
-                    </div>
-                  ) : (
-                    filteredProducts.map((product) => (
-                      <div key={product.id} className="flex items-center space-x-2 border-b pb-2">
-                        <Checkbox
-                          id={`product-${product.id}`}
-                          checked={selectedProducts.includes(product.id)}
-                          onCheckedChange={() => handleAddToInventory(product.id)}
-                        />
-                        <div className="grid grid-cols-[40px_1fr] gap-4 items-center">
-                          <img 
-                            src={product.image || "https://placehold.co/40x40/gray/white?text=No+Image"} 
-                            alt={product.name}
-                            className="w-10 h-10 object-cover rounded"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "https://placehold.co/40x40/gray/white?text=Error";
-                            }}
-                          />
-                          <div>
-                            <Label
-                              htmlFor={`product-${product.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {product.name}
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              ${product.price.toFixed(2)} - {product.category}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 mt-4">
-                <div className="flex items-center">
-                  <Label htmlFor="quantity" className="w-24">Quantity:</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-24"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowProductSelector(false);
-                      setSearchQuery("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleAddSelectedProducts}
-                    disabled={selectedProducts.length === 0}
-                  >
-                    Add {selectedProducts.length * quantity} Products
-                  </Button>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-          <Button onClick={() => setShowAddForm(!showAddForm)}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Stock
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Digital Inventory</h2>
+        <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+      
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="stock">
+            <Layers className="h-4 w-4 mr-2" />
+            Credential Stock
+          </TabsTrigger>
+          <TabsTrigger value="issues">
+            <FileText className="h-4 w-4 mr-2" />
+            Stock Issues
+          </TabsTrigger>
+          <TabsTrigger value="archive">
+            <Archive className="h-4 w-4 mr-2" />
+            Assigned Items
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="stock" className="space-y-4">
+          <CredentialManager services={services} />
+        </TabsContent>
+        
+        <TabsContent value="issues">
+          <StockIssueManager />
+        </TabsContent>
+        
+        <TabsContent value="archive">
+          <Card>
+            <CardHeader>
+              <CardTitle>Assigned Credentials</CardTitle>
+              <CardDescription>
+                View credentials that have been assigned to customers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                This feature is coming soon.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Add credential dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger asChild>
+          <Button className="fixed bottom-4 right-4 shadow-lg">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Credential
           </Button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Available Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{availableCount}</div>
-            <p className="text-xs text-gray-500">Ready to be delivered</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Delivered Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deliveredCount}</div>
-            <p className="text-xs text-gray-500">Successfully delivered to customers</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Stock</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inventory.length}</div>
-            <p className="text-xs text-gray-500">Total items in inventory</p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {showAddForm && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Add Digital Stock</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant={bulkImport ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setBulkImport(true)}
-                >
-                  Bulk Import
-                </Button>
-                <Button 
-                  variant={!bulkImport ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setBulkImport(false)}
-                >
-                  Single Item
-                </Button>
-              </div>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Credential</DialogTitle>
+            <DialogDescription>
+              Add a new credential to your digital inventory
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="service">Service</Label>
+              <select
+                id="service"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={selectedService?.id || ''}
+                onChange={(e) => {
+                  const service = services.find(s => s.id === e.target.value);
+                  setSelectedService(service || null);
+                }}
+              >
+                <option value="">Select a service</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <CardDescription>
-              Add digital credentials that will be automatically delivered to customers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="service">Service</Label>
-                <select 
-                  id="service"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                >
-                  {availableServices.length === 0 ? (
-                    <option value="">No services available</option>
-                  ) : (
-                    availableServices.map(service => (
-                      <option key={service.id} value={service.id}>
-                        {service.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input 
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full"
-                />
-              </div>
-              
-              {!bulkImport ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
-                        id="email"
-                        value={newCredentials.email}
-                        onChange={(e) => setNewCredentials({...newCredentials, email: e.target.value})}
-                        placeholder="user@example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input 
-                        id="password"
-                        type="text"
-                        value={newCredentials.password}
-                        onChange={(e) => setNewCredentials({...newCredentials, password: e.target.value})}
-                        placeholder="Enter password manually"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
-                      <Input 
-                        id="username"
-                        value={newCredentials.username}
-                        onChange={(e) => setNewCredentials({...newCredentials, username: e.target.value})}
-                        placeholder="username"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="pinCode">PIN Code</Label>
-                      <Input 
-                        id="pinCode"
-                        value={newCredentials.pinCode}
-                        onChange={(e) => setNewCredentials({...newCredentials, pinCode: e.target.value})}
-                        placeholder="1234"
-                      />
-                    </div>
-                  </div>
-                  <Button onClick={handleAddItem} className="w-full">
-                    <Key className="h-4 w-4 mr-2" />
-                    Add to Inventory ({quantity > 1 ? `${quantity} items` : "1 item"})
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="bulkCredentials">
-                      Bulk Credentials (one per line, format: email:password[:username][:pinCode])
-                    </Label>
-                    <Textarea 
-                      id="bulkCredentials"
-                      value={bulkCredentials}
-                      onChange={(e) => setBulkCredentials(e.target.value)}
-                      placeholder="user1@example.com:password123:user1:1234&#10;user2@example.com:password456:user2:5678"
-                      className="min-h-[150px]"
-                    />
-                  </div>
-                  <Button onClick={handleBulkImport} className="w-full">
-                    <Server className="h-4 w-4 mr-2" />
-                    Import Bulk Credentials ({quantity > 1 ? `${quantity} copies each` : "1 copy each"})
-                  </Button>
-                </>
-              )}
+            
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                value={newCredential.email}
+                onChange={(e) => setNewCredential(prev => ({ ...prev, email: e.target.value }))}
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory</CardTitle>
-          <CardDescription>
-            Manage your digital credentials inventory
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Password</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>PIN Code</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Added</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inventory.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
-                      No inventory items found. Add stock to get started.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  inventory.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.serviceName}</TableCell>
-                      <TableCell className="min-w-[180px]">
-                        <Input 
-                          placeholder="Enter email" 
-                          value={item.credentials.email || ""}
-                          onChange={(e) => updateCredential(item.id, 'email', e.target.value)}
-                          className="w-full focus:border-blue-500"
-                        />
-                      </TableCell>
-                      <TableCell className="min-w-[180px]">
-                        <Input 
-                          placeholder="Enter password" 
-                          value={item.credentials.password || ""}
-                          onChange={(e) => updateCredential(item.id, 'password', e.target.value)}
-                          className="w-full focus:border-blue-500"
-                        />
-                      </TableCell>
-                      <TableCell className="min-w-[180px]">
-                        <Input 
-                          placeholder="Enter username" 
-                          value={item.credentials.username || ""}
-                          onChange={(e) => updateCredential(item.id, 'username', e.target.value)}
-                          className="w-full focus:border-blue-500"
-                        />
-                      </TableCell>
-                      <TableCell className="min-w-[180px]">
-                        <Input 
-                          placeholder="Enter PIN code" 
-                          value={item.credentials.pinCode || ""}
-                          onChange={(e) => updateCredential(item.id, 'pinCode', e.target.value)}
-                          className="w-full focus:border-blue-500"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {item.status === "available" ? "Available" : "Assigned"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {item.status === "available" && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => duplicateItem(item)}
-                                title="Duplicate Item"
-                              >
-                                <Copy className="h-4 w-4 text-blue-500" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleDeleteItem(item.id)}
-                                title="Delete Item"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                value={newCredential.password}
+                onChange={(e) => setNewCredential(prev => ({ ...prev, password: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="username">Username (Optional)</Label>
+              <Input
+                id="username"
+                value={newCredential.username}
+                onChange={(e) => setNewCredential(prev => ({ ...prev, username: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Input
+                id="notes"
+                value={newCredential.notes}
+                onChange={(e) => setNewCredential(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
           </div>
-        </CardContent>
-        <CardFooter className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="duplicateQuantity">Duplicate Quantity:</Label>
-            <Input
-              id="duplicateQuantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-20"
-            />
-          </div>
-          <span className="text-sm text-muted-foreground">
-            Use the <Copy className="h-3 w-3 inline mx-1" /> icon to duplicate an item {quantity > 1 ? `${quantity} times` : ""}
-          </span>
-        </CardFooter>
-      </Card>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddCredential}
+              disabled={isLoading || !selectedService || !newCredential.email || !newCredential.password}
+            >
+              {isLoading ? 'Adding...' : 'Add to Inventory'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

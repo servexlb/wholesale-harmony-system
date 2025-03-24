@@ -1,131 +1,11 @@
-import { Credential, CredentialStock } from "@/lib/types";
-import { addCredentialToStock as addToSupabase } from "./credentialService";
 
-// Legacy function for backwards compatibility
-export function getAllCredentialStock(): CredentialStock[] {
-  try {
-    const storedStock = localStorage.getItem('credentialStock');
-    return storedStock ? JSON.parse(storedStock) : [];
-  } catch (error) {
-    console.error('Error getting credential stock:', error);
-    return [];
-  }
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Credential } from '@/lib/types';
+import { addCredentialToStock } from '@/lib/credentialService';
 
-// Legacy function for backwards compatibility
-export function addCredentialToStock(serviceId: string, credentials: Credential): CredentialStock {
-  // Legacy implementation - will also add to Supabase if available
-  const id = `cred-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  
-  const newCredential: CredentialStock = {
-    id,
-    serviceId,
-    credentials,
-    status: "available",
-    createdAt: new Date().toISOString(),
-  };
-  
-  try {
-    // Add to localStorage for backward compatibility
-    const currentStock = getAllCredentialStock();
-    const updatedStock = [...currentStock, newCredential];
-    localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
-    
-    // Also add to Supabase if available
-    try {
-      // This is async but we don't wait for it
-      addToSupabase(serviceId, credentials);
-    } catch (e) {
-      console.error('Error adding to Supabase:', e);
-    }
-    
-    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
-    return newCredential;
-  } catch (error) {
-    console.error('Error adding credential to stock:', error);
-    throw error;
-  }
-}
-
-// Legacy function for backwards compatibility
-export function deleteCredentialFromStock(id: string): boolean {
-  try {
-    const currentStock = getAllCredentialStock();
-    const updatedStock = currentStock.filter(cred => cred.id !== id);
-    localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
-    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
-    return true;
-  } catch (error) {
-    console.error('Error deleting credential from stock:', error);
-    return false;
-  }
-}
-
-// Legacy function for backwards compatibility
-export function updateCredentialInStock(id: string, updates: Partial<CredentialStock>): boolean {
-  try {
-    const currentStock = getAllCredentialStock();
-    const updatedStock = currentStock.map(cred => {
-      if (cred.id === id) {
-        return { ...cred, ...updates };
-      }
-      return cred;
-    });
-    localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
-    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
-    return true;
-  } catch (error) {
-    console.error('Error updating credential in stock:', error);
-    return false;
-  }
-}
-
-// Legacy function for backwards compatibility
-export function saveCredentialStock(stock: CredentialStock[]) {
-  try {
-    localStorage.setItem('credentialStock', JSON.stringify(stock));
-    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
-  } catch (error) {
-    console.error('Error saving credential stock:', error);
-  }
-}
-
-// Utility function for generating random passwords
-export function generateRandomPassword(length = 12) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
-  let password = '';
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
-// New utility function to map Supabase data to our CredentialStock type
-export function mapSupabaseCredentialToLocal(supabaseCred: any): CredentialStock {
-  return {
-    id: supabaseCred.id,
-    serviceId: supabaseCred.service_id,
-    credentials: supabaseCred.credentials as Credential,
-    status: supabaseCred.status as 'available' | 'assigned',
-    createdAt: supabaseCred.created_at,
-    orderId: supabaseCred.order_id,
-    userId: supabaseCred.user_id
-  };
-}
-
-// New utility function to map multiple Supabase credentials to our CredentialStock type
-export function mapSupabaseCredentialsToLocal(supabaseCredentials: any[]): CredentialStock[] {
-  return supabaseCredentials.map(mapSupabaseCredentialToLocal);
-}
-
-// Updated function to convert subscription credential to stock format
-export function convertSubscriptionToStock(subscription: any): Credential {
-  // Safely extract credentials from subscription with type checking
-  const credentials = subscription.credentials || {};
-  
-  // Check if credentials is an object
-  if (typeof credentials !== 'object' || Array.isArray(credentials)) {
-    console.warn('Invalid credentials format in subscription, using empty values');
+// Function to convert subscription data format to credential stock format
+export const convertSubscriptionToStock = (subscriptionData: any): Credential => {
+  if (!subscriptionData.credentials) {
     return {
       email: '',
       password: '',
@@ -133,14 +13,134 @@ export function convertSubscriptionToStock(subscription: any): Credential {
       pinCode: ''
     };
   }
-  
-  // Now we know credentials is an object, extract the properties safely
-  const credentialsObj = credentials as Record<string, unknown>;
+
+  const { email, password, username, pinCode, notes } = subscriptionData.credentials;
   
   return {
-    email: typeof credentialsObj.email === 'string' ? credentialsObj.email : '',
-    password: typeof credentialsObj.password === 'string' ? credentialsObj.password : '',
-    username: typeof credentialsObj.username === 'string' ? credentialsObj.username : '',
-    pinCode: typeof credentialsObj.pinCode === 'string' ? credentialsObj.pinCode : ''
+    email: email || '',
+    password: password || '',
+    username: username || '',
+    pinCode: pinCode || '',
+    notes: notes || ''
   };
-}
+};
+
+// Function to assign credentials to customer and send notification
+export const assignCredentialsToCustomer = async (
+  userId: string, 
+  serviceId: string, 
+  orderId: string
+): Promise<{success: boolean, credentials?: Credential}> => {
+  try {
+    // Find an available credential in stock
+    const { data: availableCredentials, error: stockError } = await supabase
+      .from('credential_stock')
+      .select('*')
+      .eq('service_id', serviceId)
+      .eq('status', 'available')
+      .limit(1)
+      .single();
+    
+    if (stockError || !availableCredentials) {
+      console.error('No available credentials found:', stockError);
+      return { success: false };
+    }
+    
+    // Update the credential status to assigned
+    const { error: updateError } = await supabase
+      .from('credential_stock')
+      .update({
+        status: 'assigned',
+        user_id: userId,
+        order_id: orderId
+      })
+      .eq('id', availableCredentials.id);
+      
+    if (updateError) {
+      console.error('Error updating credential status:', updateError);
+      return { success: false };
+    }
+    
+    // Update the order with the credential information
+    const { error: orderError } = await supabase
+      .from('orders')
+      .update({
+        credentials: availableCredentials.credentials,
+        credential_status: 'assigned',
+        status: 'completed'
+      })
+      .eq('id', orderId);
+      
+    if (orderError) {
+      console.error('Error updating order with credentials:', orderError);
+      return { success: false };
+    }
+    
+    // Send a notification to the customer
+    await sendCredentialNotification(userId, serviceId, availableCredentials.credentials);
+    
+    return {
+      success: true,
+      credentials: availableCredentials.credentials
+    };
+  } catch (error) {
+    console.error('Error in assignCredentialsToCustomer:', error);
+    return { success: false };
+  }
+};
+
+// Send a notification to the customer about their new credentials
+const sendCredentialNotification = async (
+  userId: string,
+  serviceId: string,
+  credentials: Credential
+) => {
+  try {
+    // Get service details
+    const { data: serviceData } = await supabase
+      .from('services')
+      .select('name')
+      .eq('id', serviceId)
+      .single();
+      
+    const serviceName = serviceData?.name || 'your service';
+    
+    // Create a notification for the user
+    const { error: notificationError } = await supabase
+      .from('customer_notifications')
+      .insert({
+        user_id: userId,
+        type: 'credential',
+        message: `Your credentials for ${serviceName} are now available in your dashboard.`,
+        service_id: serviceId,
+        read: false,
+        created_at: new Date().toISOString()
+      });
+      
+    if (notificationError) {
+      console.error('Error creating notification:', notificationError);
+    }
+  } catch (error) {
+    console.error('Error in sendCredentialNotification:', error);
+  }
+};
+
+// Function to get user's credentials by order ID
+export const getCredentialsByOrderId = async (orderId: string): Promise<Credential | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('credentials')
+      .eq('id', orderId)
+      .single();
+      
+    if (error || !data || !data.credentials) {
+      return null;
+    }
+    
+    return data.credentials as Credential;
+  } catch (error) {
+    console.error('Error in getCredentialsByOrderId:', error);
+    return null;
+  }
+};

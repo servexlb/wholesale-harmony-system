@@ -105,7 +105,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         setStockAvailable(isStockAvailable);
         
         if (!isStockAvailable) {
-          // Create a stock request
+          // Create a stock request if no stock is available
           const { createStockRequest } = await import('@/lib/credentialService');
           await createStockRequest(
             userId,
@@ -115,21 +115,88 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             user?.name,
             notes
           );
+        
+        // Set order status to 'pending' when there's no stock
+        const { error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            id: orderId,
+            user_id: userId,
+            service_id: service.id,
+            service_name: service.name,
+            quantity: quantity,
+            total_price: totalPrice,
+            status: 'pending', // Important: mark as pending
+            credential_status: 'pending',
+            duration_months: service.type === 'subscription' ? parseInt(duration) : null,
+            account_id: accountId || null,
+            notes: notes || null,
+            created_at: new Date().toISOString()
+          });
+          
+        if (orderError) {
+          console.error('Error saving order:', orderError);
+          return false;
+        }
+      } else {
+        // Stock is available, assign credential directly
+        const { assignCredentialsToCustomer } = await import('@/lib/credentialUtils');
+        const result = await assignCredentialsToCustomer(userId, service.id, orderId);
+        
+        if (result.success) {
+          setCredentials(result.credentials);
+          
+          // Create completed order
+          const { error: orderError } = await supabase
+            .from('orders')
+            .insert({
+              id: orderId,
+              user_id: userId,
+              service_id: service.id,
+              service_name: service.name,
+              quantity: quantity,
+              total_price: totalPrice,
+              status: 'completed',
+              credential_status: 'assigned',
+              credentials: result.credentials,
+              duration_months: service.type === 'subscription' ? parseInt(duration) : null,
+              account_id: accountId || null,
+              notes: notes || null,
+              created_at: new Date().toISOString(),
+              completed_at: new Date().toISOString()
+            });
+            
+          if (orderError) {
+            console.error('Error saving order:', orderError);
+            return false;
+          }
+        } else {
+          // If credential assignment fails, create pending order
+          const { error: orderError } = await supabase
+            .from('orders')
+            .insert({
+              id: orderId,
+              user_id: userId,
+              service_id: service.id,
+              service_name: service.name,
+              quantity: quantity,
+              total_price: totalPrice,
+              status: 'pending',
+              credential_status: 'pending',
+              duration_months: service.type === 'subscription' ? parseInt(duration) : null,
+              account_id: accountId || null,
+              notes: notes || null,
+              created_at: new Date().toISOString()
+            });
+            
+          if (orderError) {
+            console.error('Error saving order:', orderError);
+            return false;
+          }
         }
       }
-      
-      // Generate mock credentials for the purchased service if stock is available
-      let mockCredentials;
-      if (service.type === 'subscription' && stockAvailable) {
-        mockCredentials = {
-          email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
-          password: `pass${Math.random().toString(36).substring(2, 10)}`,
-          username: `user${Math.floor(Math.random() * 10000)}`,
-          notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
-        };
-      }
-      
-      // Save to orders table
+    } else {
+      // For non-subscription services, just create a regular order
       const { error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -139,44 +206,22 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           service_name: service.name,
           quantity: quantity,
           total_price: totalPrice,
-          status: stockAvailable ? 'completed' : 'pending',
+          status: 'completed',
           duration_months: service.type === 'subscription' ? parseInt(duration) : null,
           account_id: accountId || null,
           notes: notes || null,
           created_at: new Date().toISOString(),
-          completed_at: stockAvailable ? new Date().toISOString() : null
+          completed_at: new Date().toISOString()
         });
         
       if (orderError) {
         console.error('Error saving order:', orderError);
         return false;
       }
-      
-      // If it's a subscription and stock is available, also save to subscriptions table
-      if (service.type === 'subscription' && stockAvailable) {
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + parseInt(duration));
-        
-        const { error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .insert({
-            user_id: userId,
-            service_id: service.id,
-            start_date: new Date().toISOString(),
-            end_date: endDate.toISOString(),
-            status: 'active',
-            duration_months: parseInt(duration),
-            credentials: mockCredentials
-          });
-          
-        if (subscriptionError) {
-          console.error('Error saving subscription:', subscriptionError);
-          // Don't return false here, as the order was successfully saved
-        }
-      }
+    }
       
       // Set credentials for the success dialog
-      setCredentials(mockCredentials);
+      
       
       // Create a payment record
       const { error: paymentError } = await supabase
