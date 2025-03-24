@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const UserPaymentOptions = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState("wish-money");
   const [amount, setAmount] = useState<number | null>(null);
   const [cardNumber, setCardNumber] = useState("");
@@ -57,7 +57,7 @@ const UserPaymentOptions = () => {
           // Update user object for consistency
           if (user.balance !== data.balance) {
             // Only update the user state if balance has changed
-            user.updateUser && user.updateUser({ ...user, balance: data.balance });
+            updateUser && updateUser({ ...user, balance: data.balance });
           }
         }
       } catch (error) {
@@ -74,7 +74,7 @@ const UserPaymentOptions = () => {
     }, 60000); // 60 seconds
     
     return () => clearInterval(intervalId);
-  }, [user, isAuthenticated, navigate]);
+  }, [user, isAuthenticated, navigate, updateUser]);
   
   // If not authenticated, show login required component
   if (!isAuthenticated || !user) {
@@ -506,4 +506,3 @@ const UserPaymentOptions = () => {
 };
 
 export default UserPaymentOptions;
-

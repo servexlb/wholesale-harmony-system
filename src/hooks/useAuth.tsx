@@ -23,7 +23,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         setSession(newSession);
@@ -37,7 +36,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
     const checkSession = async () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       setSession(currentSession);
@@ -83,7 +81,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(true);
       setIsLoading(false);
 
-      // Store session details for backward compatibility
       localStorage.setItem('currentUser', JSON.stringify(userData));
       localStorage.setItem('currentUserId', userData.id);
     } catch (error) {
@@ -105,7 +102,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Auth state listener will handle session and user update
       return true;
     } catch (error: any) {
       console.error('Login error:', error);
@@ -122,9 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('currentUser');
       localStorage.removeItem('currentUserId');
       
-      // Auth state listener will handle session and user update
-      
-      // Dispatch event for other components (like wholesale)
       window.dispatchEvent(new Event('globalLogout'));
       window.dispatchEvent(new Event('authStateChanged'));
     } catch (error: any) {
@@ -137,7 +130,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Check if email is already registered - removing the filter property which doesn't exist
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -155,7 +147,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       toast.success('Account created successfully!');
       
-      // Handle email confirmation if required
       if (data.user && !data.user.confirmed_at) {
         toast.info('Please check your email to confirm your account');
       }
@@ -174,7 +165,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
-      // Update profile in Supabase
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -192,7 +182,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
-      // Update local state - only include properties that exist in the User type
       const updatedUser = { 
         ...user, 
         name: userData.name || user.name,
@@ -205,7 +194,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setUser(updatedUser);
       
-      // Update localStorage for backward compatibility
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
       
       toast.success('Profile updated successfully');
