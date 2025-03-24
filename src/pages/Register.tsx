@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,9 +11,11 @@ import MainLayout from "@/components/MainLayout";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from "@/hooks/useAuth";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,25 +40,13 @@ const Register: React.FC = () => {
     return emailRegex.test(email);
   };
 
-  // Check if email already exists
-  const isEmailRegistered = (email: string) => {
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    return existingUsers.some((user: any) => user.email === email);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
     // Validate email format
     if (!isValidEmail(formData.email)) {
       setError("Please enter a valid email address");
-      return;
-    }
-    
-    // Check if email is already registered
-    if (isEmailRegistered(formData.email)) {
-      setError("This email is already registered. Please use a different email or log in.");
       return;
     }
     
@@ -77,124 +66,36 @@ const Register: React.FC = () => {
     
     setIsSubmitting(true);
     
-    // Generate a unique user ID
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('currentUserId', userId);
-    
-    // Set initial user profile with empty fields
-    const userProfile = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone
-    };
-    localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
-    
-    // Store user credentials for login
-    // In a real application, you would hash the password first
-    // For demonstration, we'll store it as-is
-    const userCredentials = {
-      email: formData.email,
-      password: formData.password
-    };
-    
-    // Store in a users registry for login verification
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(userCredentials);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
-    
-    // Also store the user ID mapped to email for easy retrieval during login
-    const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
-    userEmailToId[formData.email] = userId;
-    localStorage.setItem('userEmailToId', JSON.stringify(userEmailToId));
-    
-    // Initialize user balance to 0
-    localStorage.setItem(`userBalance_${userId}`, "0");
-    
-    // Initialize empty transaction history
-    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify([]));
-    
-    // Initialize empty orders
-    localStorage.setItem(`customerOrders_${userId}`, JSON.stringify([]));
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const success = await register(
+        formData.name,
+        formData.email,
+        formData.password
+      );
+      
+      if (success) {
+        // Navigate to dashboard or login page depending on whether email confirmation is required
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      setError("An unexpected error occurred during registration");
+    } finally {
       setIsSubmitting(false);
-      toast({
-        title: "Account created!",
-        description: "You have successfully registered. Welcome aboard!",
-      });
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
 
   const onGoogleSignUpSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    // In a real application, you would decode the JWT and extract the email
-    // For now, we'll create a unique identifier based on the credential
-    const googleId = credentialResponse.credential || Date.now().toString();
-    const googleEmail = `google_user_${googleId}@gmail.com`; // Placeholder
-    
-    // Check if this Google account is already registered
-    if (isEmailRegistered(googleEmail)) {
-      // Instead of showing an error, we'll just log them in
-      const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
-      const userId = userEmailToId[googleEmail];
-      
-      if (userId) {
-        localStorage.setItem('currentUserId', userId);
-        toast({
-          title: "Welcome back!",
-          description: "You've been logged in with your Google account.",
-        });
-        navigate("/dashboard");
-        return;
-      }
-    }
-    
-    // Generate a unique user ID for the Google user
-    const userId = `google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('currentUserId', userId);
-    
-    // Set initial user profile with empty fields
-    const userProfile = {
-      name: "",
-      email: googleEmail,
-      phone: ""
-    };
-    localStorage.setItem(`userProfile_${userId}`, JSON.stringify(userProfile));
-    
-    // Store credentials for future login
-    const userCredentials = {
-      email: googleEmail,
-      password: `google_auth_${googleId}` // Not used for login, just for record
-    };
-    
-    // Store in registry
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(userCredentials);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
-    
-    // Map email to ID
-    const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
-    userEmailToId[googleEmail] = userId;
-    localStorage.setItem('userEmailToId', JSON.stringify(userEmailToId));
-    
-    // Initialize user balance to 0
-    localStorage.setItem(`userBalance_${userId}`, "0");
-    
-    // Initialize empty transaction history
-    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify([]));
-    
-    // Initialize empty orders
-    localStorage.setItem(`customerOrders_${userId}`, JSON.stringify([]));
-    
+    // Handle Google sign-up
+    // In a real implementation, this would use supabase.auth.signInWithOAuth({ provider: 'google' })
+    // For now, we'll show a message that this feature is coming soon
     toast({
-      title: "Success!",
-      description: "Your Google account has been connected.",
+      title: "Coming Soon",
+      description: "Google sign-up will be available soon.",
     });
-    navigate("/dashboard");
   };
 
   const onGoogleSignUpError = () => {

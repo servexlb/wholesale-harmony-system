@@ -2,6 +2,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/lib/types';
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -16,111 +18,203 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('currentUser');
-      }
-    }
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // In a real app, this would make an API call
-    try {
-      // Mock authentication - for demo purposes only
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const foundUser = users.find((u: User) => u.email === email);
-      
-      if (foundUser) {
-        // Mock password check (in real app, never store plain passwords)
-        // This is just for demo
-        const passwordMatches = password === 'password123';
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
         
-        if (passwordMatches) {
-          setUser(foundUser);
-          setIsAuthenticated(true);
-          localStorage.setItem('currentUser', JSON.stringify(foundUser));
-          localStorage.setItem('currentUserId', foundUser.id);
-          return true;
+        if (newSession?.user) {
+          fetchUserProfile(newSession.user);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
         }
       }
+    );
+
+    // THEN check for existing session
+    const checkSession = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
       
-      toast.error('Invalid email or password');
-      return false;
+      if (currentSession?.user) {
+        fetchUserProfile(currentSession.user);
+      } else {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      const userData: User = {
+        id: supabaseUser.id,
+        name: profile.name || supabaseUser.user_metadata.name || '',
+        email: supabaseUser.email || '',
+        role: 'customer',
+        balance: profile.balance || 0,
+        createdAt: profile.created_at || supabaseUser.created_at || new Date().toISOString()
+      };
+
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsLoading(false);
+
+      // Store session details for backward compatibility
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+      localStorage.setItem('currentUserId', userData.id);
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error('An error occurred during login');
-      return false;
+      console.error('Error in fetchUserProfile:', error);
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentUserId');
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        toast.error(error.message || 'Invalid email or password');
+        return false;
+      }
+
+      // Auth state listener will handle session and user update
+      return true;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'An error occurred during login');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('currentUserId');
+      
+      // Auth state listener will handle session and user update
+      
+      // Dispatch event for other components (like wholesale)
+      window.dispatchEvent(new Event('globalLogout'));
+      window.dispatchEvent(new Event('authStateChanged'));
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      toast.error(error.message || 'An error occurred during logout');
+    }
   };
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      // Mock registration - for demo purposes only
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      setIsLoading(true);
       
-      // Check if email already exists
-      if (users.some((u: User) => u.email === email)) {
+      // Check if email is already registered
+      const { data: { users } } = await supabase.auth.admin.listUsers({
+        filter: {
+          email: email
+        }
+      });
+      
+      if (users && users.length > 0) {
         toast.error('Email already registered');
         return false;
       }
       
-      // Create new user
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        role: 'customer',
-        balance: 0,
-        createdAt: new Date().toISOString()
-      };
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
+      });
+
+      if (error) {
+        toast.error(error.message || 'Failed to create account');
+        return false;
+      }
+
+      toast.success('Account created successfully!');
       
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
-      
-      // Auto login after registration
-      setUser(newUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(newUser));
-      localStorage.setItem('currentUserId', newUser.id);
+      // Handle email confirmation if required
+      if (data.user && !data.user.confirmed_at) {
+        toast.info('Please check your email to confirm your account');
+      }
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error('An error occurred during registration');
+      toast.error(error.message || 'An error occurred during registration');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User>) => {
     if (!user) return;
     
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    
-    // Also update in users list
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map((u: User) => 
-      u.id === user.id ? updatedUser : u
-    );
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    try {
+      // Update profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: userData.name,
+          phone: userData.phone,
+          company: userData.company,
+          notes: userData.notes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) {
+        toast.error('Failed to update profile');
+        console.error('Error updating user profile:', error);
+        return;
+      }
+      
+      // Update local state
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      
+      // Update localStorage for backward compatibility
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error in updateUser:', error);
+      toast.error('An error occurred while updating your profile');
+    }
   };
 
   return (
@@ -132,7 +226,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       register,
       updateUser
     }}>
-      {children}
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 };

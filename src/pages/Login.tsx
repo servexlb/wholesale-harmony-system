@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GoogleLogin } from '@react-oauth/google';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -32,54 +35,47 @@ const Login: React.FC = () => {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const logoutParam = new URLSearchParams(location.search).get('logout');
+    if (logoutParam === 'true') {
+      setWasLoggedOut(true);
+    }
+  }, [location]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
     
-    // Get the registered users
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Find the user with matching email and password
-    const user = users.find((u: any) => 
-      u.email === formData.email && u.password === formData.password
-    );
-    
-    if (user) {
-      // Get the user ID associated with this email
-      const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
-      const userId = userEmailToId[formData.email];
+    try {
+      const success = await login(formData.email, formData.password);
       
-      if (userId) {
-        // Set the current user ID
-        localStorage.setItem('currentUserId', userId);
-        
-        setTimeout(() => {
-          setIsSubmitting(false);
-          toast({
-            title: "Welcome back!",
-            description: "You have successfully logged in.",
-          });
-          navigate("/dashboard");
-        }, 1000);
+      if (success) {
+        navigate("/dashboard");
       } else {
-        setIsSubmitting(false);
-        setError("User ID not found. Please register again.");
-      }
-    } else {
-      setTimeout(() => {
-        setIsSubmitting(false);
         setError("Invalid email or password. Please try again.");
-      }, 1000);
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An unexpected error occurred during login");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!resetEmail) {
       toast({
         title: "Email required",
@@ -102,26 +98,21 @@ const Login: React.FC = () => {
 
     setResetSubmitting(true);
 
-    // Check if email exists
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userExists = users.some((u: any) => u.email === resetEmail);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
 
-    if (!userExists) {
-      setTimeout(() => {
-        setResetSubmitting(false);
+      if (error) {
         toast({
-          title: "Email not found",
-          description: "No account exists with this email address",
+          title: "Error",
+          description: error.message,
           variant: "destructive"
         });
-      }, 1000);
-      return;
-    }
+        setResetSubmitting(false);
+        return;
+      }
 
-    // In a real app, you would send a password reset email here
-    // For this demo, we'll just simulate it
-    setTimeout(() => {
-      setResetSubmitting(false);
       setResetSent(true);
       
       // Close dialog after showing success message for a few seconds
@@ -135,77 +126,29 @@ const Login: React.FC = () => {
         title: "Reset link sent",
         description: "Check your email for password reset instructions",
       });
-    }, 1500);
-  };
-
-  useEffect(() => {
-    const logoutParam = new URLSearchParams(window.location.search).get('logout');
-    if (logoutParam === 'true') {
-      setWasLoggedOut(true);
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setResetSubmitting(false);
     }
-  }, []);
+  };
 
   const onGoogleLoginSuccess = (credentialResponse: any) => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    // In a real app, you would decode the JWT to get user info
-    // For this demo, we'll generate a consistent ID for the Google user
-    const googleId = credentialResponse.credential || Date.now().toString();
-    const googleEmail = `google_user_${googleId}@gmail.com`; // Placeholder
-    
-    // Check if this Google user has registered before
-    const userEmailToId = JSON.parse(localStorage.getItem('userEmailToId') || '{}');
-    const userId = userEmailToId[googleEmail];
-    
-    if (userId) {
-      // User exists, log them in
-      localStorage.setItem('currentUserId', userId);
-      toast({
-        title: "Welcome back!",
-        description: "You've been logged in with Google.",
-      });
-      navigate("/dashboard");
-      return;
-    }
-    
-    // New Google user, create an account for them
-    const newUserId = `google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    localStorage.setItem('currentUserId', newUserId);
-    
-    // Initialize user data
-    const userProfile = {
-      name: "",
-      email: googleEmail,
-      phone: ""
-    };
-    localStorage.setItem(`userProfile_${newUserId}`, JSON.stringify(userProfile));
-    
-    // Store credentials
-    const userCredentials = {
-      email: googleEmail,
-      password: `google_auth_${googleId}` // Not used for login
-    };
-    
-    // Add to users registry
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(userCredentials);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
-    
-    // Map email to ID
-    userEmailToId[googleEmail] = newUserId;
-    localStorage.setItem('userEmailToId', JSON.stringify(userEmailToId));
-    
-    // Initialize other user data
-    localStorage.setItem(`userBalance_${newUserId}`, "0");
-    localStorage.setItem(`transactionHistory_${newUserId}`, JSON.stringify([]));
-    localStorage.setItem(`customerOrders_${newUserId}`, JSON.stringify([]));
-    
+    // Handle Google login
+    // In a real implementation, this would use supabase.auth.signInWithOAuth({ provider: 'google' })
+    // For now, we'll show a message that this feature is coming soon
     toast({
-      title: "Success!",
-      description: "You've been logged in with Google.",
+      title: "Coming Soon",
+      description: "Google login will be available soon.",
     });
-    navigate("/dashboard");
   };
 
   const onGoogleLoginError = () => {
