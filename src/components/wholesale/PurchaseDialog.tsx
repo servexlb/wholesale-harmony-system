@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -26,10 +25,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface PurchaseDialogProps {
   customerName?: string;
-  customerEmail?: string;
-  customerPhone?: string;
-  customerAddress?: string;
-  customerCompany?: string;
   customerNotes?: string;
   onPurchase: (order: WholesaleOrder) => void;
   isSubmitting: boolean;
@@ -242,11 +237,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
     
-    if (!customerName) {
-      toast.error('Please enter a customer name');
-      return;
-    }
-    
     const order: WholesaleOrder = {
       id: `order-${Date.now()}`,
       customerId: customerId,
@@ -301,27 +291,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-[90vw] w-full sm:max-w-[500px] p-4 sm:p-6" hideCloseButton>
+      <DialogContent className="max-w-[90vw] w-full sm:max-w-[450px] p-4 sm:p-6" hideCloseButton>
         <DialogHeader>
-          <DialogTitle>Purchase for Customer</DialogTitle>
+          <DialogTitle>Purchase for {customerName}</DialogTitle>
           <DialogDescription>
             Create a new purchase order for this customer.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div>
-            <Label htmlFor="customerName">Customer Name</Label>
-            <Input
-              id="customerName"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Customer Name"
-              className="mt-1"
-              required
-            />
-          </div>
-          
           <div>
             <Label htmlFor="service">Service</Label>
             <Select value={serviceId} onValueChange={setServiceId}>
@@ -338,35 +316,39 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             </Select>
           </div>
           
-          {selectedService?.type === 'subscription' && (
-            <div>
-              <Label htmlFor="duration">Duration</Label>
-              <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value))}>
-                <SelectTrigger id="duration" className="mt-1">
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDurations.map((months) => (
-                    <SelectItem key={months} value={months.toString()}>
-                      {months} {months === 1 ? 'month' : 'months'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {selectedService && (
+            <>
+              {(selectedService.type === 'subscription' || availableDurations.length > 1) && (
+                <div>
+                  <Label htmlFor="duration">Duration</Label>
+                  <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value))}>
+                    <SelectTrigger id="duration" className="mt-1">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDurations.map((months) => (
+                        <SelectItem key={months} value={months.toString()}>
+                          {months} {months === 1 ? 'month' : 'months'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  className="mt-1"
+                />
+              </div>
+            </>
           )}
-          
-          <div>
-            <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              className="mt-1"
-            />
-          </div>
           
           <div>
             <Label htmlFor="notes">Notes</Label>
@@ -408,7 +390,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !serviceId || !customerName}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || !serviceId}>
             {isSubmitting ? 'Processing...' : 'Complete Purchase'}
           </Button>
         </DialogFooter>
