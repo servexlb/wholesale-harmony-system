@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service } from '@/lib/types';
 import { Customer } from '@/lib/data';
 import { loadServices } from '@/lib/productManager';
-import { addCredentialToStock, convertSubscriptionToStock } from '@/lib/credentialUtils';
+import { addCredentialToStock, convertSubscriptionToStock, generateRandomPassword } from '@/lib/credentialUtils';
 
 export function useWholesaleData(currentWholesaler: string) {
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
@@ -93,7 +93,12 @@ export function useWholesaleData(currentWholesaler: string) {
         endDate: endDate.toISOString(),
         status: 'active',
         durationMonths: durationMonths,
-        credentials: order.credentials
+        credentials: order.credentials || {
+          email: "",
+          password: generateRandomPassword(),
+          username: "",
+          pinCode: ""
+        }
       };
       
       setSubscriptions(prev => {
@@ -101,13 +106,28 @@ export function useWholesaleData(currentWholesaler: string) {
         return updatedSubscriptions.slice(0, 100);
       });
       
-      if (order.credentials && order.serviceId) {
+      if (order.serviceId) {
         try {
-          const stockCredentials = convertSubscriptionToStock({
-            credentials: order.credentials
-          });
+          const credentials = order.credentials || {
+            email: "",
+            password: generateRandomPassword(),
+            username: "",
+            pinCode: ""
+          };
           
-          addCredentialToStock(order.serviceId, stockCredentials);
+          if (order.credentials) {
+            const stockCredentials = convertSubscriptionToStock({
+              credentials: order.credentials
+            });
+            addCredentialToStock(order.serviceId, stockCredentials);
+          } 
+          else {
+            addCredentialToStock(order.serviceId, credentials);
+          }
+          
+          window.dispatchEvent(new CustomEvent('subscription-added', { 
+            detail: { serviceId: order.serviceId }
+          }));
         } catch (error) {
           console.error('Error adding subscription to credential stock:', error);
         }

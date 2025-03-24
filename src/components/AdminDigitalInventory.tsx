@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Product, Service, ServiceType, CredentialStock, Credential, DigitalItem } from "@/lib/types";
-import { products as dataProducts, services } from "@/lib/data";
+import { products as dataProducts } from "@/lib/data";
 import { 
   getAllCredentialStock, 
   addCredentialToStock, 
@@ -28,7 +29,7 @@ import {
   generateRandomPassword,
   mapSupabaseCredentialsToLocal
 } from '@/lib/credentialUtils';
-import { loadServices } from '@/lib/productManager';
+import { loadServices, loadProducts } from '@/lib/productManager';
 import { supabase } from "@/integrations/supabase/client";
 
 const getServices = (): Service[] => {
@@ -60,6 +61,7 @@ const AdminDigitalInventory: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [availableServices, setAvailableServices] = useState<Array<{id: string, name: string}>>([]);
+  const [autoAddNewProducts, setAutoAddNewProducts] = useState(true);
   
   const loadInventory = useCallback(async () => {
     try {
@@ -83,8 +85,55 @@ const AdminDigitalInventory: React.FC = () => {
     setInventory(convertToDigitalItems(stock));
   }, [availableServices]);
 
+  // Auto add all products and services that aren't already in inventory
+  const autoAddAllProductsToInventory = useCallback(() => {
+    if (!autoAddNewProducts) return;
+    
+    // Get all products and services
+    const products = loadProducts();
+    const services = loadServices();
+    
+    // Get existing services in inventory
+    const existingServiceIds = new Set(inventory.map(item => item.serviceId));
+    
+    // Find products/services not yet in inventory
+    const productsToAdd = [...products, ...services].filter(p => 
+      !existingServiceIds.has(p.id) && p.type === 'subscription'
+    );
+    
+    if (productsToAdd.length === 0) return;
+    
+    // Add each product to inventory with empty credentials
+    const newItems: DigitalItem[] = [];
+    
+    productsToAdd.forEach(product => {
+      const credentials = {
+        email: "",
+        password: generateRandomPassword(),
+        username: "",
+        pinCode: ""
+      };
+      
+      const newItem = addCredentialToStock(product.id, credentials);
+      const digitalItem: DigitalItem = {
+        ...newItem,
+        serviceName: product.name
+      };
+      
+      newItems.push(digitalItem);
+    });
+    
+    if (newItems.length > 0) {
+      setInventory(prev => [...prev, ...newItems]);
+      toast.success(`Auto-added ${newItems.length} new products to inventory`, {
+        description: "Empty credentials were created for each product"
+      });
+    }
+  }, [inventory, autoAddNewProducts]);
+
   const loadAllServices = useCallback(async () => {
     const managedServices = loadServices();
+    const managedProducts = loadProducts();
     const productsAsServices = dataProducts.map(p => ({
       id: p.id,
       name: p.name
@@ -97,7 +146,8 @@ const AdminDigitalInventory: React.FC = () => {
         .select('service_id');
       
       if (!error && subscriptions) {
-        const uniqueServiceIds = [...new Set(subscriptions.map(sub => sub.service_id))];
+        // Use client-side filtering for unique service IDs
+        const uniqueServiceIds = Array.from(new Set(subscriptions.map(sub => sub.service_id)));
         
         subscriptionServices = uniqueServiceIds.map(serviceId => {
           const service = managedServices.find(s => s.id === serviceId);
@@ -113,6 +163,7 @@ const AdminDigitalInventory: React.FC = () => {
     
     const allServices = [
       ...managedServices,
+      ...managedProducts,
       ...productsAsServices,
       ...subscriptionServices
     ];
@@ -136,17 +187,26 @@ const AdminDigitalInventory: React.FC = () => {
     window.addEventListener('service-updated', loadAllServices);
     window.addEventListener('service-added', loadAllServices);
     window.addEventListener('subscription-added', loadAllServices);
+    window.addEventListener('product-added', loadAllServices);
+    window.addEventListener('product-updated', loadAllServices);
     
     return () => {
       window.removeEventListener('credential-stock-updated', loadInventory);
       window.removeEventListener('service-updated', loadAllServices);
       window.removeEventListener('service-added', loadAllServices);
       window.removeEventListener('subscription-added', loadAllServices);
+      window.removeEventListener('product-added', loadAllServices);
+      window.removeEventListener('product-updated', loadAllServices);
     };
   }, [loadInventory, loadAllServices]);
 
+  // Effect to auto add products whenever the list of available services changes
   useEffect(() => {
-    const servicesAsProducts: Product[] = services.map(service => ({
+    autoAddAllProductsToInventory();
+  }, [availableServices, autoAddAllProductsToInventory]);
+
+  useEffect(() => {
+    const servicesAsProducts: Product[] = getServices().map(service => ({
       id: service.id,
       name: service.name,
       description: service.description || "",
@@ -188,7 +248,10 @@ const AdminDigitalInventory: React.FC = () => {
       };
     });
     
-    const combinedProducts = [...formattedDataProducts, ...servicesAsProducts];
+    // Add all managed products
+    const managedProducts = loadProducts();
+    
+    const combinedProducts = [...formattedDataProducts, ...servicesAsProducts, ...managedProducts];
     setAllProducts(combinedProducts);
     setFilteredProducts(combinedProducts);
   }, []);
@@ -350,7 +413,9 @@ const AdminDigitalInventory: React.FC = () => {
       for (let i = 0; i < quantity; i++) {
         const credentials = {
           email: "",
-          password: ""
+          password: generateRandomPassword(),
+          username: "",
+          pinCode: ""
         };
         
         const newItem = addCredentialToStock(product?.id || "", credentials);
@@ -446,6 +511,15 @@ const AdminDigitalInventory: React.FC = () => {
                 </SheetDescription>
               </SheetHeader>
               <div className="my-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Checkbox 
+                    id="auto-add" 
+                    checked={autoAddNewProducts} 
+                    onCheckedChange={(checked) => setAutoAddNewProducts(!!checked)} 
+                  />
+                  <Label htmlFor="auto-add">Automatically add new products to inventory</Label>
+                </div>
+                
                 <div className="relative mb-4">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
