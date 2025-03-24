@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,8 +17,10 @@ import {
   deleteService, 
   productToService, 
   initProductManager, 
-  PRODUCT_EVENTS 
+  PRODUCT_EVENTS,
+  loadPricingFromSupabase
 } from "@/lib/productManager";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminServices = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -30,8 +31,12 @@ const AdminServices = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    initProductManager();
-    setServices(loadServices());
+    const initialize = async () => {
+      await initProductManager();
+      setServices(loadServices());
+    };
+    
+    initialize();
     
     // Listen for service update events
     const handleServiceUpdated = () => {
@@ -56,7 +61,18 @@ const AdminServices = () => {
     return matchesTab && matchesSearch;
   });
 
-  const handleEditService = (service: Service) => {
+  const handleEditService = async (service: Service) => {
+    try {
+      // Load pricing data from Supabase if available
+      const pricing = await loadPricingFromSupabase(service.id);
+      if (pricing.length > 0) {
+        service.monthlyPricing = pricing;
+        service.availableMonths = pricing.map(p => p.months);
+      }
+    } catch (error) {
+      console.error('Error loading pricing data:', error);
+    }
+    
     setSelectedService(service);
     setIsDialogOpen(true);
   };
@@ -93,20 +109,25 @@ const AdminServices = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveService = (updatedProduct: any) => {
-    // Convert Product to Service
-    const serviceData = productToService(updatedProduct);
-    
-    const isNewService = !services.some(service => service.id === serviceData.id);
-    
-    if (isNewService) {
-      addService(serviceData);
-    } else {
-      updateService(serviceData);
+  const handleSaveService = async (updatedProduct: any) => {
+    try {
+      // Convert Product to Service
+      const serviceData = productToService(updatedProduct);
+      
+      const isNewService = !services.some(service => service.id === serviceData.id);
+      
+      if (isNewService) {
+        await addService(serviceData);
+      } else {
+        await updateService(serviceData);
+      }
+      
+      setIsDialogOpen(false);
+      setSelectedService(null);
+    } catch (error) {
+      console.error('Error saving service:', error);
+      toast.error('Failed to save service data');
     }
-    
-    setIsDialogOpen(false);
-    setSelectedService(null);
   };
 
   return (
@@ -173,7 +194,6 @@ const AdminServices = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Use the ProductForm component for service editing */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { ImageIcon, InfoIcon, Check, X } from "lucide-react";
+import { ImageIcon, InfoIcon, Check, X, Plus, Trash } from "lucide-react";
 import { Product, MonthlyPricing } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_IMAGE = "/placeholder.svg";
 
@@ -58,6 +60,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
   const [availableForCustomers, setAvailableForCustomers] = useState<boolean>(
     product?.availableForCustomers !== undefined ? product.availableForCustomers : true
   );
+  const [isLoading, setIsLoading] = useState(false);
+
+  // For monthly pricing
+  const [monthlyPrices, setMonthlyPrices] = useState<MonthlyPricing[]>(
+    product?.monthlyPricing?.length ? [...product.monthlyPricing] : []
+  );
 
   useEffect(() => {
     if (product) {
@@ -72,7 +80,55 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
       });
       setImagePreview(product.image || DEFAULT_IMAGE);
       setAvailableForCustomers(product.availableForCustomers !== undefined ? product.availableForCustomers : true);
+      
+      // Initialize monthly pricing
+      if (product.monthlyPricing && product.monthlyPricing.length > 0) {
+        setMonthlyPrices([...product.monthlyPricing]);
+      } else if (product.availableMonths && product.availableMonths.length > 0) {
+        // Initialize with default values if no pricing exists but months are specified
+        const initialPricing = product.availableMonths.map(month => ({
+          months: month,
+          price: product.price * month,
+          wholesalePrice: product.wholesalePrice * month,
+          savings: 0
+        }));
+        setMonthlyPrices(initialPricing);
+      }
     }
+  }, [product]);
+
+  // Load pricing data from Supabase if available
+  useEffect(() => {
+    const loadPricingFromSupabase = async () => {
+      if (!product || !product.id) return;
+      
+      setIsLoading(true);
+      try {
+        const { data: pricingData, error } = await supabase
+          .from('service_pricing')
+          .select('*')
+          .eq('service_id', product.id);
+        
+        if (error) {
+          console.error('Error loading pricing data:', error);
+        } else if (pricingData && pricingData.length > 0) {
+          const formattedPricing = pricingData.map(pricing => ({
+            months: pricing.duration_months,
+            price: pricing.price,
+            wholesalePrice: pricing.wholesale_price,
+            savings: 0 // Calculate if needed
+          }));
+          
+          setMonthlyPrices(formattedPricing);
+        }
+      } catch (err) {
+        console.error('Error in Supabase query:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadPricingFromSupabase();
   }, [product]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -154,7 +210,74 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle adding a new pricing tier
+  const handleAddPricingTier = () => {
+    // Find a month that's not already in the pricing
+    const months = [1, 3, 6, 12, 24];
+    const availableMonth = months.find(m => !monthlyPrices.some(p => p.months === m)) || 1;
+    
+    setMonthlyPrices(prev => [
+      ...prev, 
+      {
+        months: availableMonth,
+        price: formData.price * availableMonth,
+        wholesalePrice: formData.wholesalePrice * availableMonth,
+        savings: 0
+      }
+    ]);
+  };
+
+  // Handle removing a pricing tier
+  const handleRemovePricingTier = (index: number) => {
+    setMonthlyPrices(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle changes to a pricing tier
+  const handlePricingChange = (index: number, field: keyof MonthlyPricing, value: number) => {
+    setMonthlyPrices(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        [field]: value
+      };
+      return updated;
+    });
+  };
+
+  // Save pricing data to Supabase
+  const savePricingToSupabase = async (serviceId: string) => {
+    try {
+      // First delete existing pricing for this service
+      await supabase
+        .from('service_pricing')
+        .delete()
+        .eq('service_id', serviceId);
+      
+      // Then insert the new pricing
+      if (monthlyPrices.length > 0) {
+        const pricingToInsert = monthlyPrices.map(pricing => ({
+          service_id: serviceId,
+          duration_months: pricing.months,
+          price: pricing.price,
+          wholesale_price: pricing.wholesalePrice
+        }));
+        
+        const { error } = await supabase
+          .from('service_pricing')
+          .insert(pricingToInsert);
+          
+        if (error) {
+          console.error('Error saving pricing to Supabase:', error);
+          toast.error('Failed to save pricing information');
+        }
+      }
+    } catch (err) {
+      console.error('Error in Supabase operation:', err);
+      toast.error('Database error when saving pricing');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name) {
@@ -166,12 +289,30 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
       toast.warning("Using default image. Consider adding a custom image for better visibility.");
     }
     
+    // Update the formData with the latest monthly pricing
     const productData = {
       ...formData,
-      availableForCustomers
+      availableForCustomers,
+      monthlyPricing: monthlyPrices,
+      availableMonths: monthlyPrices.map(p => p.months)
     };
     
-    onSubmit(productData);
+    setIsLoading(true);
+    
+    try {
+      // First save the product data
+      onSubmit(productData);
+      
+      // Then save the pricing data to Supabase
+      await savePricingToSupabase(productData.id);
+      
+      toast.success("Product and pricing saved successfully");
+    } catch (error) {
+      console.error("Error saving product:", error);
+      toast.error("Failed to save product information");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -316,7 +457,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
         <TabsContent value="pricing" className="space-y-4 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Retail Price ($)</Label>
+              <Label htmlFor="price">Base Retail Price ($)</Label>
               <Input 
                 id="price" 
                 name="price" 
@@ -327,10 +468,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
                 onChange={handleNumberChange} 
                 placeholder="0.00" 
               />
+              <p className="text-xs text-muted-foreground">
+                Base price for single unit or month
+              </p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="wholesalePrice">Wholesale Price ($)</Label>
+              <Label htmlFor="wholesalePrice">Base Wholesale Price ($)</Label>
               <Input 
                 id="wholesalePrice" 
                 name="wholesalePrice" 
@@ -341,39 +485,95 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
                 onChange={handleNumberChange} 
                 placeholder="0.00" 
               />
+              <p className="text-xs text-muted-foreground">
+                Base wholesale price for single unit or month
+              </p>
             </div>
           </div>
           
           {formData.type === 'subscription' && (
             <>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label>Available Subscription Durations</Label>
+              <div className="space-y-4 border p-4 rounded-md">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium">Subscription Duration Pricing</h3>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleAddPricingTier}
+                    className="flex items-center"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Pricing Tier
+                  </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 3, 6, 12].map((month) => (
-                    <div key={month} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`month-${month}`}
-                        checked={(formData.availableMonths || []).includes(month)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setFormData(prev => ({
-                              ...prev,
-                              availableMonths: [...(prev.availableMonths || []), month].sort((a, b) => a - b)
-                            }));
-                          } else {
-                            setFormData(prev => ({
-                              ...prev,
-                              availableMonths: (prev.availableMonths || []).filter(m => m !== month)
-                            }));
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`month-${month}`}>{month} {month === 1 ? 'month' : 'months'}</Label>
-                    </div>
-                  ))}
-                </div>
+                
+                {monthlyPrices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No pricing tiers defined. Add one to set custom pricing for different durations.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {monthlyPrices.map((pricing, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-4 items-center border-b pb-4">
+                        <div className="col-span-2">
+                          <Select 
+                            value={pricing.months.toString()} 
+                            onValueChange={(value) => handlePricingChange(index, 'months', parseInt(value))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Duration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 Month</SelectItem>
+                              <SelectItem value="3">3 Months</SelectItem>
+                              <SelectItem value="6">6 Months</SelectItem>
+                              <SelectItem value="12">12 Months</SelectItem>
+                              <SelectItem value="24">24 Months</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="col-span-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Retail Price ($)</Label>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={pricing.price} 
+                              onChange={(e) => handlePricingChange(index, 'price', parseFloat(e.target.value) || 0)}
+                              className="h-8"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="col-span-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Wholesale Price ($)</Label>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={pricing.wholesalePrice} 
+                              onChange={(e) => handlePricingChange(index, 'wholesalePrice', parseFloat(e.target.value) || 0)}
+                              className="h-8"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="col-span-2 flex justify-end">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemovePricingTier(index)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -426,11 +626,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
       <Separator />
       
       <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button>
-        <Button type="submit">
-          {isNewProduct ? 'Create Product' : 'Save Changes'}
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Saving...' : (isNewProduct ? 'Create Product' : 'Save Changes')}
         </Button>
       </div>
     </form>

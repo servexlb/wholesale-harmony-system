@@ -195,6 +195,36 @@ export type Database = {
         }
         Relationships: []
       }
+      service_pricing: {
+        Row: {
+          created_at: string
+          duration_months: number
+          id: string
+          price: number
+          service_id: string
+          updated_at: string
+          wholesale_price: number
+        }
+        Insert: {
+          created_at?: string
+          duration_months: number
+          id?: string
+          price: number
+          service_id: string
+          updated_at?: string
+          wholesale_price: number
+        }
+        Update: {
+          created_at?: string
+          duration_months?: number
+          id?: string
+          price?: number
+          service_id?: string
+          updated_at?: string
+          wholesale_price?: number
+        }
+        Relationships: []
+      }
       stock_issue_logs: {
         Row: {
           created_at: string
