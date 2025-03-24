@@ -100,3 +100,21 @@ export function generateRandomPassword(length = 10) {
   }
   return password;
 }
+
+// New utility function to map Supabase data to our CredentialStock type
+export function mapSupabaseCredentialToLocal(supabaseCred: any): CredentialStock {
+  return {
+    id: supabaseCred.id,
+    serviceId: supabaseCred.service_id,
+    credentials: supabaseCred.credentials as Credential,
+    status: supabaseCred.status as 'available' | 'assigned',
+    createdAt: supabaseCred.created_at,
+    orderId: supabaseCred.order_id,
+    userId: supabaseCred.user_id
+  };
+}
+
+// New utility function to map multiple Supabase credentials to our CredentialStock type
+export function mapSupabaseCredentialsToLocal(supabaseCredentials: any[]): CredentialStock[] {
+  return supabaseCredentials.map(mapSupabaseCredentialToLocal);
+}

@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Credential } from "@/lib/types";
+import { mapSupabaseCredentialToLocal } from "./credentialUtils";
 
 /**
  * Adds a new credential to stock
@@ -23,7 +24,8 @@ export const addCredentialToStock = async (serviceId: string, credentials: Crede
     // Dispatch event to notify listeners
     window.dispatchEvent(new CustomEvent('credential-stock-updated'));
     
-    return data;
+    // Return the mapped data
+    return data ? mapSupabaseCredentialToLocal(data) : null;
   } catch (error: any) {
     console.error('Error adding credential to stock:', error);
     toast.error('Failed to add credential to stock');

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,8 @@ import {
   deleteCredentialFromStock,
   updateCredentialInStock,
   saveCredentialStock,
-  generateRandomPassword
+  generateRandomPassword,
+  mapSupabaseCredentialsToLocal
 } from '@/lib/credentialUtils';
 import { loadServices } from '@/lib/productManager';
 import { supabase } from "@/integrations/supabase/client";
@@ -71,7 +73,9 @@ const AdminDigitalInventory: React.FC = () => {
       if (error) throw error;
       
       if (supabaseStock && supabaseStock.length > 0) {
-        setInventory(convertToDigitalItems(supabaseStock as CredentialStock[]));
+        // Map the Supabase credentials to our local CredentialStock format
+        const mappedCredentials = mapSupabaseCredentialsToLocal(supabaseStock);
+        setInventory(convertToDigitalItems(mappedCredentials));
         return;
       }
     } catch (err) {
