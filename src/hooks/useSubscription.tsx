@@ -51,15 +51,34 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       
       if (supabaseSubscriptions && supabaseSubscriptions.length > 0) {
         // Map the Supabase subscription to our Subscription type
+        const subData = supabaseSubscriptions[0];
+        
+        // Parse the credentials JSON if it exists, or default to null/empty object
+        let credentialsObj = null;
+        if (subData.credentials) {
+          // Handle both string and object formats that might come from Supabase
+          if (typeof subData.credentials === 'string') {
+            try {
+              credentialsObj = JSON.parse(subData.credentials);
+            } catch (e) {
+              console.error('Error parsing credentials string:', e);
+              credentialsObj = {};
+            }
+          } else {
+            // Already an object
+            credentialsObj = subData.credentials;
+          }
+        }
+        
         const latestSubscription: Subscription = {
-          id: supabaseSubscriptions[0].id,
-          userId: supabaseSubscriptions[0].user_id,
-          serviceId: supabaseSubscriptions[0].service_id,
-          startDate: supabaseSubscriptions[0].start_date,
-          endDate: supabaseSubscriptions[0].end_date,
-          status: supabaseSubscriptions[0].status as 'active' | 'expired' | 'cancelled',
-          durationMonths: supabaseSubscriptions[0].duration_months,
-          credentials: supabaseSubscriptions[0].credentials
+          id: subData.id,
+          userId: subData.user_id,
+          serviceId: subData.service_id,
+          startDate: subData.start_date,
+          endDate: subData.end_date,
+          status: subData.status as 'active' | 'expired' | 'cancelled',
+          durationMonths: subData.duration_months,
+          credentials: credentialsObj
         };
         
         setSubscription(latestSubscription);
