@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import MainLayout from '@/components/MainLayout';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, Wallet, User, History, Package } from 'lucide-react';
 import DashboardCredentials from '@/components/dashboard/DashboardCredentials';
+import SubscriptionTracker from '@/components/dashboard/SubscriptionTracker';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -98,6 +100,8 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
+            
+            <SubscriptionTracker />
             
             <DashboardCredentials />
             

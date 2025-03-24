@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Subscription, Order } from '@/lib/types';
+import { Subscription, Order, Credential } from '@/lib/types';
 import CredentialDisplay from '../CredentialDisplay';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -43,15 +43,38 @@ const DashboardCredentials: React.FC = () => {
           console.error('Error fetching subscriptions:', subError);
         } else if (subscriptionsData) {
           // Map database fields to our application types
-          const formattedSubscriptions: Subscription[] = subscriptionsData.map(sub => ({
-            id: sub.id,
-            userId: sub.user_id,
-            serviceId: sub.service_id,
-            startDate: sub.start_date,
-            endDate: sub.end_date,
-            status: sub.status as "active" | "expired" | "cancelled",
-            credentials: sub.credentials
-          }));
+          const formattedSubscriptions: Subscription[] = subscriptionsData.map(sub => {
+            // Process credentials from JSON to proper object
+            let parsedCredentials: Credential | undefined = undefined;
+            if (sub.credentials) {
+              try {
+                // Handle both string and object formats
+                const credsData = typeof sub.credentials === 'string' 
+                  ? JSON.parse(sub.credentials) 
+                  : sub.credentials;
+                
+                parsedCredentials = {
+                  email: credsData.email || '',
+                  password: credsData.password || '',
+                  username: credsData.username,
+                  pinCode: credsData.pinCode,
+                  ...(credsData || {})
+                };
+              } catch (e) {
+                console.error('Error parsing credentials:', e);
+              }
+            }
+            
+            return {
+              id: sub.id,
+              userId: sub.user_id,
+              serviceId: sub.service_id,
+              startDate: sub.start_date,
+              endDate: sub.end_date,
+              status: sub.status as "active" | "expired" | "cancelled",
+              credentials: parsedCredentials
+            };
+          });
           
           setActiveSubscriptions(formattedSubscriptions);
         }
@@ -68,25 +91,50 @@ const DashboardCredentials: React.FC = () => {
           console.error('Error fetching orders:', orderError);
         } else if (ordersData) {
           // Map database fields to our application types
-          const formattedOrders: Order[] = ordersData.map(order => ({
-            id: order.id,
-            userId: order.user_id,
-            products: [
-              {
-                productId: order.service_id,
-                quantity: order.quantity,
-                price: order.total_price / order.quantity,
-                name: order.service_name
+          const formattedOrders: Order[] = ordersData.map(order => {
+            // Process credentials from any source format
+            let orderCredentials = undefined;
+            
+            // Try to parse credentials if they exist
+            if (order.credentials) {
+              try {
+                // Handle both string and object formats
+                const credsData = typeof order.credentials === 'string' 
+                  ? JSON.parse(order.credentials) 
+                  : order.credentials;
+                
+                orderCredentials = {
+                  email: credsData.email || '',
+                  password: credsData.password || '',
+                  username: credsData.username,
+                  pinCode: credsData.pinCode,
+                  ...(credsData || {})
+                };
+              } catch (e) {
+                console.error('Error parsing order credentials:', e);
               }
-            ],
-            total: order.total_price,
-            status: (order.status as "pending" | "processing" | "completed" | "cancelled"),
-            createdAt: order.created_at,
-            paymentMethod: 'default',
-            serviceName: order.service_name,
-            notes: order.notes,
-            credentials: order.credentials || undefined
-          }));
+            }
+            
+            return {
+              id: order.id,
+              userId: order.user_id,
+              products: [
+                {
+                  productId: order.service_id,
+                  quantity: order.quantity,
+                  price: order.total_price / order.quantity,
+                  name: order.service_name
+                }
+              ],
+              total: order.total_price,
+              status: (order.status as "pending" | "processing" | "completed" | "cancelled"),
+              createdAt: order.created_at,
+              paymentMethod: 'default',
+              serviceName: order.service_name,
+              notes: order.notes,
+              credentials: orderCredentials
+            };
+          });
           
           setRecentOrders(formattedOrders);
         }

@@ -5,11 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from 'framer-motion';
 
 const UserBalance = () => {
   const { user, isAuthenticated } = useAuth();
   const [userBalance, setUserBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [showBalanceUpdated, setShowBalanceUpdated] = useState(false);
+  const [prevBalance, setPrevBalance] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,6 +38,17 @@ const UserBalance = () => {
         
         if (data) {
           console.log('User balance data:', data);
+          // Check if balance has changed
+          if (userBalance !== 0 && data.balance !== userBalance) {
+            setPrevBalance(userBalance);
+            setShowBalanceUpdated(true);
+            
+            // Hide the notification after 3 seconds
+            setTimeout(() => {
+              setShowBalanceUpdated(false);
+            }, 3000);
+          }
+          
           setUserBalance(data.balance || 0);
         }
         setIsLoading(false);
@@ -58,7 +72,20 @@ const UserBalance = () => {
         }, (payload) => {
           console.log('Profile updated:', payload);
           if (payload.new && typeof payload.new.balance === 'number') {
-            setUserBalance(payload.new.balance);
+            const newBalance = payload.new.balance;
+            
+            // Show notification if balance has changed
+            if (userBalance !== 0 && newBalance !== userBalance) {
+              setPrevBalance(userBalance);
+              setShowBalanceUpdated(true);
+              
+              // Hide the notification after 3 seconds
+              setTimeout(() => {
+                setShowBalanceUpdated(false);
+              }, 3000);
+            }
+            
+            setUserBalance(newBalance);
           }
         })
         .subscribe();
@@ -85,8 +112,26 @@ const UserBalance = () => {
     return null;
   }
 
+  const balanceChange = userBalance - prevBalance;
+  const isPositiveChange = balanceChange > 0;
+
   return (
-    <div className="flex items-center mr-2">
+    <div className="relative flex items-center mr-2">
+      {showBalanceUpdated && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className={`absolute -bottom-10 right-0 px-3 py-1 rounded-md text-xs font-medium whitespace-nowrap ${
+            isPositiveChange 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}
+        >
+          Balance {isPositiveChange ? 'increased' : 'decreased'} by ${Math.abs(balanceChange).toFixed(2)}
+        </motion.div>
+      )}
+      
       <Button 
         variant="ghost" 
         size="sm" 

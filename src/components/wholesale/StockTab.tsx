@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { isSubscriptionEndingSoon } from './stock/utils';
 import { supabase } from '@/integrations/supabase/client';
+import WholesaleSubscriptionManager from './stock/WholesaleSubscriptionManager';
 
 interface StockTabProps {
   subscriptions: Subscription[];
@@ -20,7 +21,7 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
   const [renewedSubscriptions, setRenewedSubscriptions] = useState<string[]>([]);
   const [safeSubscriptions, setSafeSubscriptions] = useState<Subscription[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('subscription-manager');
   const [userBalance, setUserBalance] = useState(0);
 
   // Get current wholesaler ID
@@ -230,54 +231,67 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
-          <TabsTrigger value="all">All Subscriptions</TabsTrigger>
-          <TabsTrigger value="ending-soon" className="relative">
-            Ending Soon
-            {endingSoonCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {endingSoonCount}
-              </span>
-            )}
-          </TabsTrigger>
+          <TabsTrigger value="subscription-manager">Subscription Manager</TabsTrigger>
+          <TabsTrigger value="legacy-view">Legacy View</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all">
-          {safeSubscriptions.length > 0 ? (
-            <StockSubscriptions 
-              subscriptions={safeSubscriptions}
-              allowRenewal={true}
-              onRenew={handleRenewal}
-              renewedSubscriptions={renewedSubscriptions}
-              category="all"
-            />
-          ) : (
-            <div className="text-center p-6 bg-muted/30 rounded-lg">
-              <p className="text-muted-foreground">No active subscriptions found</p>
-            </div>
-          )}
+        <TabsContent value="subscription-manager">
+          <WholesaleSubscriptionManager wholesalerId={wholesalerId} />
         </TabsContent>
 
-        <TabsContent value="ending-soon">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
-            <h3 className="font-medium text-amber-800 mb-1">Ending Soon</h3>
-            <p className="text-sm text-amber-700">
-              These subscriptions will expire within the next 5 days. Consider renewing these subscriptions or notifying your customers.
-            </p>
-          </div>
+        <TabsContent value="legacy-view">
+          <Tabs defaultValue="all">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">All Subscriptions</TabsTrigger>
+              <TabsTrigger value="ending-soon" className="relative">
+                Ending Soon
+                {endingSoonCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {endingSoonCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-          {endingSoonCount > 0 ? (
-            <StockSubscriptions 
-              subscriptions={safeSubscriptions}
-              allowRenewal={true}
-              onRenew={handleRenewal}
-              renewedSubscriptions={renewedSubscriptions}
-              category="ending-soon"
-            />
-          ) : (
-            <div className="text-center p-6 bg-muted/30 rounded-lg">
-              <p className="text-muted-foreground">No subscriptions ending soon</p>
-            </div>
-          )}
+            <TabsContent value="all">
+              {safeSubscriptions.length > 0 ? (
+                <StockSubscriptions 
+                  subscriptions={safeSubscriptions}
+                  allowRenewal={true}
+                  onRenew={handleRenewal}
+                  renewedSubscriptions={renewedSubscriptions}
+                  category="all"
+                />
+              ) : (
+                <div className="text-center p-6 bg-muted/30 rounded-lg">
+                  <p className="text-muted-foreground">No active subscriptions found</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="ending-soon">
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+                <h3 className="font-medium text-amber-800 mb-1">Ending Soon</h3>
+                <p className="text-sm text-amber-700">
+                  These subscriptions will expire within the next 5 days. Consider renewing these subscriptions or notifying your customers.
+                </p>
+              </div>
+
+              {endingSoonCount > 0 ? (
+                <StockSubscriptions 
+                  subscriptions={safeSubscriptions}
+                  allowRenewal={true}
+                  onRenew={handleRenewal}
+                  renewedSubscriptions={renewedSubscriptions}
+                  category="ending-soon"
+                />
+              ) : (
+                <div className="text-center p-6 bg-muted/30 rounded-lg">
+                  <p className="text-muted-foreground">No subscriptions ending soon</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </motion.div>
