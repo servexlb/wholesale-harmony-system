@@ -125,7 +125,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     setQuantity(1);
     setDuration(1);
     
-    if (service.type === 'topup' || service.type === 'recharge') {
+    if ((service.type === 'topup' || service.type === 'recharge') && service.useExternalApi) {
       try {
         const stockResult = await externalApi.getCredentials(service.id);
         
@@ -303,4 +303,3 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 };
 
 export default ServiceCard;
-

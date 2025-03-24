@@ -59,7 +59,7 @@ const apiRequest = async <T>(
   }
 };
 
-// API service functions
+// API service functions for selected top-up services only
 export const externalApi = {
   // Service-related functions
   getServices: () => 

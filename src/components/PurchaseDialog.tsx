@@ -189,49 +189,96 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     setIsProcessing(true);
 
     try {
-      // Save to database
-      const saveSuccess = await savePurchaseToDatabase();
-      
-      if (!saveSuccess) {
-        // If saving to database fails, store in localStorage as fallback
-        const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+      // Process through external API if this is a top-up or recharge service configured to use the API
+      if ((service.type === 'topup' || service.type === 'recharge') && service.useExternalApi) {
+        // Set order status to processing initially
+        setOrderStatus('processing');
         
-        // Generate mock credentials for the purchased service
-        const mockCredentials = service.type === 'subscription' ? {
-          email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
-          password: `pass${Math.random().toString(36).substring(2, 10)}`,
-          username: `user${Math.floor(Math.random() * 10000)}`,
-          notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
-        } : undefined;
-        
-        // Set credentials for the success dialog
-        setCredentials(mockCredentials);
-        
-        const newOrder = {
-          id: `order-${Date.now()}`,
+        // Use the external API to process the top-up
+        const topUpData = {
           serviceId: service.id,
-          serviceName: service.name,
-          quantity: quantity,
-          totalPrice: totalPrice,
-          status: 'completed',
-          durationMonths: service.type === 'subscription' ? parseInt(duration) : null,
           accountId: accountId,
-          notes: notes,
-          createdAt: new Date().toISOString(),
-          credentials: mockCredentials
+          amount: quantity,
+          notes: notes
         };
         
-        orders.push(newOrder);
-        localStorage.setItem('orders', JSON.stringify(orders));
+        try {
+          const result = await externalApi.processTopUp(topUpData);
+          
+          if (result.success) {
+            setOrderId(result.orderId);
+            
+            // Check status (this would typically be done via webhook in production)
+            const statusCheck = await externalApi.checkTopUpStatus(result.orderId);
+            if (statusCheck.status === 'completed') {
+              setOrderStatus('completed');
+            } else {
+              setOrderStatus('processing');
+            }
+            
+            // Show success dialog
+            onPurchase();
+            setShowSuccessDialog(true);
+          } else {
+            throw new Error('Top-up processing failed');
+          }
+        } catch (error) {
+          console.error('Error with external API:', error);
+          toast.error('Purchase Failed', {
+            description: 'There was an error processing your top-up request. Please try again.',
+          });
+          setIsProcessing(false);
+          return;
+        }
+      } else {
+        // For regular products that don't use the external API, use the existing flow
+        // Save to database
+        const saveSuccess = await savePurchaseToDatabase();
+        
+        if (!saveSuccess) {
+          // If saving to database fails, store in localStorage as fallback
+          const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+          
+          // Generate mock credentials for the purchased service
+          const mockCredentials = service.type === 'subscription' ? {
+            email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
+            password: `pass${Math.random().toString(36).substring(2, 10)}`,
+            username: `user${Math.floor(Math.random() * 10000)}`,
+            notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
+          } : undefined;
+          
+          // Set credentials for the success dialog
+          setCredentials(mockCredentials);
+          
+          const newOrder = {
+            id: `order-${Date.now()}`,
+            serviceId: service.id,
+            serviceName: service.name,
+            quantity: quantity,
+            totalPrice: totalPrice,
+            status: 'completed',
+            durationMonths: service.type === 'subscription' ? parseInt(duration) : null,
+            accountId: accountId,
+            notes: notes,
+            createdAt: new Date().toISOString(),
+            credentials: mockCredentials
+          };
+          
+          orders.push(newOrder);
+          localStorage.setItem('orders', JSON.stringify(orders));
+        }
+        
+        // Set order status to completed for regular products
+        setOrderStatus('completed');
+        
+        // Notify parent component 
+        onPurchase();
+        
+        // Show success dialog instead of closing this dialog
+        setShowSuccessDialog(true);
       }
       
-      // Notify parent component 
-      onPurchase();
       setIsProcessing(false);
-      
-      // Show success dialog instead of closing this dialog
-      setShowSuccessDialog(true);
-      
     } catch (error) {
       console.error('Error processing purchase:', error);
       setIsProcessing(false);

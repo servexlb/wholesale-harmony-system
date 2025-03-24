@@ -68,6 +68,10 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
     navigate(`/dashboard/orders/${orderId}`);
   };
 
+  // Check if this service is using the external API
+  const isExternalApiService = service.useExternalApi && 
+    (service.type === 'topup' || service.type === 'recharge');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -111,6 +115,11 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
               </div>
               <p className="text-sm text-amber-700">
                 Your order is currently being processed. This typically takes a few minutes. You can check the status in your dashboard.
+                {isExternalApiService && (
+                  <span className="block mt-1">
+                    Your top-up request has been sent to the provider and will be completed shortly.
+                  </span>
+                )}
               </p>
               <div className="flex items-center mt-2 text-xs text-amber-700">
                 <AlertCircle className="h-3.5 w-3.5 mr-1" />
@@ -118,7 +127,7 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
               </div>
             </div>
           ) : stockAvailable ? (
-            credentials && (
+            credentials && !isExternalApiService && (
               <div className="border rounded-md p-4 space-y-2">
                 <div className="flex justify-between items-center">
                   <h4 className="text-sm font-medium">Your Access Credentials</h4>
@@ -179,6 +188,19 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
                 <AlertCircle className="h-3.5 w-3.5 mr-1" />
                 <span>You will be notified when your credentials are ready</span>
               </div>
+            </div>
+          )}
+          
+          {/* Show special message for external API services that are completed */}
+          {isExternalApiService && orderStatus === 'completed' && (
+            <div className="border border-green-200 rounded-md p-4 space-y-2 bg-green-50">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <h4 className="text-sm font-medium text-green-800">Top-up Completed</h4>
+              </div>
+              <p className="text-sm text-green-700">
+                Your top-up request has been processed successfully. Your account has been credited with the purchased amount.
+              </p>
             </div>
           )}
         </div>

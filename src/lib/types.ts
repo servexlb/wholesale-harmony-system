@@ -90,6 +90,7 @@ export interface Service {
   availableForCustomers?: boolean;
   status?: string; // Add status for compatibility with mockData
   createdAt?: string; // Add createdAt for compatibility with mockData
+  useExternalApi?: boolean; // Add this property to indicate if this service should use the external API
 }
 
 export interface Product {
