@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const { user } = useAuth();
   const { addItem } = useCart();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -93,6 +94,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         ? formatCurrency(service.wholesalePrice || service.price)
         : formatCurrency(service.price);
     }
+  };
+
+  const showPurchaseConfirmation = () => {
+    setIsConfirmDialogOpen(true);
   };
 
   return (
@@ -183,6 +188,20 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               </div>
             )}
           </div>
+          
+          {/* Added Buy Button */}
+          <Button 
+            className="w-full mt-3"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering the card click
+              showPurchaseConfirmation();
+            }}
+            disabled={isPurchasing}
+          >
+            <ShoppingCart className="h-4 w-4 mr-1" />
+            Buy Now
+          </Button>
         </div>
       </CardContent>
       
@@ -218,6 +237,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </Button>
         )}
       </CardFooter>
+      
+      {/* Purchase Confirmation Dialog */}
+      
+      
     </Card>
   );
 };
