@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, UserCog, CreditCard, KeyRound, Calendar, DollarSign } from 'lucide-react';
 import {
@@ -19,7 +20,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
+import { AdminNotification as AdminNotificationType } from '@/lib/types';
 
+// Interface for notifications as they exist in the database
 interface AdminNotification {
   id: string;
   title?: string;
@@ -32,6 +35,10 @@ interface AdminNotification {
   amount?: number;
   payment_method?: string;
   link_to?: string;
+  user_id?: string;
+  customer_id?: string;
+  service_id?: string;
+  subscription_id?: string;
 }
 
 const AdminNotifications: React.FC = () => {
@@ -74,7 +81,17 @@ const AdminNotifications: React.FC = () => {
         console.error('Error fetching notifications:', error);
         // Fallback to mock data
         const mockData = getAdminNotifications();
-        setNotifications(mockData);
+        // Transform mock data to match our interface
+        const transformedMockData: AdminNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.isRead || false,
+          customer_name: item.customerName,
+          service_name: item.serviceName,
+          payment_method: item.paymentMethod,
+          link_to: item.linkTo,
+        }));
+        setNotifications(transformedMockData);
       } else if (data) {
         setNotifications(data);
       }
@@ -82,7 +99,17 @@ const AdminNotifications: React.FC = () => {
       console.error('Error in fetchNotifications:', error);
       // Fallback to mock data
       const mockData = getAdminNotifications();
-      setNotifications(mockData);
+      // Transform mock data to match our interface
+      const transformedMockData: AdminNotification[] = mockData.map(item => ({
+        ...item,
+        created_at: item.createdAt,
+        is_read: item.isRead || false,
+        customer_name: item.customerName,
+        service_name: item.serviceName,
+        payment_method: item.paymentMethod,
+        link_to: item.linkTo,
+      }));
+      setNotifications(transformedMockData);
     } finally {
       setLoading(false);
     }
@@ -99,7 +126,18 @@ const AdminNotifications: React.FC = () => {
         console.error('Error marking notification as read:', error);
         // Fallback to local update
         markNotificationAsRead(id);
-        setNotifications(getAdminNotifications());
+        const mockData = getAdminNotifications();
+        // Transform mock data to match our interface
+        const transformedMockData: AdminNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.isRead || false,
+          customer_name: item.customerName,
+          service_name: item.serviceName,
+          payment_method: item.paymentMethod,
+          link_to: item.linkTo,
+        }));
+        setNotifications(transformedMockData);
         return;
       }
       
@@ -114,7 +152,18 @@ const AdminNotifications: React.FC = () => {
       console.error('Error in handleReadNotification:', error);
       // Fallback to local update
       markNotificationAsRead(id);
-      setNotifications(getAdminNotifications());
+      const mockData = getAdminNotifications();
+      // Transform mock data to match our interface
+      const transformedMockData: AdminNotification[] = mockData.map(item => ({
+        ...item,
+        created_at: item.createdAt,
+        is_read: item.isRead || false,
+        customer_name: item.customerName,
+        service_name: item.serviceName,
+        payment_method: item.paymentMethod,
+        link_to: item.linkTo,
+      }));
+      setNotifications(transformedMockData);
     }
   };
 
@@ -135,7 +184,18 @@ const AdminNotifications: React.FC = () => {
         console.error('Error marking all notifications as read:', error);
         // Fallback to local update
         markAllNotificationsAsRead();
-        setNotifications(getAdminNotifications());
+        const mockData = getAdminNotifications();
+        // Transform mock data to match our interface
+        const transformedMockData: AdminNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.isRead || false,
+          customer_name: item.customerName,
+          service_name: item.serviceName,
+          payment_method: item.paymentMethod,
+          link_to: item.linkTo,
+        }));
+        setNotifications(transformedMockData);
         return;
       }
       
@@ -148,7 +208,18 @@ const AdminNotifications: React.FC = () => {
       console.error('Error in handleReadAll:', error);
       // Fallback to local update
       markAllNotificationsAsRead();
-      setNotifications(getAdminNotifications());
+      const mockData = getAdminNotifications();
+      // Transform mock data to match our interface
+      const transformedMockData: AdminNotification[] = mockData.map(item => ({
+        ...item,
+        created_at: item.createdAt,
+        is_read: item.isRead || false,
+        customer_name: item.customerName,
+        service_name: item.serviceName,
+        payment_method: item.paymentMethod,
+        link_to: item.linkTo,
+      }));
+      setNotifications(transformedMockData);
     }
   };
 

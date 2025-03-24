@@ -15,13 +15,22 @@ import { toast } from '@/lib/toast';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
+// Interface for database notifications
 interface Notification {
   id: string;
-  title: string;
-  message: string;
+  title?: string;
+  message?: string;
   created_at: string;
   is_read: boolean;
   type: string;
+  user_id?: string;
+  customer_id?: string;
+  service_id?: string;
+  service_name?: string;
+  customer_name?: string;
+  amount?: number;
+  payment_method?: string;
+  link_to?: string;
 }
 
 const WholesaleNotifications: React.FC = () => {

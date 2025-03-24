@@ -20,6 +20,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 
+// Interface for database notifications
 interface CustomerNotification {
   id: string;
   title?: string;
@@ -28,6 +29,13 @@ interface CustomerNotification {
   is_read: boolean;
   type: string;
   user_id: string;
+  service_id?: string;
+  service_name?: string;
+  subscription_id?: string;
+  customer_id?: string;
+  customer_name?: string;
+  payment_method?: string;
+  amount?: number;
 }
 
 interface CustomerNotificationsProps {
@@ -68,7 +76,15 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
     try {
       if (!userId) {
         // Fallback to mock data if no userId
-        setNotifications(getCustomerNotifications(userId));
+        const mockData = getCustomerNotifications(userId);
+        // Transform mock data to match our interface
+        const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.read || false,
+          user_id: userId
+        }));
+        setNotifications(transformedMockData);
         setLoading(false);
         return;
       }
@@ -84,17 +100,41 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
       if (error) {
         console.error('Error fetching customer notifications:', error);
         // Fallback to mock data
-        setNotifications(getCustomerNotifications(userId));
+        const mockData = getCustomerNotifications(userId);
+        // Transform mock data to match our interface
+        const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.read || false,
+          user_id: userId
+        }));
+        setNotifications(transformedMockData);
       } else if (data && data.length > 0) {
         setNotifications(data);
       } else {
         // Fallback to mock data if no real notifications found
-        setNotifications(getCustomerNotifications(userId));
+        const mockData = getCustomerNotifications(userId);
+        // Transform mock data to match our interface
+        const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.read || false,
+          user_id: userId
+        }));
+        setNotifications(transformedMockData);
       }
     } catch (error) {
       console.error('Error in fetchNotifications:', error);
       // Fallback to mock data
-      setNotifications(getCustomerNotifications(userId));
+      const mockData = getCustomerNotifications(userId);
+      // Transform mock data to match our interface
+      const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+        ...item,
+        created_at: item.createdAt,
+        is_read: item.read || false,
+        user_id: userId
+      }));
+      setNotifications(transformedMockData);
     } finally {
       setLoading(false);
     }
@@ -112,7 +152,15 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
         console.error('Error marking notification as read:', error);
         // Fallback to local update
         markCustomerNotificationAsRead(id);
-        setNotifications(getCustomerNotifications(userId));
+        const mockData = getCustomerNotifications(userId);
+        // Transform mock data to match our interface
+        const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.read || false,
+          user_id: userId
+        }));
+        setNotifications(transformedMockData);
         return;
       }
       
@@ -127,7 +175,15 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
       console.error('Error in handleReadNotification:', error);
       // Fallback to local update
       markCustomerNotificationAsRead(id);
-      setNotifications(getCustomerNotifications(userId));
+      const mockData = getCustomerNotifications(userId);
+      // Transform mock data to match our interface
+      const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+        ...item,
+        created_at: item.createdAt,
+        is_read: item.read || false,
+        user_id: userId
+      }));
+      setNotifications(transformedMockData);
     }
   };
 
@@ -149,7 +205,15 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
         console.error('Error marking all notifications as read:', error);
         // Fallback to local update
         markAllCustomerNotificationsAsRead(userId);
-        setNotifications(getCustomerNotifications(userId));
+        const mockData = getCustomerNotifications(userId);
+        // Transform mock data to match our interface
+        const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+          ...item,
+          created_at: item.createdAt,
+          is_read: item.read || false,
+          user_id: userId
+        }));
+        setNotifications(transformedMockData);
         return;
       }
       
@@ -160,7 +224,15 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
       console.error('Error in handleReadAll:', error);
       // Fallback to local update
       markAllCustomerNotificationsAsRead(userId);
-      setNotifications(getCustomerNotifications(userId));
+      const mockData = getCustomerNotifications(userId);
+      // Transform mock data to match our interface
+      const transformedMockData: CustomerNotification[] = mockData.map(item => ({
+        ...item,
+        created_at: item.createdAt,
+        is_read: item.read || false,
+        user_id: userId
+      }));
+      setNotifications(transformedMockData);
     }
   };
 
