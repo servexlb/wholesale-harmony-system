@@ -6,6 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FirebaseProvider } from "@/contexts/FirebaseContext";
+import { AuthProvider } from "@/hooks/useAuth";
+import { CartProvider } from "@/hooks/useCart";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 
 // Pages
 import Home from "./pages/Home";
@@ -28,6 +32,14 @@ import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
+// PayPal configuration
+const paypalOptions = {
+  "client-id": "test", // Replace with your PayPal client ID in production
+  currency: "USD",
+  intent: "capture",
+  components: "buttons"
+};
+
 // Admin authentication check
 const AdminRoute = ({ children }) => {
   // Check both localStorage and sessionStorage for admin authentication
@@ -46,35 +58,43 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <FirebaseProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard/*" element={<Dashboard />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/services/:id" element={<ServiceDetail />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/payment" element={<Payment />} />
-              <Route path="/admin-auth" element={<AdminAuth />} />
-              <Route path="/admin/*" element={
-                <AdminRoute>
-                  <AdminPanel />
-                </AdminRoute>
-              } />
-              <Route path="/wholesale" element={<Wholesale />} />
-              <Route path="/dashboard/transaction-history" element={<TransactionHistory />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AnimatePresence>
-        </BrowserRouter>
+        <AuthProvider>
+          <CartProvider>
+            <SubscriptionProvider>
+              <PayPalScriptProvider options={paypalOptions}>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AnimatePresence mode="wait">
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/dashboard/*" element={<Dashboard />} />
+                      <Route path="/services" element={<Services />} />
+                      <Route path="/services/:id" element={<ServiceDetail />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/payment" element={<Payment />} />
+                      <Route path="/admin-auth" element={<AdminAuth />} />
+                      <Route path="/admin/*" element={
+                        <AdminRoute>
+                          <AdminPanel />
+                        </AdminRoute>
+                      } />
+                      <Route path="/wholesale" element={<Wholesale />} />
+                      <Route path="/dashboard/transaction-history" element={<TransactionHistory />} />
+                      <Route path="/support" element={<Support />} />
+                      <Route path="/account" element={<Account />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </AnimatePresence>
+                </BrowserRouter>
+              </PayPalScriptProvider>
+            </SubscriptionProvider>
+          </CartProvider>
+        </AuthProvider>
       </TooltipProvider>
     </FirebaseProvider>
   </QueryClientProvider>

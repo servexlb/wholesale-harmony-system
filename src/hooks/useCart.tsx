@@ -4,13 +4,16 @@ import { Service } from '@/lib/types';
 import { toast } from 'sonner';
 
 interface CartItem {
+  id: string;
+  name: string;
+  price: number;
   service: Service;
   quantity: number;
   duration?: number;
 }
 
 interface CartContextType {
-  items: CartItem[];
+  cartItems: CartItem[];
   addItem: (service: Service, quantity?: number, duration?: number) => void;
   removeItem: (serviceId: string) => void;
   updateQuantity: (serviceId: string, quantity: number) => void;
@@ -23,7 +26,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [itemCount, setItemCount] = useState<number>(0);
 
@@ -33,7 +36,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (storedCart) {
       try {
         const parsedCart = JSON.parse(storedCart);
-        setItems(parsedCart);
+        setCartItems(parsedCart);
       } catch (error) {
         console.error('Failed to parse stored cart:', error);
       }
@@ -42,11 +45,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Update localStorage when cart changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items));
+    localStorage.setItem('cart', JSON.stringify(cartItems));
     
     // Calculate total
-    const newTotal = items.reduce((sum, item) => {
-      const itemPrice = item.service.price;
+    const newTotal = cartItems.reduce((sum, item) => {
+      const itemPrice = item.price;
       const quantity = item.quantity || 1;
       const duration = item.duration || 1;
       
@@ -60,12 +63,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setTotal(newTotal);
     
     // Calculate item count
-    const newItemCount = items.reduce((count, item) => count + item.quantity, 0);
+    const newItemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
     setItemCount(newItemCount);
-  }, [items]);
+  }, [cartItems]);
 
   const addItem = (service: Service, quantity: number = 1, duration: number = 1) => {
-    setItems((prevItems) => {
+    setCartItems((prevItems) => {
       // Check if item already exists
       const existingItemIndex = prevItems.findIndex(
         (item) => item.service.id === service.id
@@ -91,13 +94,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           description: `${service.name} added to your cart`
         });
         
-        return [...prevItems, { service, quantity, duration }];
+        return [...prevItems, { 
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          service, 
+          quantity, 
+          duration 
+        }];
       }
     });
   };
 
   const removeItem = (serviceId: string) => {
-    setItems((prevItems) => {
+    setCartItems((prevItems) => {
       const serviceToRemove = prevItems.find(item => item.service.id === serviceId);
       if (serviceToRemove) {
         toast.info('Removed from cart', {
@@ -115,7 +125,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setItems((prevItems) =>
+    setCartItems((prevItems) =>
       prevItems.map((item) =>
         item.service.id === serviceId ? { ...item, quantity } : item
       )
@@ -123,7 +133,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateDuration = (serviceId: string, duration: number) => {
-    setItems((prevItems) =>
+    setCartItems((prevItems) =>
       prevItems.map((item) =>
         item.service.id === serviceId ? { ...item, duration } : item
       )
@@ -131,7 +141,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = () => {
-    setItems([]);
+    setCartItems([]);
     toast.info('Cart cleared', {
       description: 'All items have been removed from your cart'
     });
@@ -140,7 +150,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   return (
     <CartContext.Provider
       value={{
-        items,
+        cartItems,
         addItem,
         removeItem,
         updateQuantity,

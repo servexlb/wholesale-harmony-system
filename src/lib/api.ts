@@ -1,8 +1,9 @@
 
 import { toast } from 'sonner';
+import { Order } from '@/lib/types';
 
 // Base API configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.example.com';
+const API_BASE_URL = 'https://api.example.com'; // Replace with your actual API URL
 
 // Default headers
 const defaultHeaders = {
@@ -75,36 +76,22 @@ export const api = {
     apiRequest<T>(endpoint, 'DELETE', undefined, headers),
 };
 
-// Mock API functions for demonstration purposes
-export const mockApi = {
-  fetchProducts: async () => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const products = localStorage.getItem('products');
-    return products ? JSON.parse(products) : [];
-  },
+// For the Checkout page, we'll create a mock order creation function
+export const createOrder = async (orderData: Order): Promise<Order> => {
+  // In a real app, this would call the API
+  // For now, we'll simulate a network delay and store in localStorage
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
-  fetchServices: async () => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const services = localStorage.getItem('services');
-    return services ? JSON.parse(services) : [];
-  },
-  
-  placeOrder: async (orderData: any) => {
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    // Store the order
+  try {
+    // Store the order in local storage
     const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-    const newOrder = {
-      id: `order-${Date.now()}`,
-      ...orderData,
-      createdAt: new Date().toISOString()
-    };
-    
-    orders.push(newOrder);
+    orders.push(orderData);
     localStorage.setItem('orders', JSON.stringify(orders));
     
-    return newOrder;
+    return orderData;
+  } catch (error) {
+    console.error('Error creating order:', error);
+    throw new Error('Failed to create order');
   }
 };
 
