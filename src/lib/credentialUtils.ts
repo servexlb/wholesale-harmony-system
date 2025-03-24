@@ -25,36 +25,6 @@ export const convertSubscriptionToStock = (subscriptionData: any): Credential =>
   };
 };
 
-// Function to add credential to stock
-export const addCredentialToStock = async (
-  serviceId: string, 
-  credentials: Credential,
-  status: 'available' | 'assigned' = 'available'
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('credential_stock')
-      .insert({
-        service_id: serviceId,
-        credentials,
-        status
-      });
-    
-    if (error) {
-      console.error('Error adding credential to stock:', error);
-      toast.error('Failed to add credential to stock');
-      return false;
-    }
-    
-    toast.success('Credential added to stock successfully');
-    return true;
-  } catch (error) {
-    console.error('Error in addCredentialToStock:', error);
-    toast.error('Failed to add credential to stock');
-    return false;
-  }
-};
-
 // Function to assign credentials to customer and send notification
 export const assignCredentialsToCustomer = async (
   userId: string, 
@@ -107,11 +77,11 @@ export const assignCredentialsToCustomer = async (
     }
     
     // Send a notification to the customer
-    await sendCredentialNotification(userId, serviceId, availableCredentials.credentials);
+    await sendCredentialNotification(userId, serviceId, availableCredentials.credentials as Credential);
     
     return {
       success: true,
-      credentials: availableCredentials.credentials
+      credentials: availableCredentials.credentials as Credential
     };
   } catch (error) {
     console.error('Error in assignCredentialsToCustomer:', error);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -346,6 +345,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const selectedService = services.find(s => s.id === serviceId);
   const productType = selectedService?.type || 'service';
+
+  const isSubscription = productType === 'subscription';
 
   // Group services by type for better organization
   const servicesByType = services.reduce((acc: {[key: string]: Service[]}, service) => {

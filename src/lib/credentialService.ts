@@ -106,6 +106,27 @@ export const createStockRequest = async (
   }
 };
 
+// Get all available credentials
+export const getAvailableCredentials = async (serviceId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('credential_stock')
+      .select('*')
+      .eq('service_id', serviceId)
+      .eq('status', 'available');
+      
+    if (error) {
+      console.error('Error fetching available credentials:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in getAvailableCredentials:', error);
+    return [];
+  }
+};
+
 // Get pending stock requests
 export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
   try {
@@ -125,14 +146,70 @@ export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
       userId: item.user_id,
       serviceId: item.service_id,
       orderId: item.order_id,
-      status: item.status,
+      status: item.status as "pending" | "fulfilled" | "cancelled",
       createdAt: item.created_at,
-      customerName: item.profiles?.name,
-      notes: item.notes
+      customerName: item.profiles?.name || 'Unknown',
+      notes: item.notes || ''
     }));
   } catch (error) {
     console.error('Error in getPendingStockRequests:', error);
     return [];
+  }
+};
+
+// Get all stock issues
+export const getStockIssues = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('stock_issue_logs')
+      .select('*, profiles:user_id(name)')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching stock issues:', error);
+      return [];
+    }
+    
+    return data.map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      serviceId: item.service_id,
+      orderId: item.order_id,
+      status: item.status as "pending" | "fulfilled" | "cancelled",
+      createdAt: item.created_at,
+      resolvedAt: item.resolved_at,
+      customerName: item.profiles?.name || 'Unknown',
+      notes: item.notes || ''
+    }));
+  } catch (error) {
+    console.error('Error in getStockIssues:', error);
+    return [];
+  }
+};
+
+// Resolve a stock issue
+export const resolveStockIssue = async (issueId: string, status: 'fulfilled' | 'cancelled') => {
+  try {
+    const { error } = await supabase
+      .from('stock_issue_logs')
+      .update({
+        status: status,
+        resolved_at: new Date().toISOString()
+      })
+      .eq('id', issueId);
+      
+    if (error) {
+      console.error('Error resolving stock issue:', error);
+      return false;
+    }
+    
+    // Dispatch an event to refresh the UI
+    window.dispatchEvent(new CustomEvent('stock-issue-resolved'));
+    
+    return true;
+  } catch (error) {
+    console.error('Error in resolveStockIssue:', error);
+    return false;
   }
 };
 
