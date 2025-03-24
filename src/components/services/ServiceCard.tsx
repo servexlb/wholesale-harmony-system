@@ -1,551 +1,191 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Service, ServiceType, Order } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Service, ServiceType } from '@/lib/types';
 import { 
-  CreditCard, 
-  Eye, 
-  ImageIcon, 
-  Minus, 
-  Plus, 
-  User,
-  Clock,
-  Tag,
-  RotateCcw,
-  Zap,
+  Clock, 
+  Calendar, 
+  Wallet, 
+  Tag, 
+  RotateCw, 
+  Zap, 
   Gift,
-  Calendar,
-  Loader,
-  Wallet
+  Loader2
 } from 'lucide-react';
-import { 
+import {
   Card,
   CardContent,
   CardFooter,
   CardHeader
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-import { 
-  fulfillOrderWithCredentials, 
-  checkCredentialAvailability 
-} from '@/lib/credentialUtils';
+import { fulfillOrderWithCredentials, checkCredentialAvailability } from '@/lib/credentialUtils';
 import PurchaseSuccessDialog from '@/components/PurchaseSuccessDialog';
 
 interface ServiceCardProps {
   service: Service;
-  category?: {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-  };
+  onAddToCart?: (service: Service) => void;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ service, onAddToCart }) => {
   const navigate = useNavigate();
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [selectedDuration, setSelectedDuration] = useState<string>("1");
-  const [accountId, setAccountId] = useState("");
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [purchasedOrder, setPurchasedOrder] = useState<{
-    id: string;
-    serviceId: string;
-    serviceName: string;
-    totalPrice: number;
-    credentials: any | null;
-    createdAt: string;
-  } | null>(null);
+  const [duration, setDuration] = useState(1);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hasAvailableCredentials, setHasAvailableCredentials] = useState(false);
   
-  const userId = localStorage.getItem('currentUserId') || 'guest';
-  
-  const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
-  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
-  
-  const showPurchaseConfirmation = () => {
-    setAccountId("");
-    setQuantity(service.minQuantity || 1);
-    
-    if (service.type === "subscription") {
-      if (service.availableMonths && service.availableMonths.length > 0) {
-        setSelectedDuration(service.availableMonths[0].toString());
-      } else {
-        setSelectedDuration("1");
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (service.type === 'subscription') {
+        const available = checkCredentialAvailability(service.id);
+        setHasAvailableCredentials(available);
       }
-    }
-    
-    setIsConfirmDialogOpen(true);
-  };
-
-  const handleBuyNow = () => {
-    if (service.type === "topup" && service.requiresId && !accountId.trim()) {
-      toast.error("Account ID required", {
-        description: "Please enter your account ID for this top-up"
-      });
-      return;
-    }
-    
-    console.log("Buy now clicked for service:", service);
-    setIsPurchasing(true);
-    
-    let finalPrice = 0;
-    
-    if (service.type === "subscription") {
-      finalPrice = service.price * parseInt(selectedDuration);
-    } else {
-      finalPrice = service.price * quantity;
-    }
-    
-    if (userBalance < finalPrice) {
-      toast.error("Insufficient balance", {
-        description: "You don't have enough funds to make this purchase"
-      });
-      setIsPurchasing(false);
-      navigate("/payment");
-      return;
-    }
-
-    const newBalance = userBalance - finalPrice;
-    localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
-
-    const order: Order = {
-      id: `order-${Date.now()}`,
-      userId: userId,
-      serviceId: service.id,
-      quantity: service.type === "subscription" ? 1 : quantity,
-      durationMonths: service.type === "subscription" ? parseInt(selectedDuration) : undefined,
-      accountId: service.type === "topup" && service.requiresId ? accountId : undefined,
-      totalPrice: finalPrice,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      credentials: undefined,
-      products: [],
-      total: finalPrice
     };
-
-    const processedOrder = fulfillOrderWithCredentials(order) as Order;
-
-    const customerOrdersKey = `customerOrders_${userId}`;
-    const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
-    customerOrders.push(processedOrder);
-    localStorage.setItem(customerOrdersKey, JSON.stringify(customerOrders));
-
-    console.log("Created order:", processedOrder);
     
-    setIsPurchasing(false);
-    setIsConfirmDialogOpen(false);
-    
-    setPurchasedOrder({
-      id: processedOrder.id,
-      serviceId: service.id,
-      serviceName: service.name,
-      totalPrice: finalPrice,
-      credentials: processedOrder.credentials || null,
-      createdAt: processedOrder.createdAt
-    });
-    
-    setIsSuccessDialogOpen(true);
+    checkAvailability();
+  }, [service.id, service.type]);
+
+  const handleAddToCartClick = () => {
+    if (onAddToCart) {
+      onAddToCart(service);
+    } else {
+      toast.info("This feature is under development.");
+    }
   };
 
-  const checkAvailableCredentials = (serviceId: string) => {
-    const hasStock = checkCredentialAvailability(serviceId);
-    
-    if (hasStock) {
-      return {
-        email: `user_${Math.floor(1000 + Math.random() * 9000)}@example.com`,
-        password: `Pass${Math.floor(1000 + Math.random() * 9000)}!`,
-        notes: "This account is ready to use immediately."
-      };
+  const handlePurchaseClick = () => {
+    if (service.type === 'subscription' && !hasAvailableCredentials) {
+      toast.error("This service is currently out of stock. Please try again later.");
+      return;
     }
     
-    return null;
-  };
-
-  const handleAddFunds = () => {
-    navigate("/payment");
-  };
-
-  const increaseQuantity = () => {
-    setQuantity(prev => prev + 1);
-  };
-
-  const decreaseQuantity = () => {
-    const minQuantity = service.minQuantity || 1;
-    setQuantity(prev => prev > minQuantity ? prev - 1 : minQuantity);
+    navigate(`/checkout`, { state: { service, quantity, duration } });
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    const minQuantity = service.minQuantity || 1;
-    if (!isNaN(value) && value >= minQuantity) {
+    if (!isNaN(value) && value > 0) {
       setQuantity(value);
-    } else if (e.target.value === '') {
-      setQuantity(minQuantity);
     }
   };
 
-  const getServiceTypeIcon = () => {
-    switch (service.type) {
-      case "subscription": return <RotateCcw className="h-4 w-4 mr-1" />;
-      case "topup": return <Zap className="h-4 w-4 mr-1" />;
-      case "giftcard": return <Gift className="h-4 w-4 mr-1" />;
-      default: return <Tag className="h-4 w-4 mr-1" />;
-    }
+  const handleDurationChange = (value: string) => {
+    setDuration(parseInt(value));
   };
 
-  const getServiceTypeName = () => {
-    switch (service.type) {
-      case "subscription": return "Subscription";
-      case "topup": return "Top-up";
-      case "giftcard": return "Gift Card";
-      default: return "Service";
+  const getServiceIcon = (type: ServiceType) => {
+    switch (type) {
+      case 'subscription':
+        return <Calendar className="h-4 w-4 mr-2" />;
+      case 'topup':
+        return <Wallet className="h-4 w-4 mr-2" />;
+      case 'one-time':
+        return <Tag className="h-4 w-4 mr-2" />;
+      case 'lifetime':
+        return <Gift className="h-4 w-4 mr-2" />;
+      default:
+        return <Zap className="h-4 w-4 mr-2" />;
     }
   };
-
-  const imageUrl = service.image || getImageUrl(service.name, service.type);
-
-  function getImageUrl(serviceName: string, type: string) {
-    const name = serviceName.toLowerCase();
-    
-    if (name.includes('netflix')) return "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&h=400&fit=crop";
-    if (name.includes('amazon') || name.includes('prime')) return "https://images.unsplash.com/photo-1584905066893-7d5c142ba4e1?w=600&h=400&fit=crop";
-    if (name.includes('disney')) return "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=600&h=400&fit=crop";
-    if (name.includes('apple') || name.includes('itunes')) return "https://images.unsplash.com/photo-1585184394271-4c0a47dc59c9?w=600&h=400&fit=crop";
-    if (name.includes('spotify') || name.includes('music')) return "https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=600&h=400&fit=crop";
-    if (name.includes('youtube')) return "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600&h=400&fit=crop";
-    if (name.includes('hbo')) return "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&h=400&fit=crop";
-    if (name.includes('playstation') || name.includes('xbox') || name.includes('game')) return "https://images.unsplash.com/photo-1592155931584-901ac15763e3?w=600&h=400&fit=crop";
-    if (name.includes('gift') || name.includes('card') || type === "giftcard") return "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&h=400&fit=crop";
-    if (name.includes('vpn') || name.includes('security')) return "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop";
-    if (name.includes('adobe') || name.includes('creative') || name.includes('canva')) return "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=600&h=400&fit=crop";
-    if (name.includes('microsoft') || name.includes('office')) return "https://images.unsplash.com/photo-1588200618450-3a5b122c9fb9?w=600&h=400&fit=crop";
-    if (type === "topup") return "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=600&h=400&fit=crop";
-    if (type === "subscription") return "https://images.unsplash.com/photo-1589758438368-0ad531db3366?w=600&h=400&fit=crop";
-    
-    return `https://placehold.co/600x400/3949ab/ffffff?text=${encodeURIComponent(serviceName)}`;
-  }
 
   return (
-    <>
-      <Card key={service.id} className="overflow-hidden transition-all hover:shadow-md">
-        <Link to={`/services/${service.id}`} className="block">
-          <div className="aspect-video relative">
-            {!imageLoaded && !imageError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <Loader className="h-10 w-10 text-gray-300 animate-spin" />
-              </div>
-            )}
-            
-            {!imageError ? (
-              <img 
-                src={imageUrl} 
-                alt={service.name}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                onLoad={() => setImageLoaded(true)}
-                onError={() => {
-                  console.log(`Service image failed to load: ${imageUrl}`);
-                  setImageError(true);
-                }}
+    <Card className="bg-white rounded-lg shadow-md overflow-hidden">
+      <CardHeader className="p-4">
+        <div className="flex items-center space-x-3">
+          <div className="rounded-full overflow-hidden h-10 w-10 bg-gray-100 flex items-center justify-center">
+            <img 
+              src={service.image || '/placeholder.svg'} 
+              alt={service.name}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/placeholder.svg';
+              }}
+            />
+          </div>
+          <h3 className="text-lg font-semibold">{service.name}</h3>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        <p className="text-sm text-gray-600">{service.description}</p>
+        <div className="flex items-center mt-3">
+          {getServiceIcon(service.type)}
+          <Badge variant="secondary">{service.type}</Badge>
+        </div>
+        {service.deliveryTime && (
+          <div className="flex items-center mt-2 text-xs text-gray-500">
+            <Clock className="h-3 w-3 mr-1" />
+            Delivery: {service.deliveryTime}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex items-center justify-between p-4 bg-gray-50">
+        <div className="text-lg font-bold">${service.price.toFixed(2)}</div>
+        <div>
+          {service.type === 'subscription' ? (
+            <div className="flex items-center space-x-2">
+              <Select 
+                value={duration.toString()} 
+                onValueChange={handleDurationChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(service.availableMonths || [1, 3, 6, 12]).map((month) => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {month} {month === 1 ? 'month' : 'months'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handlePurchaseClick} disabled={isProcessing}>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing
+                  </>
+                ) : (
+                  <>
+                    Purchase
+                  </>
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={handleQuantityChange}
+                className="w-16 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring focus:border-blue-300"
               />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100">
-                <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-500">{service.name}</span>
-              </div>
-            )}
-            
-            {service.featured && (
-              <Badge
-                variant="default" 
-                className="absolute top-2 right-2"
-              >
-                Featured
-              </Badge>
-            )}
-            
-            <Badge
-              variant="outline" 
-              className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm"
-            >
-              {getServiceTypeIcon()}
-              {getServiceTypeName()}
-            </Badge>
-          </div>
-        </Link>
-        <CardHeader className="p-4 pb-0">
-          <div className="flex justify-between items-start">
-            <Link to={`/services/${service.id}`} className="hover:underline">
-              <h3 className="font-semibold text-lg">{service.name}</h3>
-            </Link>
-            <Badge variant="outline">{category?.name || service.category}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4">
-          <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-2">
-            {service.description}
-          </p>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
-              {service.deliveryTime}
-            </div>
-            <div className="flex items-center">
-              <Tag className="h-4 w-4 mr-1" />
-              ${service.price.toFixed(2)} {service.type === "subscription" ? '/month' : ''}
-            </div>
-            {service.type === "subscription" && service.availableMonths && service.availableMonths.length > 0 && (
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
-                {service.availableMonths.join(", ")} {service.availableMonths.length === 1 ? "month" : "months"}
-              </div>
-            )}
-          </div>
-        </CardContent>
-        
-        <CardFooter className="p-4 pt-0 flex justify-between">
-          <div className="flex gap-2">
-            <Link to={`/services/${service.id}`}>
-              <Button variant="outline" size="sm">
-                View Details
+              <Button size="sm" onClick={handlePurchaseClick} disabled={isProcessing}>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing
+                  </>
+                ) : (
+                  <>
+                    Purchase
+                  </>
+                )}
               </Button>
-            </Link>
-            {userBalance < service.price && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleAddFunds}
-              >
-                <Wallet className="h-4 w-4 mr-2" />
-                Top Up
-              </Button>
-            )}
-          </div>
-          <Button 
-            size="sm" 
-            onClick={showPurchaseConfirmation}
-            disabled={isPurchasing}
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            Buy Now
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Purchase</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to purchase {service.name}?
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Base Price:</span>
-              <span className="font-bold">
-                ${service.price.toFixed(2)} {service.type === "subscription" ? '/month' : ''}
-              </span>
             </div>
-            
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Service:</span>
-              <span>{service.name}</span>
-            </div>
-            
-            {category && (
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Category:</span>
-                <span>{category.name || service.category}</span>
-              </div>
-            )}
-            
-            {service.type === "subscription" && (
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium">
-                  Duration <span className="text-red-500">*</span>
-                </label>
-                <Select 
-                  value={selectedDuration}
-                  onValueChange={(value) => setSelectedDuration(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {service.availableMonths && service.availableMonths.length > 0 ? (
-                      service.availableMonths.map(month => (
-                        <SelectItem key={month} value={month.toString()}>
-                          {month} month{month !== 1 ? 's' : ''}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <>
-                        <SelectItem value="1">1 month</SelectItem>
-                        <SelectItem value="3">3 months</SelectItem>
-                        <SelectItem value="6">6 months</SelectItem>
-                        <SelectItem value="12">12 months</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            
-            {service.type === "topup" && service.requiresId && (
-              <div className="space-y-2 mb-4">
-                <label className="text-sm font-medium">
-                  Account ID <span className="text-red-500">*</span>
-                </label>
-                <Input 
-                  placeholder="Enter your account ID"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  This ID is required to process your top-up
-                </p>
-              </div>
-            )}
-            
-            {service.type !== "subscription" && (
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-medium">Quantity:</span>
-                <div className="flex items-center">
-                  <Button 
-                    type="button" 
-                    size="icon"
-                    variant="outline" 
-                    className="h-8 w-8 rounded-r-none"
-                    onClick={decreaseQuantity}
-                    disabled={quantity <= (service.minQuantity || 1)}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <Input
-                    type="number"
-                    min={service.minQuantity || 1}
-                    value={quantity.toString()}
-                    onChange={handleQuantityChange}
-                    className="h-8 rounded-none border-x-0 w-16 px-0 text-center"
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon"
-                    variant="outline" 
-                    className="h-8 w-8 rounded-l-none"
-                    onClick={increaseQuantity}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex justify-between items-center pt-2 border-t mb-2">
-              <span className="font-medium">Total Price:</span>
-              <span className="font-bold">
-                ${(service.type === "subscription" 
-                  ? service.price * parseInt(selectedDuration)
-                  : service.price * quantity).toFixed(2)}
-              </span>
-            </div>
-            
-            {service.type === "subscription" && (
-              <div className="flex justify-between items-center mt-2">
-                <span className="font-medium">Duration:</span>
-                <span>{selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
-              </div>
-            )}
-            
-            {service.type === "giftcard" && service.value && (
-              <div className="flex justify-between items-center mt-2">
-                <span className="font-medium">Gift Card Value:</span>
-                <span>${service.value.toFixed(2)}</span>
-              </div>
-            )}
-            
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Estimated Delivery:</span>
-              <span>{service.deliveryTime}</span>
-            </div>
-            
-            {userBalance < (service.type === "subscription" 
-              ? service.price * parseInt(selectedDuration)
-              : service.price * quantity) && (
-              <div className="border border-amber-200 bg-amber-50 p-3 rounded-md text-amber-800 flex items-start">
-                <div className="flex flex-col w-full">
-                  <p className="font-medium">Insufficient balance</p>
-                  <p className="text-sm mb-2">Your current balance is insufficient for this purchase.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setIsConfirmDialogOpen(false);
-                      navigate('/payment');
-                    }}
-                    className="self-start"
-                  >
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Top Up Now
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleBuyNow} 
-              disabled={isPurchasing || (service.type === "subscription" 
-                ? service.price * parseInt(selectedDuration) > userBalance
-                : service.price * quantity > userBalance)}
-            >
-              {isPurchasing ? "Processing..." : "Confirm Purchase"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {purchasedOrder && (
-        <PurchaseSuccessDialog
-          open={isSuccessDialogOpen}
-          onOpenChange={setIsSuccessDialogOpen}
-          orderId={purchasedOrder.id}
-          serviceId={purchasedOrder.serviceId}
-          serviceName={purchasedOrder.serviceName}
-          amount={purchasedOrder.totalPrice}
-          credentials={purchasedOrder.credentials}
-          purchaseDate={purchasedOrder.createdAt}
-        />
-      )}
-    </>
+          )}
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 

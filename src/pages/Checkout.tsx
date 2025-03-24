@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -150,6 +151,8 @@ const Checkout = () => {
       const order: Order = {
         id: `order-${Date.now()}`,
         userId,
+        products: [], // Add empty products array to satisfy the type
+        total: totalPrice,
         serviceId: service?.id || '',
         serviceName: service?.name || '',
         quantity: service?.type === 'subscription' ? 1 : quantity,

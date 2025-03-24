@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Product, Service, ServiceType, CredentialStock } from "@/lib/types";
+import { Product, Service, ServiceType, CredentialStock, Credential } from "@/lib/types";
 import { products as dataProducts } from "@/lib/data";
 import { services } from "@/lib/mockData";
 import { 
@@ -315,7 +315,7 @@ const AdminDigitalInventory: React.FC = () => {
     }
   };
 
-  const updateCredential = (itemId: string, field: keyof DigitalItem['credentials'], value: string) => {
+  const updateCredential = (itemId: string, field: keyof Credential, value: string) => {
     const itemToUpdate = inventory.find(item => item.id === itemId);
     
     if (!itemToUpdate) {
@@ -353,7 +353,7 @@ const AdminDigitalInventory: React.FC = () => {
       setInventory(updatedInventory);
     } else {
       toast.error("Update Failed", {
-        description: `Could not update ${field} for item ${itemId.substring(0, 8)}...`,
+        description: `Could not update ${String(field)} for item ${itemId.substring(0, 8)}...`,
       });
     }
   };
@@ -765,3 +765,4 @@ const AdminDigitalInventory: React.FC = () => {
 };
 
 export default AdminDigitalInventory;
+
