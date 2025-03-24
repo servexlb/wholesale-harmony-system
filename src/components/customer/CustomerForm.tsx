@@ -10,7 +10,7 @@ import { Customer } from '@/lib/data';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
-// Customer form schema - making email truly optional
+// Customer form schema - removed email completely
 const customerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(6, "Phone number must be at least 6 characters"),
@@ -50,7 +50,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       id: uuidv4(),
       name: data.name,
       phone: data.phone,
-      email: '', // Set email to empty string by default
+      email: '', // Keep email field in the Customer object but always set it to empty string
       company: data.company || '',
       address: data.address || '',
       wholesalerId: wholesalerId,
