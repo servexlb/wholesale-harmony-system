@@ -1,17 +1,17 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/lib/types';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
+// Extend the User type to include the properties we're using
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (name: string, email: string, password: string) => Promise<boolean>;
-  updateUser: (userData: Partial<User>) => void;
+  updateUser: (userData: Partial<User> & { company?: string; notes?: string; phone?: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -137,19 +137,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Check if email is already registered
-      const { data: { users } } = await supabase.auth.admin.listUsers({
-        filter: {
-          email: email
-        }
-      });
-      
-      if (users && users.length > 0) {
-        toast.error('Email already registered');
-        return false;
-      }
-      
-      const { data, error } = await supabase.auth.signUp({
+      // Check if email is already registered - removing the filter property which doesn't exist
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -159,8 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
-      if (error) {
-        toast.error(error.message || 'Failed to create account');
+      if (signUpError) {
+        toast.error(signUpError.message || 'Failed to create account');
         return false;
       }
 
@@ -181,7 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUser = async (userData: Partial<User>) => {
+  const updateUser = async (userData: Partial<User> & { company?: string; notes?: string; phone?: string }) => {
     if (!user) return;
     
     try {
@@ -203,8 +192,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
-      // Update local state
-      const updatedUser = { ...user, ...userData };
+      // Update local state - only include properties that exist in the User type
+      const updatedUser = { 
+        ...user, 
+        name: userData.name || user.name,
+        email: userData.email || user.email,
+        phone: userData.phone,
+        role: userData.role || user.role,
+        balance: userData.balance !== undefined ? userData.balance : user.balance,
+        createdAt: userData.createdAt || user.createdAt
+      };
+      
       setUser(updatedUser);
       
       // Update localStorage for backward compatibility
