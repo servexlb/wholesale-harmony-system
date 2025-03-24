@@ -158,9 +158,11 @@ export function useWholesaleAuth() {
       setIsAuthenticated(true);
       localStorage.setItem('wholesaleAuthenticated', 'true');
       
-      // Add null checks for data.user - ensure all instances are covered
+      // Add proper null checks for data and data.user
       const userId = data?.user?.id || username;
       localStorage.setItem('wholesalerId', userId);
+      
+      // Use the non-null userId value we've already created
       setCurrentWholesaler(userId);
       setIsLoggedOut(false);
       
