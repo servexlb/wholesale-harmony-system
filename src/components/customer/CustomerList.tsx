@@ -1,9 +1,18 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Customer } from '@/lib/data';
-import CustomerRow from './CustomerRow';
-import CustomerTableHeader from './CustomerTableHeader';
 import { Subscription } from '@/lib/types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import CustomerTableHeader from './CustomerTableHeader';
+import CustomerRow from './CustomerRow';
+import { Card } from '@/components/ui/card';
 
 interface CustomerListProps {
   customers: Customer[];
@@ -16,45 +25,76 @@ interface CustomerListProps {
 
 const CustomerList: React.FC<CustomerListProps> = ({
   customers,
-  subscriptions = [],
   searchTerm,
   wholesalerId,
   onPurchaseForCustomer,
-  onUpdateCustomer
+  onUpdateCustomer,
+  subscriptions = []
 }) => {
-  // Filter customers based on search term and wholesalerId
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = searchTerm === '' || 
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (customer.company && customer.company.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Filter customers based on search term
+  const filteredCustomers = useMemo(() => {
+    const filtered = customers.filter(customer => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        customer.name.toLowerCase().includes(searchLower) ||
+        (customer.email && customer.email.toLowerCase().includes(searchLower)) ||
+        (customer.phone && customer.phone.toLowerCase().includes(searchLower)) ||
+        (customer.company && customer.company.toLowerCase().includes(searchLower))
+      );
+    });
     
-    const matchesWholesaler = !wholesalerId || customer.wholesalerId === wholesalerId;
+    // Filter by wholesaler ID if provided
+    if (wholesalerId) {
+      return filtered.filter(customer => customer.wholesalerId === wholesalerId);
+    }
     
-    return matchesSearch && matchesWholesaler;
-  });
+    return filtered;
+  }, [customers, searchTerm, wholesalerId]);
+
+  // Count active subscriptions for each customer
+  const getActiveSubscriptions = (customerId: string) => {
+    if (!subscriptions.length) return 0;
+    
+    return subscriptions.filter(sub => 
+      sub.userId === customerId && 
+      sub.status === 'active' &&
+      new Date(sub.endDate) > new Date()
+    ).length;
+  };
 
   return (
-    <div className="border rounded-md overflow-hidden">
-      <CustomerTableHeader />
-      <div className="divide-y">
-        {filteredCustomers.length > 0 ? (
-          filteredCustomers.map(customer => (
-            <CustomerRow
-              key={customer.id}
-              customer={customer}
-              subscriptions={subscriptions.filter(s => s.userId === customer.id)}
-              onPurchaseForCustomer={onPurchaseForCustomer}
-              onUpdateCustomer={onUpdateCustomer}
-            />
-          ))
-        ) : (
-          <div className="py-6 text-center text-muted-foreground">
-            No customers found
-          </div>
-        )}
-      </div>
-    </div>
+    <Card className="overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Customer</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead className="text-center">Active Subscriptions</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredCustomers.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="h-24 text-center">
+                No customers found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredCustomers.map(customer => (
+              <CustomerRow 
+                key={customer.id}
+                customer={customer}
+                onPurchaseForCustomer={onPurchaseForCustomer}
+                onUpdateCustomer={onUpdateCustomer}
+                activeSubscriptions={getActiveSubscriptions(customer.id)}
+              />
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </Card>
   );
 };
 

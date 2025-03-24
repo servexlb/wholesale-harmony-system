@@ -1,82 +1,111 @@
 
 import React, { useState } from 'react';
-import { Customer } from '@/lib/data';
-import { Subscription } from '@/lib/types';
-import ExpandedSubscriptionDetails from './ExpandedSubscriptionDetails';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { CreditCard, ShoppingCart, Eye, KeyRound } from 'lucide-react';
 import CustomerActionsMenu from './CustomerActionsMenu';
-import { isSubscriptionEndingSoon } from '../wholesale/stock/utils';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
+import { toast } from '@/lib/toast';
+import { Customer } from '@/lib/data';
+import UserSubscriptionsView from '../wholesale/UserSubscriptionsView';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface CustomerRowProps {
   customer: Customer;
-  subscriptions?: Subscription[];
   onPurchaseForCustomer?: (customerId: string) => void;
   onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
+  activeSubscriptions?: number;
 }
 
-const CustomerRow: React.FC<CustomerRowProps> = ({ 
-  customer, 
-  subscriptions = [],
+const CustomerRow: React.FC<CustomerRowProps> = ({
+  customer,
   onPurchaseForCustomer,
-  onUpdateCustomer
+  onUpdateCustomer,
+  activeSubscriptions = 0
 }) => {
-  const [expanded, setExpanded] = useState(false);
-  
-  const toggleExpanded = () => {
-    setExpanded(!expanded);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
+
+  const handlePurchaseClick = () => {
+    if (onPurchaseForCustomer) {
+      onPurchaseForCustomer(customer.id);
+    } else {
+      window.dispatchEvent(new CustomEvent('openPurchaseDialog', { 
+        detail: { customerId: customer.id }
+      }));
+    }
   };
 
-  // Check if any subscription is ending soon
-  const hasEndingSoonSubscriptions = subscriptions.some(sub => 
-    isSubscriptionEndingSoon(sub, 5)
-  );
-
-  // Count how many subscriptions are ending soon
-  const endingSoonCount = subscriptions.filter(sub => 
-    isSubscriptionEndingSoon(sub, 5)
-  ).length;
+  const copyContact = () => {
+    const contactInfo = `${customer.name}\n${customer.email || ''}\n${customer.phone || ''}`;
+    navigator.clipboard.writeText(contactInfo);
+    toast.success('Contact info copied to clipboard');
+  };
 
   return (
-    <div className="group">
-      <div 
-        className={`grid grid-cols-12 items-center p-4 hover:bg-gray-50 cursor-pointer relative ${hasEndingSoonSubscriptions ? 'bg-amber-50' : ''}`}
-        onClick={toggleExpanded}
-      >
-        <div className="col-span-4 md:col-span-3">
-          <p className="font-medium truncate">{customer.name}</p>
-        </div>
-        <div className="col-span-4 md:col-span-3 truncate">
+    <>
+      <TableRow>
+        <TableCell>
+          <div>
+            <div className="font-medium">{customer.name}</div>
+            {customer.company && <div className="text-sm text-muted-foreground">{customer.company}</div>}
+          </div>
+        </TableCell>
+        <TableCell>
           {customer.email || '-'}
-        </div>
-        <div className="hidden md:block md:col-span-2 truncate">
+        </TableCell>
+        <TableCell>
           {customer.phone || '-'}
-        </div>
-        <div className="col-span-3 md:col-span-3 truncate flex items-center gap-2">
-          {customer.company || '-'}
-          {hasEndingSoonSubscriptions && (
-            <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-100">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              {endingSoonCount} ending soon
-            </Badge>
-          )}
-        </div>
-        <div className="col-span-1 text-right">
-          <CustomerActionsMenu 
-            customer={customer} 
-            onPurchaseForCustomer={onPurchaseForCustomer} 
-            onUpdateCustomer={onUpdateCustomer}
-          />
-        </div>
-      </div>
+        </TableCell>
+        <TableCell className="text-center">
+          {activeSubscriptions}
+        </TableCell>
+        <TableCell>
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePurchaseClick}
+              title="New purchase"
+            >
+              <ShoppingCart className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Purchase</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSubscriptions(true)}
+              title="View subscriptions"
+            >
+              <KeyRound className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Subscriptions</span>
+            </Button>
+            
+            <CustomerActionsMenu 
+              customer={customer} 
+              onUpdateCustomer={onUpdateCustomer}
+              onCopyContact={copyContact}
+            />
+          </div>
+        </TableCell>
+      </TableRow>
       
-      {expanded && subscriptions.length > 0 && (
-        <ExpandedSubscriptionDetails 
-          subscriptions={subscriptions} 
-          customerId={customer.id}
-        />
-      )}
-    </div>
+      <Dialog open={showSubscriptions} onOpenChange={setShowSubscriptions}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Subscriptions for {customer.name}</DialogTitle>
+          </DialogHeader>
+          <UserSubscriptionsView 
+            userId={customer.id} 
+            userName={customer.name}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

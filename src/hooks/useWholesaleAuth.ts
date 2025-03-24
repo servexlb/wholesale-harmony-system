@@ -154,7 +154,7 @@ export function useWholesaleAuth() {
         return false;
       }
       
-      // Supabase auth succeeded - Fix all TypeScript errors by adding null checks
+      // Supabase auth succeeded
       setIsAuthenticated(true);
       localStorage.setItem('wholesaleAuthenticated', 'true');
       
