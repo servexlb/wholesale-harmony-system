@@ -29,6 +29,7 @@ import Support from "./pages/Support";
 import Account from "./pages/Account";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
                       <Route path="/" element={<Home />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/dashboard/*" element={<Dashboard />} />
                       <Route path="/services" element={<Services />} />
                       <Route path="/services/:id" element={<ServiceDetail />} />

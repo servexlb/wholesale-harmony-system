@@ -29,13 +29,11 @@ const Login: React.FC = () => {
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [wasLoggedOut, setWasLoggedOut] = useState(false);
   
-  // Reset password states
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  // Check if user is already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
@@ -85,7 +83,6 @@ const Login: React.FC = () => {
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(resetEmail)) {
       toast({
@@ -115,7 +112,6 @@ const Login: React.FC = () => {
 
       setResetSent(true);
       
-      // Close dialog after showing success message for a few seconds
       setTimeout(() => {
         setShowResetDialog(false);
         setResetSent(false);
@@ -142,9 +138,6 @@ const Login: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    // Handle Google login
-    // In a real implementation, this would use supabase.auth.signInWithOAuth({ provider: 'google' })
-    // For now, we'll show a message that this feature is coming soon
     toast({
       title: "Coming Soon",
       description: "Google login will be available soon.",
@@ -289,7 +282,6 @@ const Login: React.FC = () => {
         </Card>
       </motion.div>
 
-      {/* Password Reset Dialog */}
       <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
