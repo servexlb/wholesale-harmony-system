@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,14 +16,18 @@ interface WholesaleUser {
   showPassword: boolean;
 }
 
-// Define initial users without recursion
+// Define initial users without mutual recursion
 const initialUsers: WholesaleUser[] = [
   { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
   { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
 ];
 
 const WholesaleUserManagement = () => {
-  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>(initialUsers);
+  // Initialize state with direct value instead of reference to avoid deep recursion
+  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>([
+    { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
+    { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
+  ]);
   
   const [newWholesaleUser, setNewWholesaleUser] = useState({
     username: '',

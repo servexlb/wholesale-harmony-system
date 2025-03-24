@@ -26,6 +26,7 @@ export interface Customer {
   company?: string;
   notes?: string;
   wholesalerId?: string;
+  address?: string;
   balance: number;
   createdAt: string;
 }

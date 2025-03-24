@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -32,7 +31,6 @@ export function useWholesaleData(currentWholesaler: string) {
     };
   }, []);
 
-  // Load data from Supabase
   useEffect(() => {
     if (!currentWholesaler) return;
     
@@ -40,7 +38,6 @@ export function useWholesaleData(currentWholesaler: string) {
     
     const fetchData = async () => {
       try {
-        // Check auth status
         const { data: session } = await supabase.auth.getSession();
         if (!session?.session) {
           console.log('No authenticated session, loading from localStorage');
@@ -49,7 +46,6 @@ export function useWholesaleData(currentWholesaler: string) {
           return;
         }
 
-        // Fetch customers
         const { data: customers, error: customersError } = await supabase
           .from('wholesale_customers')
           .select('*')
@@ -59,7 +55,6 @@ export function useWholesaleData(currentWholesaler: string) {
           console.error('Error fetching customers:', customersError);
           toast.error('Error loading customer data');
         } else if (customers) {
-          // Convert Supabase customers to our Customer type
           const formattedCustomers = customers.map(customer => ({
             id: customer.id,
             name: customer.name,
@@ -75,7 +70,6 @@ export function useWholesaleData(currentWholesaler: string) {
           setCustomersData(formattedCustomers);
         }
 
-        // Fetch subscriptions
         const { data: subs, error: subsError } = await supabase
           .from('wholesale_subscriptions')
           .select('*')
@@ -85,27 +79,33 @@ export function useWholesaleData(currentWholesaler: string) {
           console.error('Error fetching subscriptions:', subsError);
           toast.error('Error loading subscription data');
         } else if (subs) {
-          // Convert Supabase subscriptions to our Subscription type
-          const formattedSubs = subs.map(sub => ({
-            id: sub.id,
-            userId: sub.customer_id,
-            serviceId: sub.service_id,
-            startDate: sub.start_date,
-            endDate: sub.end_date,
-            status: sub.status as 'active' | 'expired' | 'cancelled',
-            durationMonths: sub.duration_months,
-            credentials: sub.credentials ? {
-              ...(typeof sub.credentials === 'object' ? sub.credentials : {}),
-              username: typeof sub.credentials === 'object' ? sub.credentials.username : '',
-              password: typeof sub.credentials === 'object' ? sub.credentials.password : '',
-              email: typeof sub.credentials === 'object' ? sub.credentials.email : '',
-              notes: typeof sub.credentials === 'object' ? sub.credentials.notes : ''
-            } : undefined
-          }));
+          const formattedSubs = subs.map(sub => {
+            let credentialsObj = undefined;
+            
+            if (sub.credentials) {
+              const creds = sub.credentials as any;
+              credentialsObj = {
+                username: typeof creds === 'object' ? creds.username || '' : '',
+                password: typeof creds === 'object' ? creds.password || '' : '',
+                email: typeof creds === 'object' ? creds.email || '' : '',
+                notes: typeof creds === 'object' ? creds.notes || '' : ''
+              };
+            }
+            
+            return {
+              id: sub.id,
+              userId: sub.customer_id,
+              serviceId: sub.service_id,
+              startDate: sub.start_date,
+              endDate: sub.end_date,
+              status: sub.status as 'active' | 'expired' | 'cancelled',
+              durationMonths: sub.duration_months,
+              credentials: credentialsObj
+            };
+          });
           setSubscriptions(formattedSubs);
         }
 
-        // Fetch orders
         const { data: orderData, error: ordersError } = await supabase
           .from('wholesale_orders')
           .select('*')
@@ -116,7 +116,6 @@ export function useWholesaleData(currentWholesaler: string) {
           console.error('Error fetching orders:', ordersError);
           toast.error('Error loading order data');
         } else if (orderData) {
-          // Convert Supabase orders to our WholesaleOrder type
           const formattedOrders = orderData.map(order => ({
             id: order.id,
             userId: order.wholesaler_id,
@@ -141,7 +140,6 @@ export function useWholesaleData(currentWholesaler: string) {
         console.error('Error fetching data from Supabase:', error);
         toast.error('Error connecting to database');
         
-        // Fallback to localStorage
         loadFromLocalStorage();
       } finally {
         setIsLoading(false);
@@ -151,7 +149,6 @@ export function useWholesaleData(currentWholesaler: string) {
     fetchData();
   }, [currentWholesaler]);
 
-  // Fallback to localStorage if Supabase fetch fails
   const loadFromLocalStorage = () => {
     const savedOrders = localStorage.getItem('wholesaleOrders');
     const savedSubscriptions = localStorage.getItem('wholesaleSubscriptions');
@@ -170,7 +167,6 @@ export function useWholesaleData(currentWholesaler: string) {
     }
   };
   
-  // Save to localStorage as a backup
   useEffect(() => {
     if (orders.length > 0) {
       localStorage.setItem('wholesaleOrders', JSON.stringify(orders));
@@ -199,13 +195,11 @@ export function useWholesaleData(currentWholesaler: string) {
 
   const handleOrderPlaced = async (order: WholesaleOrder) => {
     try {
-      // Add to local state
       setOrders(prev => {
         const updatedOrders = [order, ...prev];
         return updatedOrders.slice(0, 100);
       });
       
-      // Save to Supabase
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
         const { error } = await supabase
@@ -256,15 +250,12 @@ export function useWholesaleData(currentWholesaler: string) {
           }
         };
         
-        // Add to local state
         setSubscriptions(prev => {
           const updatedSubscriptions = [...prev, newSubscription];
           return updatedSubscriptions.slice(0, 100);
         });
         
-        // Save to Supabase
         if (session?.session) {
-          // Convert newSubscription to the correct format for our Supabase table
           const { error } = await supabase
             .from('wholesale_subscriptions')
             .insert({
@@ -288,14 +279,12 @@ export function useWholesaleData(currentWholesaler: string) {
         if (order.serviceId) {
           try {
             if (order.credentials) {
-              // Ensure all required fields are present when converting from order.credentials
               const stockCredentials = convertSubscriptionToStock({
                 credentials: order.credentials
               });
               addCredentialToStock(order.serviceId, stockCredentials);
             } 
             else {
-              // Create a properly formatted Credential object with all required fields
               const credentials: Credential = {
                 email: "",
                 password: "", 
@@ -322,10 +311,8 @@ export function useWholesaleData(currentWholesaler: string) {
 
   const handleAddCustomer = async (newCustomer: Customer) => {
     try {
-      // Add to local state
       setCustomersData(prev => [...prev, newCustomer]);
       
-      // Save to Supabase
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
         const { error } = await supabase
@@ -355,7 +342,6 @@ export function useWholesaleData(currentWholesaler: string) {
 
   const handleUpdateCustomer = async (customerId: string, updatedCustomer: Partial<Customer>) => {
     try {
-      // Update local state
       setCustomersData(prev => 
         prev.map(customer => 
           customer.id === customerId 
@@ -364,10 +350,8 @@ export function useWholesaleData(currentWholesaler: string) {
         )
       );
       
-      // Update in Supabase
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
-        // Convert to Supabase format
         const supabaseUpdateData: any = {};
         if (updatedCustomer.name) supabaseUpdateData.name = updatedCustomer.name;
         if (updatedCustomer.email !== undefined) supabaseUpdateData.email = updatedCustomer.email || null;
