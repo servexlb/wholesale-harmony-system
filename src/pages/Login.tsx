@@ -130,9 +130,7 @@ const Login: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    toast({
-      description: "Google login will be available soon.",
-    });
+    toast.info("Google login will be available soon.");
   };
 
   const onGoogleLoginError = () => {
@@ -330,3 +328,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+

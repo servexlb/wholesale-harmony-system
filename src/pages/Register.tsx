@@ -107,9 +107,7 @@ const Register: React.FC = () => {
     console.log("Google login successful:", credentialResponse);
     setOauthError(null);
     
-    toast({
-      description: "Google sign-up will be available soon.",
-    });
+    toast.info("Google sign-up will be available soon.");
   };
 
   const onGoogleSignUpError = () => {
