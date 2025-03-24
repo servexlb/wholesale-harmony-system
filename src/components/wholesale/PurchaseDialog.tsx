@@ -75,7 +75,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         const parsedServices = JSON.parse(storedServices);
         setServices(parsedServices);
         
-        // Determine which product types are available
         const availableTypes: {[key in ServiceType]: boolean} = {
           subscription: false,
           topup: false,
@@ -105,7 +104,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           const parsedServices = JSON.parse(updatedServices);
           setServices(parsedServices);
           
-          // Update available product types
           const availableTypes: {[key in ServiceType]: boolean} = {
             subscription: false,
             topup: false,
@@ -303,7 +301,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       notes: customerNotes
     };
     
-    // Different handling based on product type
     if (selectedService.type === 'subscription' || selectedService.type === 'service') {
       order.credentials = {
         email: '',
@@ -313,11 +310,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       };
       order.durationMonths = duration;
     } else if (selectedService.type === 'topup' || selectedService.type === 'recharge') {
-      // For topups and recharges, we primarily care about the quantity
       order.quantity = quantity;
       order.durationMonths = undefined;
     } else if (selectedService.type === 'giftcard') {
-      // For gift cards, include additional notes for redemption
       order.notes = `${customerNotes ? customerNotes + '\n' : ''}Gift card will be delivered to ${customerName}.`;
     }
     
@@ -348,7 +343,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const isSubscription = productType === 'subscription';
 
-  // Group services by type for better organization
   const servicesByType = services.reduce((acc: {[key: string]: Service[]}, service) => {
     const type = service.type || 'service';
     if (!acc[type]) {
@@ -358,7 +352,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     return acc;
   }, {});
 
-  // Determine if the current service requires an account ID
   const requiresAccountId = selectedService?.requiresId || false;
   const [accountId, setAccountId] = useState('');
 

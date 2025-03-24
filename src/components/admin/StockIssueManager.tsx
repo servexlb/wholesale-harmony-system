@@ -1,59 +1,42 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getStockIssues, getAvailableCredentials, resolveStockIssue } from "@/lib/credentialService";
-import { AlertCircle, Check, RefreshCw, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { format } from "date-fns";
+import { getPendingStockRequests, getStockIssues, resolveStockIssue, fulfillStockRequest } from '@/lib/credentialService';
+import { loadServices } from '@/lib/productManager';
+import { StockRequest, Credential } from '@/lib/types';
 
 const StockIssueManager = () => {
-  const [stockIssues, setStockIssues] = useState<any[]>([]);
+  const [issues, setIssues] = useState<StockRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [credentialOptions, setCredentialOptions] = useState<{ [key: string]: any[] }>({});
-  const [selectedCredentials, setSelectedCredentials] = useState<{ [key: string]: string }>({});
-  const [processingIssues, setProcessingIssues] = useState<string[]>([]);
-
-  const loadStockIssues = async () => {
-    setIsLoading(true);
-    const issues = await getStockIssues();
-    setStockIssues(issues);
-    
-    // Load available credentials for each service
-    const credentialMap: { [key: string]: any[] } = {};
-    for (const issue of issues) {
-      const serviceId = issue.service_id;
-      if (!credentialMap[serviceId]) {
-        const availableCredentials = await getAvailableCredentials(serviceId);
-        credentialMap[serviceId] = availableCredentials;
-      }
-    }
-    setCredentialOptions(credentialMap);
-    setIsLoading(false);
-  };
-
+  const [showResolveDialog, setShowResolveDialog] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState<StockRequest | null>(null);
+  const [services, setServices] = useState<any[]>([]);
+  
+  // New credential state
+  const [newCredential, setNewCredential] = useState<Credential>({
+    email: '',
+    password: '',
+    username: '',
+    notes: ''
+  });
+  
+  // Load stock issues
   useEffect(() => {
-    loadStockIssues();
+    loadIssues();
     
-    // Listen for stock issue resolution events
+    // Load services for service names
+    const availableServices = loadServices();
+    setServices(availableServices);
+    
+    // Handle stock issue resolution
     const handleStockIssueResolved = () => {
-      loadStockIssues();
+      loadIssues();
     };
     
     window.addEventListener('stock-issue-resolved', handleStockIssueResolved);
@@ -62,147 +45,220 @@ const StockIssueManager = () => {
       window.removeEventListener('stock-issue-resolved', handleStockIssueResolved);
     };
   }, []);
-
-  const handleCredentialChange = (issueId: string, credentialId: string) => {
-    setSelectedCredentials(prev => ({
-      ...prev,
-      [issueId]: credentialId
-    }));
-  };
-
-  const handleResolveIssue = async (issueId: string) => {
-    const credentialId = selectedCredentials[issueId];
-    if (!credentialId) {
-      toast.error("Please select a credential to assign");
-      return;
-    }
-
-    setProcessingIssues(prev => [...prev, issueId]);
+  
+  const loadIssues = async () => {
+    setIsLoading(true);
     
     try {
-      const success = await resolveStockIssue(issueId, credentialId);
-      
-      if (success) {
-        toast.success("Stock issue resolved successfully");
-        // Remove from processing list
-        setProcessingIssues(prev => prev.filter(id => id !== issueId));
-        // Remove from stock issues
-        setStockIssues(prev => prev.filter(issue => issue.id !== issueId));
-        // Remove from selected credentials
-        const newSelected = { ...selectedCredentials };
-        delete newSelected[issueId];
-        setSelectedCredentials(newSelected);
-      } else {
-        toast.error("Failed to resolve stock issue");
-        setProcessingIssues(prev => prev.filter(id => id !== issueId));
-      }
+      const issues = await getPendingStockRequests();
+      setIssues(issues);
     } catch (error) {
-      console.error("Error resolving stock issue:", error);
-      toast.error("An error occurred while resolving the stock issue");
-      setProcessingIssues(prev => prev.filter(id => id !== issueId));
+      console.error('Error loading stock issues:', error);
+      toast.error('Failed to load stock issues');
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  
+  // Get service name by ID
+  const getServiceName = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
+    return service ? service.name : 'Unknown Service';
+  };
+  
+  // Handle resolving an issue as cancelled
+  const handleCancelIssue = async (issue: StockRequest) => {
+    try {
+      await resolveStockIssue(issue.id, 'cancelled');
+      toast.success('Issue marked as cancelled');
+      loadIssues();
+    } catch (error) {
+      console.error('Error cancelling issue:', error);
+      toast.error('Failed to cancel issue');
+    }
+  };
+  
+  // Handle opening the resolve dialog
+  const handleOpenResolveDialog = (issue: StockRequest) => {
+    setSelectedIssue(issue);
+    setNewCredential({
+      email: '',
+      password: '',
+      username: '',
+      notes: ''
+    });
+    setShowResolveDialog(true);
+  };
+  
+  // Handle resolving an issue by providing credentials
+  const handleResolveWithCredentials = async () => {
+    if (!selectedIssue) return;
+    
+    if (!newCredential.email && !newCredential.username) {
+      toast.error('Email or username is required');
+      return;
+    }
+    
+    if (!newCredential.password) {
+      toast.error('Password is required');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const success = await fulfillStockRequest(
+        selectedIssue.id,
+        selectedIssue.orderId,
+        selectedIssue.userId,
+        selectedIssue.serviceId,
+        newCredential
+      );
+      
+      if (success) {
+        toast.success('Issue resolved successfully');
+        setShowResolveDialog(false);
+        loadIssues();
+      } else {
+        toast.error('Failed to resolve issue');
+      }
+    } catch (error) {
+      console.error('Error resolving issue:', error);
+      toast.error('Failed to resolve issue');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-1">
-          <CardTitle>Stock Issues</CardTitle>
-          <CardDescription>
-            Resolve stock issues by assigning credentials to users
-          </CardDescription>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={loadStockIssues}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+      <CardHeader>
+        <CardTitle>Stock Issues</CardTitle>
+        <CardDescription>
+          Handle pending stock requests from customers
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {stockIssues.length === 0 ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No stock issues</AlertTitle>
-            <AlertDescription>
-              There are currently no pending stock issues to resolve.
-            </AlertDescription>
-          </Alert>
+        {isLoading ? (
+          <div className="text-center py-6">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+            <p className="mt-2 text-sm text-muted-foreground">Loading stock issues...</p>
+          </div>
+        ) : issues.length === 0 ? (
+          <div className="text-center py-6">
+            <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No pending stock issues</p>
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Assign Credential</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stockIssues.map((issue) => {
-                const isProcessing = processingIssues.includes(issue.id);
-                const availableCredentials = credentialOptions[issue.service_id] || [];
-                const userName = issue.profiles?.name || "Unknown User";
-                const canResolve = availableCredentials.length > 0 && selectedCredentials[issue.id];
-                
-                return (
-                  <TableRow key={issue.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span>{userName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{issue.service_id}</TableCell>
-                    <TableCell>{format(new Date(issue.created_at), 'PPP')}</TableCell>
-                    <TableCell>{issue.order_id || 'N/A'}</TableCell>
-                    <TableCell>
-                      {availableCredentials.length === 0 ? (
-                        <span className="text-red-500 text-sm">No credentials available</span>
-                      ) : (
-                        <Select
-                          value={selectedCredentials[issue.id] || ''}
-                          onValueChange={(value) => handleCredentialChange(issue.id, value)}
-                          disabled={isProcessing}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select credential" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableCredentials.map((credential) => (
-                              <SelectItem key={credential.id} value={credential.id}>
-                                {credential.credentials.email || 'No Email'} 
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        disabled={!canResolve || isProcessing}
-                        onClick={() => handleResolveIssue(issue.id)}
-                      >
-                        {isProcessing ? (
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4 mr-2" />
-                        )}
-                        Resolve
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="space-y-4">
+            {issues.map(issue => (
+              <div key={issue.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-medium">{getServiceName(issue.serviceId)}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Requested by {issue.customerName} on {new Date(issue.createdAt).toLocaleDateString()}
+                    </p>
+                    {issue.notes && (
+                      <p className="text-sm mt-2 bg-muted p-2 rounded">"{issue.notes}"</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => handleCancelIssue(issue)}
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenResolveDialog(issue)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Resolve
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
+        
+        {/* Resolve Issue Dialog */}
+        <Dialog open={showResolveDialog} onOpenChange={setShowResolveDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Resolve Stock Issue</DialogTitle>
+              <DialogDescription>
+                Provide credentials to fulfill this customer request
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="bg-muted p-3 rounded-md">
+                <h3 className="font-medium mb-1">
+                  {selectedIssue && getServiceName(selectedIssue.serviceId)}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Customer: {selectedIssue?.customerName}
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  value={newCredential.email}
+                  onChange={(e) => setNewCredential(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="user@example.com"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="username">Username (Optional)</Label>
+                <Input
+                  id="username"
+                  value={newCredential.username}
+                  onChange={(e) => setNewCredential(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="username"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newCredential.password}
+                  onChange={(e) => setNewCredential(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="••••••••"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Input
+                  id="notes"
+                  value={newCredential.notes || ''}
+                  onChange={(e) => setNewCredential(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Additional information"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowResolveDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleResolveWithCredentials} disabled={isLoading}>
+                {isLoading ? 'Processing...' : 'Provide Credentials'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

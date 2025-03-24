@@ -37,11 +37,11 @@ const ServiceSearchBar: React.FC<ServiceSearchBarProps> = ({
       {/* Categories Dropdown - Mobile */}
       <div className="block md:hidden">
         <select
-          value={selectedCategory || ""}
-          onChange={(e) => setSelectedCategory(e.target.value || null)}
+          value={selectedCategory || "all"}
+          onChange={(e) => setSelectedCategory(e.target.value === "all" ? null : e.target.value)}
           className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <option value="">All Categories</option>
+          <option value="all">All Categories</option>
           {serviceCategories.map(category => (
             <option key={category.id} value={category.id}>
               {category.name}
