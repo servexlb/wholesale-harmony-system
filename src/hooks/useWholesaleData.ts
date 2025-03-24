@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service } from '@/lib/types';
 import { Customer } from '@/lib/data';
 import { loadServices } from '@/lib/productManager';
-import { addCredentialToStock } from '@/lib/credentialUtils';
+import { addCredentialToStock, convertSubscriptionToStock } from '@/lib/credentialUtils';
 
 export function useWholesaleData(currentWholesaler: string) {
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
@@ -111,12 +111,15 @@ export function useWholesaleData(currentWholesaler: string) {
       // Automatically add to credential stock if credentials exist
       if (order.credentials && order.serviceId) {
         try {
-          addCredentialToStock(order.serviceId, {
+          // Use the convertSubscriptionToStock utility to safely handle credentials
+          const stockCredentials = {
             email: order.credentials.email || '',
             password: order.credentials.password || '',
             username: order.credentials.username || '',
             pinCode: order.credentials.pinCode || ''
-          });
+          };
+          
+          addCredentialToStock(order.serviceId, stockCredentials);
         } catch (error) {
           console.error('Error adding subscription to credential stock:', error);
         }

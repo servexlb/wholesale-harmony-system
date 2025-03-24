@@ -121,11 +121,13 @@ export function mapSupabaseCredentialsToLocal(supabaseCredentials: any[]): Crede
 
 // New function to convert subscription credential to stock format
 export function convertSubscriptionToStock(subscription: any): Credential {
-  // Extract credentials from subscription or create empty ones
+  // Safely extract credentials from subscription with type checking
+  const credentials = subscription.credentials || {};
+  
   return {
-    email: subscription.credentials?.email || '',
-    password: subscription.credentials?.password || '',
-    username: subscription.credentials?.username || '',
-    pinCode: subscription.credentials?.pinCode || ''
+    email: typeof credentials === 'object' && credentials.email ? String(credentials.email) : '',
+    password: typeof credentials === 'object' && credentials.password ? String(credentials.password) : '',
+    username: typeof credentials === 'object' && credentials.username ? String(credentials.username) : '',
+    pinCode: typeof credentials === 'object' && credentials.pinCode ? String(credentials.pinCode) : ''
   };
 }

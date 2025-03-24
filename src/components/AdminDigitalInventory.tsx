@@ -94,15 +94,16 @@ const AdminDigitalInventory: React.FC = () => {
     try {
       const { data: subscriptions, error } = await supabase
         .from('subscriptions')
-        .select('service_id')
-        .distinct();
+        .select('service_id');
       
       if (!error && subscriptions) {
-        subscriptionServices = subscriptions.map(sub => {
-          const service = managedServices.find(s => s.id === sub.service_id);
+        const uniqueServiceIds = [...new Set(subscriptions.map(sub => sub.service_id))];
+        
+        subscriptionServices = uniqueServiceIds.map(serviceId => {
+          const service = managedServices.find(s => s.id === serviceId);
           return {
-            id: sub.service_id,
-            name: service?.name || `Service ${sub.service_id}`
+            id: serviceId,
+            name: service?.name || `Service ${serviceId}`
           };
         });
       }

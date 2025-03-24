@@ -307,11 +307,16 @@ export const syncSubscriptionsWithStock = async () => {
     // Add each subscription's credentials to stock
     for (const subscription of subscriptions) {
       if (subscription.credentials && subscription.service_id) {
-        const credentials = {
-          email: subscription.credentials.email || '',
-          password: subscription.credentials.password || '',
-          username: subscription.credentials.username || '',
-          pinCode: subscription.credentials.pinCode || ''
+        // Fix: Type check and safe access to credential properties
+        const credentials: Credential = {
+          email: typeof subscription.credentials === 'object' && subscription.credentials?.email ? 
+            String(subscription.credentials.email) : '',
+          password: typeof subscription.credentials === 'object' && subscription.credentials?.password ? 
+            String(subscription.credentials.password) : '',
+          username: typeof subscription.credentials === 'object' && subscription.credentials?.username ? 
+            String(subscription.credentials.username) : '',
+          pinCode: typeof subscription.credentials === 'object' && subscription.credentials?.pinCode ? 
+            String(subscription.credentials.pinCode) : ''
         };
         
         // Add to credential stock
