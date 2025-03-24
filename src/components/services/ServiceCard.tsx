@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
 import PurchaseDialog from '@/components/PurchaseDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ServiceCardProps {
   service: Service;
@@ -31,24 +32,46 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [duration, setDuration] = useState(1);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsLoading(true);
     
-    setTimeout(() => {
-      try {
-        addItem(service);
-        toast.success('Added to cart', {
-          description: `${service.name} added to your cart`,
-        });
-      } catch (error) {
-        toast.error('Error adding to cart', {
-          description: 'There was a problem adding this item to your cart',
-        });
-      } finally {
-        setIsLoading(false);
+    try {
+      addItem(service);
+      
+      if (user) {
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session) {
+          const { error } = await supabase
+            .from('cart_items')
+            .upsert({
+              user_id: session.session.user.id,
+              service_id: service.id,
+              service_name: service.name,
+              quantity: 1,
+              price: service.price,
+              added_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,service_id'
+            });
+          
+          if (error) {
+            console.error('Error saving cart item:', error);
+          }
+        }
       }
-    }, 600); // Simulating network delay
+      
+      toast.success('Added to cart', {
+        description: `${service.name} added to your cart`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Error adding to cart', {
+        description: 'There was a problem adding this item to your cart',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCardClick = () => {
