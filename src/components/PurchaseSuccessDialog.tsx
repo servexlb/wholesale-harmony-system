@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Copy } from "lucide-react";
+import { CheckCircle, Copy, AlertCircle, Clock } from "lucide-react";
 import { Service, Subscription } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ interface PurchaseSuccessDialogProps {
     username?: string;
     notes?: string;
   };
+  stockAvailable?: boolean;
 }
 
 export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
@@ -33,6 +34,7 @@ export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
   service,
   subscription,
   credentials,
+  stockAvailable = true,
 }) => {
   const navigate = useNavigate();
 
@@ -88,52 +90,68 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
             </div>
           </div>
           
-          {credentials && (
-            <div className="border rounded-md p-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <h4 className="text-sm font-medium">Your Access Credentials</h4>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleCopyCredentials}
-                  className="h-8"
-                >
-                  <Copy className="h-3.5 w-3.5 mr-1" />
-                  Copy
-                </Button>
+          {stockAvailable ? (
+            credentials && (
+              <div className="border rounded-md p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-medium">Your Access Credentials</h4>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCopyCredentials}
+                    className="h-8"
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+                
+                {credentials.email && (
+                  <div className="grid grid-cols-3 text-sm">
+                    <span className="text-muted-foreground">Email:</span>
+                    <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.email}</span>
+                  </div>
+                )}
+                
+                {credentials.password && (
+                  <div className="grid grid-cols-3 text-sm">
+                    <span className="text-muted-foreground">Password:</span>
+                    <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.password}</span>
+                  </div>
+                )}
+                
+                {credentials.username && (
+                  <div className="grid grid-cols-3 text-sm">
+                    <span className="text-muted-foreground">Username:</span>
+                    <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.username}</span>
+                  </div>
+                )}
+                
+                {credentials.notes && (
+                  <div className="text-sm mt-2">
+                    <span className="text-muted-foreground block">Notes:</span>
+                    <span className="text-xs mt-1">{credentials.notes}</span>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground mt-2">
+                  Please save these credentials. You can also access them later from your dashboard.
+                </p>
               </div>
-              
-              {credentials.email && (
-                <div className="grid grid-cols-3 text-sm">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.email}</span>
-                </div>
-              )}
-              
-              {credentials.password && (
-                <div className="grid grid-cols-3 text-sm">
-                  <span className="text-muted-foreground">Password:</span>
-                  <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.password}</span>
-                </div>
-              )}
-              
-              {credentials.username && (
-                <div className="grid grid-cols-3 text-sm">
-                  <span className="text-muted-foreground">Username:</span>
-                  <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.username}</span>
-                </div>
-              )}
-              
-              {credentials.notes && (
-                <div className="text-sm mt-2">
-                  <span className="text-muted-foreground block">Notes:</span>
-                  <span className="text-xs mt-1">{credentials.notes}</span>
-                </div>
-              )}
-              
-              <p className="text-xs text-muted-foreground mt-2">
-                Please save these credentials. You can also access them later from your dashboard.
+            )
+          ) : (
+            <div className="border border-amber-200 rounded-md p-4 space-y-2 bg-amber-50">
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 text-amber-500 mr-2" />
+                <h4 className="text-sm font-medium text-amber-800">Pending Credentials</h4>
+              </div>
+              <p className="text-sm text-amber-700">
+                Your credentials are being processed and will be available shortly. Please check your dashboard or email for updates.
               </p>
+              <div className="flex items-center mt-2 text-xs text-amber-700">
+                <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                <span>You will be notified when your credentials are ready</span>
+              </div>
             </div>
           )}
         </div>
