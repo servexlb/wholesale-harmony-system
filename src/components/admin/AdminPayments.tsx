@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Payment, PaymentStatus, CustomerNotification } from "@/lib/types";
-import { Check, X, AlertTriangle, ExternalLink, Filter, RefreshCw } from "lucide-react";
+import { Check, X, AlertTriangle, ExternalLink, Filter, RefreshCw, BellRing } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/lib/toast";
 import { addCustomerBalance } from "@/lib/data";
@@ -49,6 +49,7 @@ const AdminPayments: React.FC = () => {
   const [filterMethod, setFilterMethod] = useState<string>("all");
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [newPaymentNotification, setNewPaymentNotification] = useState(false);
   
   // Fetch payments from Supabase
   const fetchPayments = async () => {
@@ -64,7 +65,27 @@ const AdminPayments: React.FC = () => {
         toast.error("Failed to load payments");
       } else {
         console.log('Fetched payments:', data);
-        setPayments(data || []);
+        if (data) {
+          // Transform data to match our Payment type
+          const transformedPayments: Payment[] = data.map(item => ({
+            id: item.id,
+            userId: item.user_id,
+            amount: item.amount,
+            status: item.status as PaymentStatus,
+            createdAt: item.created_at,
+            method: item.method,
+            description: item.description || undefined,
+            notes: item.notes || undefined,
+            userName: item.user_name || undefined,
+            userEmail: item.user_email || undefined,
+            transactionId: item.transaction_id || undefined,
+            receiptUrl: item.receipt_url || undefined,
+            reviewedAt: item.reviewed_at || undefined,
+            orderId: item.order_id || undefined
+          }));
+          setPayments(transformedPayments);
+          setNewPaymentNotification(false);
+        }
       }
     } catch (error) {
       console.error('Exception fetching payments:', error);
@@ -86,6 +107,13 @@ const AdminPayments: React.FC = () => {
         table: 'payments'
       }, (payload) => {
         console.log('Payment changed:', payload);
+        // If new payment is inserted, show notification
+        if (payload.eventType === 'INSERT') {
+          setNewPaymentNotification(true);
+          // Play a sound notification
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(e => console.log('Error playing notification sound:', e));
+        }
         fetchPayments();
       })
       .subscribe();
@@ -174,6 +202,7 @@ const AdminPayments: React.FC = () => {
           
         if (profileError) {
           console.error('Error fetching user profile:', profileError);
+          toast.error("Failed to update user balance");
         } else if (profileData) {
           const newBalance = (profileData.balance || 0) + selectedPayment.amount;
           
@@ -184,6 +213,7 @@ const AdminPayments: React.FC = () => {
             
           if (updateError) {
             console.error('Error updating user balance:', updateError);
+            toast.error("Failed to update user balance");
           } else {
             toast.success(`Added $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.userName}'s balance`);
           }
@@ -272,6 +302,14 @@ const AdminPayments: React.FC = () => {
           </CardDescription>
         </div>
         <div className="flex items-center space-x-2">
+          {newPaymentNotification && (
+            <div className="animate-pulse">
+              <Badge variant="default" className="bg-red-500 flex items-center">
+                <BellRing className="h-4 w-4 mr-1" />
+                New Payments
+              </Badge>
+            </div>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
@@ -339,8 +377,8 @@ const AdminPayments: React.FC = () => {
             </TableHeader>
             <TableBody>
               {filteredPayments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-mono text-xs">{payment.id.substring(0, 8)}</TableCell>
+                <TableRow key={payment.id} className={payment.status === 'pending' ? 'bg-yellow-50/30' : ''}>
+                  <TableCell className="font-mono text-xs">{typeof payment.id === 'string' ? payment.id.substring(0, 8) : payment.id}</TableCell>
                   <TableCell>
                     {format(new Date(payment.createdAt), 'MMM dd, yyyy')}
                   </TableCell>

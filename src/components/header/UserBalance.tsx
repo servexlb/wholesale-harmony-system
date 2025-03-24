@@ -20,6 +20,7 @@ const UserBalance = () => {
       }
       
       try {
+        console.log('Fetching balance for user:', user.id);
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
@@ -33,6 +34,7 @@ const UserBalance = () => {
         }
         
         if (data) {
+          console.log('User balance data:', data);
           setUserBalance(data.balance || 0);
         }
         setIsLoading(false);
@@ -44,14 +46,35 @@ const UserBalance = () => {
     
     fetchUserBalance();
     
-    // Set up interval to refresh balance every minute
-    const intervalId = setInterval(() => {
-      if (isAuthenticated) {
-        fetchUserBalance();
-      }
-    }, 60000); // 60 seconds
-    
-    return () => clearInterval(intervalId);
+    // Set up real-time updates for user balance changes
+    if (isAuthenticated && user) {
+      const profilesChannel = supabase
+        .channel('profiles_changes')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        }, (payload) => {
+          console.log('Profile updated:', payload);
+          if (payload.new && typeof payload.new.balance === 'number') {
+            setUserBalance(payload.new.balance);
+          }
+        })
+        .subscribe();
+        
+      // Set up interval to refresh balance every minute as a fallback
+      const intervalId = setInterval(() => {
+        if (isAuthenticated) {
+          fetchUserBalance();
+        }
+      }, 60000); // 60 seconds
+      
+      return () => {
+        clearInterval(intervalId);
+        supabase.removeChannel(profilesChannel);
+      };
+    }
   }, [user, isAuthenticated]);
 
   const handleClick = () => {
@@ -67,7 +90,7 @@ const UserBalance = () => {
       <Button 
         variant="ghost" 
         size="sm" 
-        className="text-sm flex items-center gap-1"
+        className="text-sm flex items-center gap-1 relative"
         onClick={handleClick}
       >
         <CreditCard className="h-4 w-4" />

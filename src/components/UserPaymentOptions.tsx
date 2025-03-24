@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -119,6 +120,8 @@ const UserPaymentOptions = () => {
     if (!user) return;
     
     try {
+      console.log('Creating payment request:', { paymentMethod, amount, userId: user.id });
+      
       // Create payment record in Supabase
       const paymentId = `pmt-${Date.now()}`;
       const payment = {
@@ -130,21 +133,22 @@ const UserPaymentOptions = () => {
         created_at: new Date().toISOString(),
         description: "Account Balance Top-up",
         user_name: user.name,
-        user_email: user.email
+        user_email: user.email,
+        notes: notes || undefined
       };
       
-      // Try to save payment to Supabase if available
-      const { error: paymentError } = await supabase
+      // Save payment to Supabase
+      const { data, error: paymentError } = await supabase
         .from('payments')
-        .insert(payment);
+        .insert(payment)
+        .select();
       
       if (paymentError) {
         console.error('Error creating payment record:', paymentError);
-        // Fallback to localStorage
-        const payments = JSON.parse(localStorage.getItem('payments') || '[]');
-        payments.push(payment);
-        localStorage.setItem('payments', JSON.stringify(payments));
+        throw new Error(`Failed to create payment: ${paymentError.message}`);
       }
+      
+      console.log('Payment record created:', data);
       
       // Create admin notification
       const notification = {
@@ -160,38 +164,21 @@ const UserPaymentOptions = () => {
         payment_method: paymentMethod
       };
       
-      // Try to save notification to Supabase if available
+      // Save notification to Supabase
       const { error: notificationError } = await supabase
         .from('admin_notifications')
         .insert(notification);
       
       if (notificationError) {
         console.error('Error creating notification:', notificationError);
-        // Fallback to localStorage
-        const existingNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
-        existingNotifications.push(notification);
-        localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
+        // This is non-critical, so we'll just log it
       }
       
       return paymentId;
     } catch (error) {
       console.error('Error in createPaymentRequest:', error);
-      // Create a fallback payment record in localStorage
-      const paymentId = `pmt-${Date.now()}`;
-      const payments = JSON.parse(localStorage.getItem('payments') || '[]');
-      payments.push({
-        id: paymentId,
-        userId: user.id,
-        amount: amount,
-        method: paymentMethod,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        description: "Account Balance Top-up",
-        userName: user.name,
-        userEmail: user.email
-      });
-      localStorage.setItem('payments', JSON.stringify(payments));
-      return paymentId;
+      // Re-throw the error so we can handle it in the calling function
+      throw error;
     }
   };
   
@@ -378,8 +365,30 @@ const UserPaymentOptions = () => {
                     />
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    Confirm Payment
+                  <div className="space-y-2">
+                    <Label htmlFor="wm-notes">Notes</Label>
+                    <Input
+                      id="wm-notes"
+                      type="text"
+                      placeholder="Add any transaction reference or details"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Confirm Payment'
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -453,9 +462,22 @@ const UserPaymentOptions = () => {
                     </div>
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Pay Now
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Pay Now
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -486,14 +508,36 @@ const UserPaymentOptions = () => {
                     />
                   </div>
                   
+                  <div className="space-y-2">
+                    <Label htmlFor="bp-notes">Transaction Notes</Label>
+                    <Input
+                      id="bp-notes"
+                      type="text"
+                      placeholder="Add any transaction reference or details"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+                  
                   <div className="bg-primary/5 p-4 rounded-md mb-2">
                     <p className="text-sm">
                       After clicking "Proceed with Binance Pay", you'll be redirected to complete the payment through Binance's secure payment gateway.
                     </p>
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    Proceed with Binance Pay
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Proceed with Binance Pay'
+                    )}
                   </Button>
                 </form>
               </CardContent>
