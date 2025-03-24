@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCheck, UserCheck, CreditCard, KeyRound, Package } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,90 +11,72 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  getCustomerNotifications, 
-  markCustomerNotificationAsRead, 
-  markAllCustomerNotificationsAsRead 
-} from '@/lib/data';
+import { toast } from '@/lib/toast';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/lib/toast';
 
-interface CustomerNotification {
+interface Notification {
   id: string;
-  title?: string;
-  message?: string;
+  title: string;
+  message: string;
   created_at: string;
   is_read: boolean;
   type: string;
-  user_id: string;
 }
 
-interface CustomerNotificationsProps {
-  userId: string;
-}
-
-const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId }) => {
-  const [notifications, setNotifications] = useState<CustomerNotification[]>([]);
+const WholesaleNotifications: React.FC = () => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load notifications when component mounts or when userId changes
   useEffect(() => {
-    if (userId) {
-      fetchNotifications();
+    fetchNotifications();
+    
+    // Set up realtime subscription for new notifications
+    const channel = supabase
+      .channel('public:admin_notifications')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'admin_notifications' 
+      }, (payload) => {
+        setNotifications(current => [payload.new as Notification, ...current]);
+      })
+      .subscribe();
       
-      // Set up realtime subscription for new notifications
-      const channel = supabase
-        .channel('public:admin_notifications')
-        .on('postgres_changes', { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'admin_notifications',
-          filter: `user_id=eq.${userId}`
-        }, (payload) => {
-          setNotifications(current => [payload.new as CustomerNotification, ...current]);
-        })
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [userId]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchNotifications = async () => {
     setLoading(true);
     try {
+      // Get current user session
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user.id;
+      
       if (!userId) {
-        // Fallback to mock data if no userId
-        setNotifications(getCustomerNotifications(userId));
+        console.log('No authenticated user found');
         setLoading(false);
         return;
       }
       
-      // Get notifications from admin_notifications table that are for this user
+      // Get notifications from admin_notifications table
       const { data, error } = await supabase
         .from('admin_notifications')
         .select('*')
-        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(20);
         
       if (error) {
-        console.error('Error fetching customer notifications:', error);
-        // Fallback to mock data
-        setNotifications(getCustomerNotifications(userId));
-      } else if (data && data.length > 0) {
+        console.error('Error fetching notifications:', error);
+        toast.error('Failed to load notifications');
+      } else if (data) {
         setNotifications(data);
-      } else {
-        // Fallback to mock data if no real notifications found
-        setNotifications(getCustomerNotifications(userId));
       }
     } catch (error) {
       console.error('Error in fetchNotifications:', error);
-      // Fallback to mock data
-      setNotifications(getCustomerNotifications(userId));
     } finally {
       setLoading(false);
     }
@@ -105,14 +87,10 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
       const { error } = await supabase
         .from('admin_notifications')
         .update({ is_read: true })
-        .eq('id', id)
-        .eq('user_id', userId);
+        .eq('id', id);
         
       if (error) {
         console.error('Error marking notification as read:', error);
-        // Fallback to local update
-        markCustomerNotificationAsRead(id);
-        setNotifications(getCustomerNotifications(userId));
         return;
       }
       
@@ -125,9 +103,6 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
       );
     } catch (error) {
       console.error('Error in handleReadNotification:', error);
-      // Fallback to local update
-      markCustomerNotificationAsRead(id);
-      setNotifications(getCustomerNotifications(userId));
     }
   };
 
@@ -142,25 +117,20 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
       const { error } = await supabase
         .from('admin_notifications')
         .update({ is_read: true })
-        .in('id', unreadIds)
-        .eq('user_id', userId);
+        .in('id', unreadIds);
         
       if (error) {
         console.error('Error marking all notifications as read:', error);
-        // Fallback to local update
-        markAllCustomerNotificationsAsRead(userId);
-        setNotifications(getCustomerNotifications(userId));
         return;
       }
       
       setNotifications(current => 
         current.map(notification => ({ ...notification, is_read: true }))
       );
+      
+      toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error in handleReadAll:', error);
-      // Fallback to local update
-      markAllCustomerNotificationsAsRead(userId);
-      setNotifications(getCustomerNotifications(userId));
     }
   };
 
@@ -170,14 +140,6 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'profile_fixed':
-        return <UserCheck className="h-4 w-4 text-blue-500" />;
-      case 'payment_resolved':
-        return <CreditCard className="h-4 w-4 text-amber-500" />;
-      case 'password_reset':
-        return <KeyRound className="h-4 w-4 text-purple-500" />;
-      case 'order_completed':
-        return <Package className="h-4 w-4 text-green-500" />;
       default:
         return null;
     }
@@ -235,7 +197,7 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
                     {getNotificationIcon(notification.type)}
                   </div>
                   <div className="flex-1">
-                    {notification.title && <p className="text-sm font-medium">{notification.title}</p>}
+                    <p className="text-sm font-medium">{notification.title || 'New Notification'}</p>
                     <p className="text-sm">{notification.message}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
@@ -261,4 +223,4 @@ const CustomerNotifications: React.FC<CustomerNotificationsProps> = ({ userId })
   );
 };
 
-export default CustomerNotifications;
+export default WholesaleNotifications;

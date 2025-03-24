@@ -17,15 +17,15 @@ interface WholesaleUser {
   showPassword: boolean;
 }
 
-// Predefined data instead of using state to initialize state
-const initialWholesaleUsers: WholesaleUser[] = [
+// Define initial wholesale users as a constant to avoid recursive type definition
+const initialUsers = [
   { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
   { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
 ];
 
 const WholesaleUserManagement = () => {
-  // Initialize directly with array literal to avoid deep type instantiation
-  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>(initialWholesaleUsers);
+  // Use the constant directly to avoid the deep type instantiation error
+  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>(initialUsers);
   
   const [newWholesaleUser, setNewWholesaleUser] = useState({
     username: '',
@@ -41,7 +41,7 @@ const WholesaleUserManagement = () => {
         const { data: profiles, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('role', 'wholesaler');
+          .eq('company', 'wholesaler');
           
         if (error) {
           console.error('Error fetching wholesale users:', error);
