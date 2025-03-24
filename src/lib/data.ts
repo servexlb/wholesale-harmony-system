@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -360,7 +361,7 @@ export const addSubscription = (subscription: Subscription): void => {
   subscriptions.push(subscription);
 };
 
-export type IssueType = 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system' | 'login_problem' | 'account_locked' | 'service_unavailable' | 'other';
+// Remove the local IssueType declaration since we're now importing it from types.ts
 
 export const createSubscriptionIssue = (issueData: {
   subscriptionId: string;
