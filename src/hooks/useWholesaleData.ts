@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
 import { loadServices } from '@/lib/productManager';
-import { addCredentialToStock, convertSubscriptionToStock, generateRandomPassword } from '@/lib/credentialUtils';
+import { addCredentialToStock, convertSubscriptionToStock } from '@/lib/credentialUtils';
 
 export function useWholesaleData(currentWholesaler: string) {
   const [orders, setOrders] = useState<WholesaleOrder[]>([]);
@@ -96,7 +96,7 @@ export function useWholesaleData(currentWholesaler: string) {
         durationMonths: durationMonths,
         credentials: order.credentials || {
           email: "",
-          password: generateRandomPassword(),
+          password: "", // No auto-generated password 
           username: "",
           pinCode: ""
         }
@@ -120,7 +120,7 @@ export function useWholesaleData(currentWholesaler: string) {
             // Create a properly formatted Credential object with all required fields
             const credentials: Credential = {
               email: "",
-              password: generateRandomPassword(),
+              password: "", // No auto-generated password
               username: "",
               pinCode: ""
             };

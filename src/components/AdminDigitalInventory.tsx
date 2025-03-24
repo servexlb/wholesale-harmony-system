@@ -26,7 +26,6 @@ import {
   deleteCredentialFromStock,
   updateCredentialInStock,
   saveCredentialStock,
-  generateRandomPassword,
   mapSupabaseCredentialsToLocal
 } from '@/lib/credentialUtils';
 import { loadServices, loadProducts } from '@/lib/productManager';
@@ -61,7 +60,8 @@ const AdminDigitalInventory: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [availableServices, setAvailableServices] = useState<Array<{id: string, name: string}>>([]);
-  const [autoAddNewProducts, setAutoAddNewProducts] = useState(true);
+  // Set auto-add new products to false by default
+  const [autoAddNewProducts, setAutoAddNewProducts] = useState(false);
   
   const loadInventory = useCallback(async () => {
     try {
@@ -85,7 +85,7 @@ const AdminDigitalInventory: React.FC = () => {
     setInventory(convertToDigitalItems(stock));
   }, [availableServices]);
 
-  // Auto add all products and services that aren't already in inventory
+  // Auto add all products and services that aren't already in inventory - now controlled by a setting
   const autoAddAllProductsToInventory = useCallback(() => {
     if (!autoAddNewProducts) return;
     
@@ -109,7 +109,7 @@ const AdminDigitalInventory: React.FC = () => {
     productsToAdd.forEach(product => {
       const credentials = {
         email: "",
-        password: generateRandomPassword(),
+        password: "", // No auto-generated password
         username: "",
         pinCode: ""
       };
@@ -200,7 +200,7 @@ const AdminDigitalInventory: React.FC = () => {
     };
   }, [loadInventory, loadAllServices]);
 
-  // Effect to auto add products whenever the list of available services changes
+  // Effect to auto add products is still used but controlled by the autoAddNewProducts state
   useEffect(() => {
     autoAddAllProductsToInventory();
   }, [availableServices, autoAddAllProductsToInventory]);
@@ -413,7 +413,7 @@ const AdminDigitalInventory: React.FC = () => {
       for (let i = 0; i < quantity; i++) {
         const credentials = {
           email: "",
-          password: generateRandomPassword(),
+          password: "", // No auto-generated password
           username: "",
           pinCode: ""
         };
@@ -730,7 +730,7 @@ const AdminDigitalInventory: React.FC = () => {
                         type="text"
                         value={newCredentials.password}
                         onChange={(e) => setNewCredentials({...newCredentials, password: e.target.value})}
-                        placeholder="password123"
+                        placeholder="Enter password manually"
                       />
                     </div>
                     <div className="space-y-2">
