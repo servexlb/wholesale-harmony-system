@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Service, ServiceType } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
-import { PurchaseDialog } from "@/components/PurchaseDialog";
+import PurchaseDialog from "@/components/PurchaseDialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { 
@@ -24,8 +25,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { PurchaseSuccessDialog } from "@/components/PurchaseSuccessDialog";
+import PurchaseSuccessDialog from "@/components/PurchaseSuccessDialog";
 import { checkCredentialAvailability, fulfillOrderWithCredentials } from "@/lib/credentialUtils";
+import { toast } from "sonner";
 
 interface ServiceCardProps {
   service: Service;

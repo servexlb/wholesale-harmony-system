@@ -1,3 +1,4 @@
+
 import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ServiceCard } from "@/components/services/ServiceCard";
+import ServiceCard from "@/components/services/ServiceCard";
 import { useSubscription } from "@/hooks/useSubscription";
 
 const categories = [

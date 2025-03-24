@@ -1,6 +1,7 @@
+
 import { Service, Product } from '@/lib/types';
 import { loadServices, loadProducts } from '@/lib/productManager';
-import { services as mockServices } from '@/lib/mockData';
+import { services as importedServices } from '@/lib/mockData';
 
 // Create a memoized service lookup map for better performance
 export const createServiceMap = () => {
@@ -10,13 +11,13 @@ export const createServiceMap = () => {
   const services = loadServices();
   
   // If no services from product manager, fall back to mockData
-  const servicesToUse = services.length > 0 ? services : mockServices;
+  const servicesToUse = services.length > 0 ? services : importedServices;
   
   // Add services to map
   if (servicesToUse && Array.isArray(servicesToUse)) {
     servicesToUse.forEach(service => {
       // Make sure we have a valid category value
-      const category = service.category || service.categoryId || "Other";
+      const category = service.categoryId || service.category || "Other";
       
       serviceMap.set(service.id, {
         id: service.id,
@@ -72,9 +73,9 @@ export const getAllServices = (): Service[] => {
   const services = loadServices();
   
   // If no services from product manager, fall back to mockData
-  const servicesWithCategory = (services.length > 0 ? services : mockServices).map(service => ({
+  const servicesWithCategory = (services.length > 0 ? services : importedServices).map(service => ({
     ...service,
-    category: service.category || service.categoryId || "Other"
+    category: service.categoryId || service.category || "Other"
   }));
   
   return servicesWithCategory;

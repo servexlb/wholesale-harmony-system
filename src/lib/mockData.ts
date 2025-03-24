@@ -1,924 +1,1027 @@
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  wholesalePrice: number;
-  image: string;
-  category: string;
-  categoryId?: string;
-  type?: "subscription" | "recharge" | "giftcard" | "service" | "topup";
-  value?: number;
-  deliveryTime?: string;
-  featured?: boolean;
-  availableMonths?: number[];
-  apiUrl?: string;
-  minQuantity?: number;
-  requiresId?: boolean;
-}
+import { v4 as uuidv4 } from 'uuid';
+import { User, ServiceCategory, Service, Subscription, Order, SupportTicket, TicketResponse, SimpleCustomer, AdminNotification } from './types';
 
-export interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  company?: string;
-  notes?: string;
-  wholesalerId?: string;
-  balance: number;
-}
-
-export interface Sale {
-  id: string;
-  customerId: string;
-  date: string;
-  products: {
-    productId: string;
-    quantity: number;
-    priceAtSale: number;
-  }[];
-  total: number;
-  paid: boolean;
-}
-
-export interface Subscription {
-  id: string;
-  customerId: string;
-  productId: string;
-  startDate: string;
-  endDate: string;
-  status: "active" | "expired" | "cancelled";
-  price: number;
-  credentials?: {
-    username?: string;
-    password?: string;
-    email?: string;
-    notes?: string;
-    [key: string]: any;
-  };
-}
-
-import { 
-  AdminNotification, 
-  SubscriptionIssue, 
-  IssueType, 
-  IssueStatus,
-  CustomerNotification,
-  ServiceCategory,
-  ServiceType
-} from '@/lib/types';
-
-export const products: Product[] = [
+// Mock users
+export const users: User[] = [
   {
-    id: "p1",
-    name: "Premium Ceramic Vase",
-    description: "Handcrafted ceramic vase with a modern, minimalist design.",
-    price: 89.99,
-    wholesalePrice: 49.99,
-    image: "https://images.unsplash.com/photo-1602748828300-57c35baaef48?q=80&w=1000&auto=format&fit=crop",
-    category: "Home Decor"
+    id: 'user-1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'customer',
+    balance: 100,
+    createdAt: '2023-01-01T00:00:00Z'
   },
   {
-    id: "p2",
-    name: "Artisanal Coffee Mug",
-    description: "Handmade ceramic mug with a unique glazed finish.",
-    price: 34.99,
-    wholesalePrice: 19.99,
-    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop",
-    category: "Kitchenware"
+    id: 'user-2',
+    name: 'Jane Smith',
+    email: 'jane@example.com',
+    role: 'customer',
+    balance: 50,
+    createdAt: '2023-01-15T00:00:00Z'
   },
   {
-    id: "p3",
-    name: "Minimalist Wall Clock",
-    description: "Simple yet elegant wall clock with a silent quartz movement.",
-    price: 59.99,
-    wholesalePrice: 32.99,
-    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop",
-    category: "Home Decor"
-  },
-  {
-    id: "p4",
-    name: "Natural Linen Throw Pillow",
-    description: "Soft, natural linen pillow cover with a feather insert.",
-    price: 49.99,
-    wholesalePrice: 28.99,
-    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop",
-    category: "Textiles"
-  },
-  {
-    id: "p5",
-    name: "Handwoven Basket",
-    description: "Traditional handwoven basket made from sustainable materials.",
-    price: 79.99,
-    wholesalePrice: 42.99,
-    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop",
-    category: "Storage"
-  },
-  {
-    id: "p6",
-    name: "Glass Terrarium",
-    description: "Geometric glass terrarium for displaying small plants and succulents.",
-    price: 69.99,
-    wholesalePrice: 38.99,
-    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop",
-    category: "Plants"
-  },
-];
-
-export const customers: Customer[] = [
-  {
-    id: "c1",
-    name: "Jane Smith",
-    phone: "+1 (555) 123-4567",
-    email: "jane@example.com",
-    company: "Smith Home Goods",
-    notes: "Prefers delivery on Tuesdays",
-    wholesalerId: "wholesaler1",
-    balance: 0
-  },
-  {
-    id: "c2",
-    name: "Michael Johnson",
-    phone: "+1 (555) 987-6543",
-    email: "michael@example.com",
-    company: "Urban Living Co.",
-    notes: "",
-    wholesalerId: "admin",
-    balance: 0
-  },
-  {
-    id: "c3",
-    name: "Emma Williams",
-    phone: "+1 (555) 456-7890",
-    email: "emma@example.com",
-    company: "Williams Decor",
-    notes: "New customer as of Jan 2023",
-    wholesalerId: "wholesaler1",
-    balance: 0
-  },
-];
-
-export const sales: Sale[] = [
-  {
-    id: "s1",
-    customerId: "c1",
-    date: "2023-05-15",
-    products: [
-      { productId: "p1", quantity: 5, priceAtSale: 49.99 },
-      { productId: "p3", quantity: 3, priceAtSale: 32.99 }
-    ],
-    total: 348.92,
-    paid: true
-  },
-  {
-    id: "s2",
-    customerId: "c2",
-    date: "2023-05-20",
-    products: [
-      { productId: "p2", quantity: 10, priceAtSale: 19.99 },
-      { productId: "p4", quantity: 8, priceAtSale: 28.99 }
-    ],
-    total: 431.82,
-    paid: true
-  },
-  {
-    id: "s3",
-    customerId: "c3",
-    date: "2023-06-01",
-    products: [
-      { productId: "p5", quantity: 4, priceAtSale: 42.99 },
-      { productId: "p6", quantity: 6, priceAtSale: 38.99 }
-    ],
-    total: 405.90,
-    paid: false
-  },
-];
-
-export const subscriptions: Subscription[] = [];
-
-export const adminNotifications: AdminNotification[] = [
-  {
-    id: "n1",
-    type: "profile_fix",
-    customerName: "Jane Smith",
-    serviceName: "Premium Ceramic Vase",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    read: false,
-    subscriptionId: "sub-1"
-  },
-  {
-    id: "n2",
-    type: "payment_issue",
-    customerName: "Michael Johnson",
-    serviceName: "Minimalist Wall Clock",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    read: true,
-    subscriptionId: "sub-3"
-  },
-  {
-    id: "n3",
-    type: "password_reset",
-    customerName: "Jane Smith",
-    serviceName: "Artisanal Coffee Mug",
-    createdAt: new Date(Date.now() - 43200000).toISOString(),
-    read: false,
-    subscriptionId: "sub-2"
+    id: 'admin-1',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    role: 'admin',
+    balance: 0,
+    createdAt: '2022-12-01T00:00:00Z'
   }
 ];
 
-export const subscriptionIssues: SubscriptionIssue[] = [];
-export const customerNotifications: CustomerNotification[] = [];
-
-const wholesaleUsers = [
-  { username: 'wholesaler1', password: 'password123' },
-  { username: 'admin', password: 'admin123' }
-];
-
-export const checkWholesalePassword = (password: string): boolean => {
-  return password === 'wholesale2023';
-};
-
-export const checkWholesaleCredentials = (username: string, password: string): boolean => {
-  return wholesaleUsers.some(
-    user => user.username === username && user.password === password
-  );
-};
-
-export const calculateTotalSales = (): number => {
-  return sales.reduce((total, sale) => total + (sale.paid ? sale.total : 0), 0);
-};
-
-export const getCustomerById = (id: string): Customer | undefined => {
-  return customers.find(customer => customer.id === id);
-};
-
-export const getProductById = (id: string): Product | undefined => {
-  return products.find(product => product.id === id);
-};
-
-export const getSalesByCustomerId = (customerId: string): Sale[] => {
-  return sales.filter(sale => sale.customerId === customerId);
-};
-
-export const getSubscriptionsByCustomerId = (customerId: string): Subscription[] => {
-  return subscriptions.filter(subscription => subscription.customerId === customerId);
-};
-
-export const getSubscriptionById = (id: string): Subscription | undefined => {
-  return subscriptions.find(subscription => subscription.id === id);
-};
-
-export const addCustomerBalance = (customerId: string, amount: number): boolean => {
-  const customer = customers.find(c => c.id === customerId);
-  if (customer) {
-    customer.balance += amount;
-    return true;
-  }
-  return false;
-};
-
-export const deductCustomerBalance = (customerId: string, amount: number): boolean => {
-  const customer = customers.find(c => c.id === customerId);
-  if (customer && customer.balance >= amount) {
-    customer.balance -= amount;
-    return true;
-  }
-  return false;
-};
-
-export const addSubscription = (subscription: Subscription): void => {
-  subscriptions.push(subscription);
-};
-
-export const createSubscriptionIssue = (issueData: {
-  subscriptionId: string;
-  userId: string;
-  customerName: string;
-  serviceName: string;
-  type: IssueType;
-  credentials?: {
-    username?: string;
-    password?: string;
-    email?: string;
-    notes?: string;
-    [key: string]: any;
-  };
-}): Promise<boolean> => {
-  const newIssue: SubscriptionIssue = {
-    id: `issue-${Date.now()}`,
-    subscriptionId: issueData.subscriptionId,
-    userId: issueData.userId,
-    customerName: issueData.customerName,
-    serviceName: issueData.serviceName,
-    type: issueData.type,
-    status: "pending" as IssueStatus,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    credentials: issueData.credentials
-  };
-  
-  subscriptionIssues.unshift(newIssue);
-  
-  const newNotification: AdminNotification = {
-    id: `n${adminNotifications.length + 1}`,
-    type: issueData.type,
-    customerName: issueData.customerName,
-    serviceName: issueData.serviceName,
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: issueData.subscriptionId
-  };
-  
-  adminNotifications.unshift(newNotification);
-  
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 1000);
-  });
-};
-
-export const getSubscriptionIssues = (): SubscriptionIssue[] => {
-  return subscriptionIssues;
-};
-
-export const resolveSubscriptionIssue = (
-  issueId: string, 
-  resolvedBy: string, 
-  notes?: string
-): Promise<boolean> => {
-  const issue = subscriptionIssues.find(i => i.id === issueId);
-  if (issue) {
-    issue.status = "resolved";
-    issue.resolvedAt = new Date().toISOString();
-    issue.resolvedBy = resolvedBy;
-    if (notes) {
-      issue.notes = notes;
-    }
-  }
-  
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 1000);
-  });
-};
-
-export const sendCustomerNotification = (notificationData: {
-  userId: string;
-  type: "profile_fixed" | "payment_resolved" | "password_reset" | "order_completed";
-  message: string;
-  subscriptionId?: string;
-  serviceName?: string;
-}): Promise<boolean> => {
-  const newNotification: CustomerNotification = {
-    id: `cn-${Date.now()}`,
-    userId: notificationData.userId,
-    type: notificationData.type,
-    message: notificationData.message,
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: notificationData.subscriptionId,
-    serviceName: notificationData.serviceName
-  };
-  
-  customerNotifications.unshift(newNotification);
-  
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 500);
-  });
-};
-
-export const getCustomerNotifications = (userId: string): CustomerNotification[] => {
-  return customerNotifications.filter(notification => notification.userId === userId);
-};
-
-export const markCustomerNotificationAsRead = (notificationId: string): void => {
-  const notification = customerNotifications.find(n => n.id === notificationId);
-  if (notification) {
-    notification.read = true;
-  }
-};
-
-export const markAllCustomerNotificationsAsRead = (userId: string): void => {
-  customerNotifications.forEach(notification => {
-    if (notification.userId === userId) {
-      notification.read = true;
-    }
-  });
-};
-
-export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
-  const subscription = getSubscriptionById(subscriptionId);
-  return createSubscriptionIssue({
-    subscriptionId,
-    userId,
-    customerName,
-    serviceName,
-    type: "profile_fix" as IssueType,
-    credentials: subscription?.credentials
-  });
-};
-
-export const reportPaymentIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
-  const subscription = getSubscriptionById(subscriptionId);
-  return createSubscriptionIssue({
-    subscriptionId,
-    userId,
-    customerName,
-    serviceName,
-    type: "payment_issue" as IssueType,
-    credentials: subscription?.credentials
-  });
-};
-
-export const reportPasswordIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
-  const subscription = getSubscriptionById(subscriptionId);
-  return createSubscriptionIssue({
-    subscriptionId,
-    userId,
-    customerName,
-    serviceName,
-    type: "password_reset" as IssueType,
-    credentials: subscription?.credentials
-  });
-};
-
-export const getAdminNotifications = (): AdminNotification[] => {
-  return adminNotifications;
-};
-
-export const markNotificationAsRead = (notificationId: string): void => {
-  const notification = adminNotifications.find(n => n.id === notificationId);
-  if (notification) {
-    notification.read = true;
-  }
-};
-
-export const markAllNotificationsAsRead = (): void => {
-  adminNotifications.forEach(notification => {
-    notification.read = true;
-  });
-};
-
-export const serviceCategories: ServiceCategory[] = [
-  { id: "streaming", name: "Streaming Services", description: "Video and music streaming subscriptions", order: 1, icon: "home" },
-  { id: "gaming", name: "Gaming Credits", description: "In-game currency and subscriptions", order: 2, icon: "gamepad" },
-  { id: "social", name: "Social Media", description: "Social media boosting and services", order: 3, icon: "users" },
-  { id: "recharge", name: "Recharge Services", description: "Mobile and utility recharge options", order: 4, icon: "phone" },
-  { id: "giftcard", name: "Gift Cards", description: "Digital gift cards for various platforms", order: 5, icon: "gift" },
-  { id: "vpn", name: "VPN Services", description: "Virtual Private Network subscriptions", order: 6, icon: "shield" },
-  { id: "other", name: "Other Services", description: "Miscellaneous digital services", order: 7, icon: "box" }
-];
-
-export const mockServices = [
+// Service categories
+export const categories: ServiceCategory[] = [
   {
-    id: "s1",
-    name: "Netflix Premium",
-    description: "Stream unlimited movies and TV shows in 4K.",
-    price: 15.99,
-    wholesalePrice: 12.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/netflix.jpg",
-    categoryId: "streaming",
-    category: "Streaming Services",
+    id: 'streaming',
+    name: 'Streaming Services',
+    description: 'Access to popular streaming platforms',
+    order: 1,
+    icon: 'tv'
+  },
+  {
+    id: 'gaming',
+    name: 'Gaming',
+    description: 'Gaming subscriptions and credits',
+    order: 2,
+    icon: 'gamepad'
+  },
+  {
+    id: 'vpn',
+    name: 'VPN Services',
+    description: 'Virtual Private Network services',
+    order: 3,
+    icon: 'shield'
+  },
+  {
+    id: 'productivity',
+    name: 'Productivity',
+    description: 'Office and productivity tools',
+    order: 4,
+    icon: 'briefcase'
+  },
+  {
+    id: 'communication',
+    name: 'Communication',
+    description: 'Communication and social media services',
+    order: 5,
+    icon: 'message-circle'
+  },
+  {
+    id: 'other',
+    name: 'Other Services',
+    description: 'Miscellaneous services',
+    order: 6,
+    icon: 'more-horizontal'
+  }
+];
+
+// Services/Products data
+export const services: Service[] = [
+  {
+    id: 'service-netflix',
+    name: 'Netflix Premium',
+    description: 'Netflix Premium subscription with 4K streaming and multiple devices',
+    price: 19.99,
+    wholesalePrice: 16.99,
+    type: 'subscription',
+    image: '/images/netflix.png',
+    categoryId: 'streaming',
     featured: true,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
+    deliveryTime: '24 hours',
+    availableMonths: [1, 3, 6, 12],
+    monthlyPricing: [
+      { months: 1, price: 19.99, wholesalePrice: 16.99 },
+      { months: 3, price: 53.99, wholesalePrice: 45.99, savings: 5.98 },
+      { months: 6, price: 99.99, wholesalePrice: 89.99, savings: 19.95 },
+      { months: 12, price: 189.99, wholesalePrice: 169.99, savings: 49.89 }
+    ],
+    features: [
+      '4K Ultra HD streaming',
+      'Watch on 4 devices at once',
+      'Download titles to watch offline',
+      'No ads or commercials'
+    ]
   },
   {
-    id: "s2",
-    name: "Spotify Premium",
-    description: "Ad-free music streaming with offline playback.",
+    id: 'service-disney',
+    name: 'Disney+ Premium',
+    description: 'Disney+ streaming service with access to Disney, Pixar, Marvel, Star Wars, and more',
+    price: 12.99,
+    wholesalePrice: 10.99,
+    type: 'subscription',
+    image: '/images/disney.png',
+    categoryId: 'streaming',
+    featured: true,
+    deliveryTime: '24 hours',
+    availableMonths: [1, 3, 6, 12],
+    features: [
+      '4K Ultra HD streaming',
+      'Watch on 4 devices at once',
+      'Download titles to watch offline',
+      'Access to Disney, Pixar, Marvel, Star Wars'
+    ]
+  },
+  {
+    id: 'service-spotify',
+    name: 'Spotify Premium',
+    description: 'Spotify Premium subscription with ad-free music listening and offline downloads',
     price: 9.99,
     wholesalePrice: 7.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/spotify.jpg",
-    categoryId: "streaming",
-    category: "Streaming Services",
-    featured: true,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
+    type: 'subscription',
+    image: '/images/spotify.png',
+    categoryId: 'streaming',
+    deliveryTime: '24 hours',
+    availableMonths: [1, 3, 6, 12],
+    features: [
+      'Ad-free music listening',
+      'Offline downloads',
+      'High-quality audio',
+      'Access to millions of songs'
+    ]
   },
   {
-    id: "s3",
-    name: "Xbox Game Pass",
-    description: "Access to a library of games on Xbox and PC.",
+    id: 'service-nordvpn',
+    name: 'NordVPN',
+    description: 'NordVPN subscription for secure and private internet access',
+    price: 7.99,
+    wholesalePrice: 5.99,
+    type: 'subscription',
+    image: '/images/nordvpn.png',
+    categoryId: 'vpn',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12, 24],
+    features: [
+      'Secure internet access',
+      'Private browsing',
+      'Access to blocked content',
+      'Multiple server locations'
+    ]
+  },
+  {
+    id: 'service-expressvpn',
+    name: 'ExpressVPN',
+    description: 'ExpressVPN subscription for fast and reliable VPN service',
     price: 9.99,
     wholesalePrice: 7.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/xbox.jpg",
-    categoryId: "gaming",
-    category: "Gaming Credits",
-    featured: true,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
+    type: 'subscription',
+    image: '/images/expressvpn.png',
+    categoryId: 'vpn',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 6, 12],
+    features: [
+      'Fast and reliable VPN service',
+      'Secure internet access',
+      'Private browsing',
+      'Multiple server locations'
+    ]
   },
   {
-    id: "s4",
-    name: "PlayStation Plus",
-    description: "Online multiplayer access and free monthly games.",
-    price: 9.99,
-    wholesalePrice: 7.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/playstation.jpg",
-    categoryId: "gaming",
-    category: "Gaming Credits",
-    featured: true,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
+    id: 'service-gta5',
+    name: 'GTA V Online Credits',
+    description: 'Get GTA V Online credits to buy cars, weapons, and more',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'topup',
+    image: '/images/gta5.png',
+    categoryId: 'gaming',
+    deliveryTime: 'Instant',
+    value: 500000,
+    minQuantity: 1
   },
   {
-    id: "s5",
-    name: "Facebook Ads Credit",
-    description: "Credit for running ads on Facebook and Instagram.",
+    id: 'service-fortnite',
+    name: 'Fortnite V-Bucks',
+    description: 'Get Fortnite V-Bucks to buy skins, emotes, and more',
+    price: 7.99,
+    wholesalePrice: 5.99,
+    type: 'topup',
+    image: '/images/fortnite.png',
+    categoryId: 'gaming',
+    deliveryTime: 'Instant',
+    value: 1000,
+    minQuantity: 1
+  },
+  {
+    id: 'service-mobile-recharge',
+    name: 'Mobile Recharge',
+    description: 'Recharge your mobile phone with credits',
+    price: 10.00,
+    wholesalePrice: 8.00,
+    type: 'recharge',
+    image: '/images/mobile-recharge.png',
+    categoryId: 'recharge',
+    deliveryTime: 'Instant',
+    value: 10,
+    minQuantity: 1
+  },
+  {
+    id: 'service-giftcard-amazon',
+    name: 'Amazon Gift Card',
+    description: 'Get an Amazon gift card to buy anything on Amazon',
     price: 25.00,
     wholesalePrice: 20.00,
-    type: "recharge" as ServiceType,
-    image: "https://example.com/facebook.jpg",
-    categoryId: "social",
-    category: "Social Media",
-    featured: true,
-    deliveryTime: "Instant"
+    type: 'giftcard',
+    image: '/images/amazon-giftcard.png',
+    categoryId: 'giftcard',
+    deliveryTime: 'Instant',
+    value: 25,
+    minQuantity: 1
   },
   {
-    id: "s6",
-    name: "Instagram Followers",
-    description: "Increase your follower count on Instagram.",
-    price: 10.00,
-    wholesalePrice: 8.00,
-    type: "service" as ServiceType,
-    image: "https://example.com/instagram.jpg",
-    categoryId: "social",
-    category: "Social Media",
-    featured: true,
-    deliveryTime: "24 hours"
+    id: 'service-office365',
+    name: 'Microsoft 365',
+    description: 'Access to Microsoft Office suite',
+    price: 6.99,
+    wholesalePrice: 4.99,
+    type: 'subscription',
+    image: '/images/office365.png',
+    categoryId: 'productivity',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Access to Word, Excel, PowerPoint',
+      '1TB OneDrive storage',
+      'Premium features',
+    ]
   },
   {
-    id: "s7",
-    name: "Amazon Gift Card",
-    description: "Digital gift card for shopping on Amazon.",
-    price: 50.00,
-    wholesalePrice: 45.00,
-    type: "giftcard" as ServiceType,
-    image: "https://example.com/amazon.jpg",
-    categoryId: "giftcard",
-    category: "Gift Cards",
-    featured: true,
-    deliveryTime: "Instant"
+    id: 'service-adobe-creative-cloud',
+    name: 'Adobe Creative Cloud',
+    description: 'Access to Adobe Creative Cloud suite',
+    price: 29.99,
+    wholesalePrice: 24.99,
+    type: 'subscription',
+    image: '/images/adobe-creative-cloud.png',
+    categoryId: 'productivity',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Access to Photoshop, Illustrator, Premiere Pro',
+      '100GB cloud storage',
+      'Premium fonts',
+    ]
   },
   {
-    id: "s8",
-    name: "Steam Gift Card",
-    description: "Digital gift card for purchasing games on Steam.",
-    price: 20.00,
-    wholesalePrice: 18.00,
-    type: "giftcard" as ServiceType,
-    image: "https://example.com/steam.jpg",
-    categoryId: "giftcard",
-    category: "Gift Cards",
-    featured: true,
-    deliveryTime: "Instant"
+    id: 'service-whatsapp-number',
+    name: 'WhatsApp Number',
+    description: 'Get a virtual WhatsApp number',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'service',
+    image: '/images/whatsapp-number.png',
+    categoryId: 'communication',
+    deliveryTime: 'Instant',
+    minQuantity: 1
   },
   {
-    id: "s9",
-    name: "NordVPN",
-    description: "Secure and private internet access with NordVPN.",
-    price: 11.99,
-    wholesalePrice: 9.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/nordvpn.jpg",
-    categoryId: "vpn",
-    category: "VPN Services",
-    featured: true,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
-  },
-  {
-    id: "s10",
-    name: "ExpressVPN",
-    description: "High-speed VPN service for secure browsing.",
-    price: 12.95,
-    wholesalePrice: 10.95,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/expressvpn.jpg",
-    categoryId: "vpn",
-    category: "VPN Services",
-    featured: true,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
-  },
-  {
-    id: "s11",
-    name: "Hulu",
-    description: "Stream TV shows, movies, and original content.",
-    price: 7.99,
-    wholesalePrice: 6.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/hulu.jpg",
-    categoryId: "streaming",
-    category: "Streaming Services",
-    featured: false,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
-  },
-  {
-    id: "s12",
-    name: "Disney+",
-    description: "Stream movies and TV shows from Disney, Pixar, Marvel, Star Wars, and National Geographic.",
-    price: 7.99,
-    wholesalePrice: 6.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/disneyplus.jpg",
-    categoryId: "streaming",
-    category: "Streaming Services",
-    featured: false,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
-  },
-  {
-    id: "s13",
-    name: "Call of Duty Points",
-    description: "In-game currency for Call of Duty.",
+    id: 'service-instagram-followers',
+    name: 'Instagram Followers',
+    description: 'Get Instagram followers',
     price: 9.99,
     wholesalePrice: 7.99,
-    type: "recharge" as ServiceType,
-    image: "https://example.com/codpoints.jpg",
-    categoryId: "gaming",
-    category: "Gaming Credits",
-    featured: false,
-    deliveryTime: "Instant"
+    type: 'service',
+    image: '/images/instagram-followers.png',
+    categoryId: 'communication',
+    deliveryTime: 'Instant',
+    minQuantity: 100
   },
   {
-    id: "s14",
-    name: "Robux",
-    description: "In-game currency for Roblox.",
-    price: 10.00,
-    wholesalePrice: 8.00,
-    type: "recharge" as ServiceType,
-    image: "https://example.com/robux.jpg",
-    categoryId: "gaming",
-    category: "Gaming Credits",
-    featured: false,
-    deliveryTime: "Instant"
+    id: 'service-zoom-meeting',
+    name: 'Zoom Meeting',
+    description: 'Zoom Meeting subscription',
+    price: 14.99,
+    wholesalePrice: 11.99,
+    type: 'subscription',
+    image: '/images/zoom-meeting.png',
+    categoryId: 'communication',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Host meetings with up to 100 participants',
+      'Unlimited meeting duration',
+      'Screen sharing',
+    ]
   },
   {
-    id: "s15",
-    name: "YouTube Premium",
-    description: "Ad-free access to YouTube videos and music.",
+    id: 'service-slack-workspace',
+    name: 'Slack Workspace',
+    description: 'Slack Workspace subscription',
+    price: 7.99,
+    wholesalePrice: 5.99,
+    type: 'subscription',
+    image: '/images/slack-workspace.png',
+    categoryId: 'communication',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Unlimited channels',
+      'Unlimited message history',
+      'Guest access',
+    ]
+  },
+  {
+    id: 'service-google-one',
+    name: 'Google One',
+    description: 'Google One subscription',
+    price: 1.99,
+    wholesalePrice: 1.49,
+    type: 'subscription',
+    image: '/images/google-one.png',
+    categoryId: 'productivity',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      '100GB cloud storage',
+      'Google Photos storage',
+      'Premium support',
+    ]
+  },
+  {
+    id: 'service-youtube-premium',
+    name: 'YouTube Premium',
+    description: 'YouTube Premium subscription',
     price: 11.99,
     wholesalePrice: 9.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/youtubepremium.jpg",
-    categoryId: "streaming",
-    category: "Streaming Services",
-    featured: false,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
+    type: 'subscription',
+    image: '/images/youtube-premium.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Ad-free videos',
+      'Background playback',
+      'YouTube Music Premium',
+    ]
   },
   {
-    id: "s16",
-    name: "Twitch Bits",
-    description: "Support your favorite streamers with Twitch Bits.",
-    price: 5.00,
-    wholesalePrice: 4.00,
-    type: "recharge" as ServiceType,
-    image: "https://example.com/twitchbits.jpg",
-    categoryId: "social",
-    category: "Social Media",
-    featured: false,
-    deliveryTime: "Instant"
+    id: 'service-hulu',
+    name: 'Hulu',
+    description: 'Hulu subscription',
+    price: 7.99,
+    wholesalePrice: 6.49,
+    type: 'subscription',
+    image: '/images/hulu.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Access to Hulu library',
+      'Original series',
+      'Live TV',
+    ]
   },
   {
-    id: "s17",
-    name: "Uber Gift Card",
-    description: "Digital gift card for Uber rides and Uber Eats.",
-    price: 25.00,
-    wholesalePrice: 22.00,
-    type: "giftcard" as ServiceType,
-    image: "https://example.com/ubergiftcard.jpg",
-    categoryId: "giftcard",
-    category: "Gift Cards",
-    featured: false,
-    deliveryTime: "Instant"
+    id: 'service-twitch-turbo',
+    name: 'Twitch Turbo',
+    description: 'Twitch Turbo subscription',
+    price: 8.99,
+    wholesalePrice: 7.49,
+    type: 'subscription',
+    image: '/images/twitch-turbo.png',
+    categoryId: 'gaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Ad-free viewing',
+      'Custom emotes',
+      'Extended broadcast storage',
+    ]
   },
   {
-    id: "s18",
-    name: "Lyft Gift Card",
-    description: "Digital gift card for Lyft rides.",
-    price: 20.00,
-    wholesalePrice: 18.00,
-    type: "giftcard" as ServiceType,
-    image: "https://example.com/lyftgiftcard.jpg",
-    categoryId: "giftcard",
-    category: "Gift Cards",
-    featured: false,
-    deliveryTime: "Instant"
+    id: 'service-playstation-plus',
+    name: 'PlayStation Plus',
+    description: 'PlayStation Plus subscription',
+    price: 9.99,
+    wholesalePrice: 8.49,
+    type: 'subscription',
+    image: '/images/playstation-plus.png',
+    categoryId: 'gaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Online multiplayer',
+      'Free games each month',
+      'Exclusive discounts',
+    ]
   },
   {
-    id: "s19",
-    name: "Surfshark VPN",
-    description: "Secure your online activity with Surfshark VPN.",
-    price: 2.49,
-    wholesalePrice: 1.99,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/surfsharkvpn.jpg",
-    categoryId: "vpn",
-    category: "VPN Services",
-    featured: false,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
+    id: 'service-xbox-game-pass',
+    name: 'Xbox Game Pass',
+    description: 'Xbox Game Pass subscription',
+    price: 9.99,
+    wholesalePrice: 8.49,
+    type: 'subscription',
+    image: '/images/xbox-game-pass.png',
+    categoryId: 'gaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Access to hundreds of games',
+      'Exclusive discounts',
+      'Day one releases',
+    ]
   },
   {
-    id: "s20",
-    name: "CyberGhost VPN",
-    description: "Protect your privacy with CyberGhost VPN.",
-    price: 2.29,
-    wholesalePrice: 1.79,
-    type: "subscription" as ServiceType,
-    image: "https://example.com/cyberghostvpn.jpg",
-    categoryId: "vpn",
-    category: "VPN Services",
-    featured: false,
-    deliveryTime: "Instant",
-    availableMonths: [1, 3, 6, 12]
-  }
-];
-
-export const mockCustomers = [
-  {
-    id: "cust-1",
-    name: "Alice Johnson",
-    email: "alice.johnson@example.com",
-    phone: "+15551234567"
+    id: 'service-discord-nitro',
+    name: 'Discord Nitro',
+    description: 'Discord Nitro subscription',
+    price: 9.99,
+    wholesalePrice: 8.49,
+    type: 'subscription',
+    image: '/images/discord-nitro.png',
+    categoryId: 'communication',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Animated avatar',
+      'Custom tags',
+      'Increased upload limit',
+    ]
   },
   {
-    id: "cust-2",
-    name: "Bob Smith",
-    email: "bob.smith@example.com",
-    phone: "+15559876543"
+    id: 'service-linkedin-premium',
+    name: 'LinkedIn Premium',
+    description: 'LinkedIn Premium subscription',
+    price: 29.99,
+    wholesalePrice: 24.99,
+    type: 'subscription',
+    image: '/images/linkedin-premium.png',
+    categoryId: 'communication',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Unlimited profile views',
+      'InMail messages',
+      'Online video courses',
+    ]
   },
   {
-    id: "cust-3",
-    name: "Charlie Brown",
-    email: "charlie.brown@example.com",
-    phone: "+15554567890"
-  }
-];
-
-export const mockSupportTickets = [
-  {
-    id: "ticket-1",
-    userId: "user-1",
-    subject: "Login Issue",
-    description: "I can't log in to my account.",
-    status: "open",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    id: 'service-skillshare',
+    name: 'Skillshare',
+    description: 'Skillshare subscription',
+    price: 19.00,
+    wholesalePrice: 15.00,
+    type: 'subscription',
+    image: '/images/skillshare.png',
+    categoryId: 'productivity',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Access to thousands of classes',
+      'Offline access',
+      'Creative community',
+    ]
   },
   {
-    id: "ticket-2",
-    userId: "user-2",
-    subject: "Payment Failed",
-    description: "My payment failed during checkout.",
-    status: "in-progress",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    id: 'service-canva-pro',
+    name: 'Canva Pro',
+    description: 'Canva Pro subscription',
+    price: 12.99,
+    wholesalePrice: 10.99,
+    type: 'subscription',
+    image: '/images/canva-pro.png',
+    categoryId: 'productivity',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Unlimited storage',
+      'Premium templates',
+      'Brand kit',
+    ]
   },
   {
-    id: "ticket-3",
-    userId: "user-3",
-    subject: "Subscription Issue",
-    description: "My subscription is not active.",
-    status: "resolved",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
-
-export const mockTicketResponses = [
-  {
-    id: "response-1",
-    ticketId: "ticket-1",
-    userId: "admin-1",
-    message: "We are looking into your login issue.",
-    createdAt: new Date().toISOString(),
-    isStaff: true,
-    sentBy: "admin"
+    id: 'service-duolingo-plus',
+    name: 'Duolingo Plus',
+    description: 'Duolingo Plus subscription',
+    price: 6.99,
+    wholesalePrice: 5.49,
+    type: 'subscription',
+    image: '/images/duolingo-plus.png',
+    categoryId: 'other',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Ad-free learning',
+      'Offline access',
+      'Progress quiz',
+    ]
   },
   {
-    id: "response-2",
-    ticketId: "ticket-2",
-    userId: "admin-2",
-    message: "Please check your payment details and try again.",
-    createdAt: new Date().toISOString(),
-    isStaff: true,
-    sentBy: "admin"
+    id: 'service-headspace',
+    name: 'Headspace',
+    description: 'Headspace subscription',
+    price: 12.99,
+    wholesalePrice: 10.99,
+    type: 'subscription',
+    image: '/images/headspace.png',
+    categoryId: 'other',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Meditation courses',
+      'Sleep sounds',
+      'Mindfulness exercises',
+    ]
   },
   {
-    id: "response-3",
-    ticketId: "ticket-3",
-    userId: "admin-3",
-    message: "Your subscription is now active.",
-    createdAt: new Date().toISOString(),
-    isStaff: true,
-    sentBy: "admin"
-  }
-];
-
-export const mockSimpleCustomers = [
-  {
-    id: "simple-cust-1",
-    name: "Alice Johnson",
-    email: "alice.johnson@example.com",
-    phone: "+15551234567"
+    id: 'service-masterclass',
+    name: 'Masterclass',
+    description: 'Masterclass subscription',
+    price: 15.00,
+    wholesalePrice: 12.00,
+    type: 'subscription',
+    image: '/images/masterclass.png',
+    categoryId: 'other',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Access to hundreds of classes',
+      'Learn from the best',
+      'Exclusive content',
+    ]
   },
   {
-    id: "simple-cust-2",
-    name: "Bob Smith",
-    email: "bob.smith@example.com",
-    phone: "+15559876543"
-  }
-];
-
-export const mockAdminNotifications: AdminNotification[] = [
-  {
-    id: "admin-notif-1",
-    type: "profile_fix",
-    customerName: "Alice Johnson",
-    serviceName: "Netflix Premium",
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: "sub-1"
+    id: 'service-crunchyroll',
+    name: 'Crunchyroll',
+    description: 'Crunchyroll subscription',
+    price: 7.99,
+    wholesalePrice: 6.49,
+    type: 'subscription',
+    image: '/images/crunchyroll.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Ad-free anime',
+      'New episodes shortly after Japan',
+      'Access to manga',
+    ]
   },
   {
-    id: "admin-notif-2",
-    type: "payment_issue",
-    customerName: "Bob Smith",
-    serviceName: "Spotify Premium",
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: "sub-2"
+    id: 'service-paramount-plus',
+    name: 'Paramount+',
+    description: 'Paramount+ subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/paramount-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Live sports',
+      'Movies',
+    ]
   },
   {
-    id: "admin-notif-3",
-    type: "password_reset",
-    customerName: "Charlie Brown",
-    serviceName: "Xbox Game Pass",
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: "sub-3"
+    id: 'service-peacock-premium',
+    name: 'Peacock Premium',
+    description: 'Peacock Premium subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/peacock-premium.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Live sports',
+      'Movies',
+    ]
   },
   {
-    id: "admin-notif-4",
-    type: "new_order",
-    customerName: "David Lee",
-    serviceName: "PlayStation Plus",
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: "sub-4"
+    id: 'service-discovery-plus',
+    name: 'Discovery+',
+    description: 'Discovery+ subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/discovery-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Exclusive content',
+      'Reality TV',
+    ]
   },
   {
-    id: "admin-notif-5",
-    type: "payment_request",
-    customerName: "Eve White",
-    serviceName: "Facebook Ads Credit",
-    amount: 25.00,
-    paymentMethod: "Credit Card",
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: "sub-5"
+    id: 'service-starz',
+    name: 'Starz',
+    description: 'Starz subscription',
+    price: 8.99,
+    wholesalePrice: 7.49,
+    type: 'subscription',
+    image: '/images/starz.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
   },
   {
-    id: "admin-notif-6",
-    type: "profile_fix",
-    customerName: "Frank Green",
-    serviceName: "Instagram Followers",
-    createdAt: new Date().toISOString(),
-    read: false,
-    subscriptionId: "sub-6"
-  }
-];
-
-export const mockCustomerNotifications: CustomerNotification[] = [
-  {
-    id: "cust-notif-1",
-    userId: "user-1",
-    type: "profile_fixed",
-    message: "Your profile has been fixed.",
-    createdAt: new Date().toISOString(),
-    read: false
+    id: 'service-showtime',
+    name: 'Showtime',
+    description: 'Showtime subscription',
+    price: 10.99,
+    wholesalePrice: 8.99,
+    type: 'subscription',
+    image: '/images/showtime.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
   },
   {
-    id: "cust-notif-2",
-    userId: "user-2",
-    type: "payment_resolved",
-    message: "Your payment issue has been resolved.",
-    createdAt: new Date().toISOString(),
-    read: false
+    id: 'service-epix',
+    name: 'Epix',
+    description: 'Epix subscription',
+    price: 5.99,
+    wholesalePrice: 4.99,
+    type: 'subscription',
+    image: '/images/epix.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
   },
   {
-    id: "cust-notif-3",
-    userId: "user-3",
-    type: "password_reset",
-    message: "Your password has been reset.",
-    createdAt: new Date().toISOString(),
-    read: false
-  }
-];
+    id: 'service-fubo-tv',
+    name: 'Fubo TV',
+    description: 'Fubo TV subscription',
+    price: 64.99,
+    wholesalePrice: 54.99,
+    type: 'subscription',
+    image: '/images/fubo-tv.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Live sports',
+      'News',
+      'Entertainment',
+    ]
+  },
+  {
+    id: 'service-sling-tv',
+    name: 'Sling TV',
+    description: 'Sling TV subscription',
+    price: 35.00,
+    wholesalePrice: 29.00,
+    type: 'subscription',
+    image: '/images/sling-tv.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Live TV',
+      'News',
+      'Entertainment',
+    ]
+  },
+  {
+    id: 'service-directv-stream',
+    name: 'DirecTV Stream',
+    description: 'DirecTV Stream subscription',
+    price: 69.99,
+    wholesalePrice: 59.99,
+    type: 'subscription',
+    image: '/images/directv-stream.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Live TV',
+      'News',
+      'Entertainment',
+    ]
+  },
+  {
+    id: 'service-hbo-max',
+    name: 'HBO Max',
+    description: 'HBO Max subscription',
+    price: 14.99,
+    wholesalePrice: 12.99,
+    type: 'subscription',
+    image: '/images/hbo-max.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-apple-tv-plus',
+    name: 'Apple TV+',
+    description: 'Apple TV+ subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/apple-tv-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-britbox',
+    name: 'BritBox',
+    description: 'BritBox subscription',
+    price: 6.99,
+    wholesalePrice: 5.49,
+    type: 'subscription',
+    image: '/images/britbox.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'British TV',
+      'Original series',
+      'Movies',
+    ]
+  },
+  {
+    id: 'service-acorn-tv',
+    name: 'Acorn TV',
+    description: 'Acorn TV subscription',
+    price: 5.99,
+    wholesalePrice: 4.99,
+    type: 'subscription',
+    image: '/images/acorn-tv.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'British TV',
+      'Original series',
+      'Movies',
+    ]
+  },
+  {
+    id: 'service-criterion-channel',
+    name: 'Criterion Channel',
+    description: 'Criterion Channel subscription',
+    price: 10.99,
+    wholesalePrice: 8.99,
+    type: 'subscription',
+    image: '/images/criterion-channel.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Classic movies',
+      'Independent films',
+      'Foreign films',
+    ]
+  },
+  {
+    id: 'service-mubi',
+    name: 'Mubi',
+    description: 'Mubi subscription',
+    price: 10.99,
+    wholesalePrice: 8.99,
+    type: 'subscription',
+    image: '/images/mubi.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Curated films',
+      'Independent films',
+      'Foreign films',
+    ]
+  },
+  {
+    id: 'service-kanopy',
+    name: 'Kanopy',
+    description: 'Kanopy subscription',
+    price: 0.00,
+    wholesalePrice: 0.00,
+    type: 'subscription',
+    image: '/images/kanopy.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Free movies',
+      'Documentaries',
+      'Educational films',
+    ]
+  },
+  {
+    id: 'service-criterion-channel',
+    name: 'The Criterion Channel',
+    description: 'The Criterion Channel subscription',
+    price: 10.99,
+    wholesalePrice: 8.99,
+    type: 'subscription',
+    image: '/images/criterion-channel.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Classic and contemporary films',
+      'Director interviews',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-shudder',
+    name: 'Shudder',
+    description: 'Shudder subscription',
+    price: 5.99,
+    wholesalePrice: 4.99,
+    type: 'subscription',
+    image: '/images/shudder.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Horror movies',
+      'Thrillers',
+      'Suspense',
+    ]
+  },
+  {
+    id: 'service-amc-plus',
+    name: 'AMC+',
+    description: 'AMC+ subscription',
+    price: 8.99,
+    wholesalePrice: 7.49,
+    type: 'subscription',
+    image: '/images/amc-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-curiosity-stream',
+    name: 'Curiosity Stream',
+    description: 'Curiosity Stream subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/curiosity-stream.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Documentaries',
+      'Science',
+      'History',
+    ]
+  },
+  {
+    id: 'service-discovery-plus',
+    name: 'Discovery+',
+    description: 'Discovery+ subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/discovery-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Reality TV',
+      'True crime',
+      'Home improvement',
+    ]
+  },
+  {
+    id: 'service-hbo-max',
+    name: 'HBO Max',
+    description: 'HBO Max subscription',
+    price: 14.99,
+    wholesalePrice: 12.99,
+    type: 'subscription',
+    image: '/images/hbo-max.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-disney-plus',
+    name: 'Disney+',
+    description: 'Disney+ subscription',
+    price: 7.99,
+    wholesalePrice: 6.49,
+    type: 'subscription',
+    image: '/images/disney-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-netflix',
+    name: 'Netflix',
+    description: 'Netflix subscription',
+    price: 8.99,
+    wholesalePrice: 7.49,
+    type: 'subscription',
+    image: '/images/netflix.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-hulu',
+    name: 'Hulu',
+    description: 'Hulu subscription',
+    price: 5.99,
+    wholesalePrice: 4.99,
+    type: 'subscription',
+    image: '/images/hulu.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-amazon-prime-video',
+    name: 'Amazon Prime Video',
+    description: 'Amazon Prime Video subscription',
+    price: 8.99,
+    wholesalePrice: 7.49,
+    type: 'subscription',
+    image: '/images/amazon-prime-video.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-paramount-plus',
+    name: 'Paramount+',
+    description: 'Paramount+ subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/paramount-plus.png',
+    categoryId: 'streaming',
+    deliveryTime: 'Instant',
+    availableMonths: [1, 12],
+    features: [
+      'Original series',
+      'Movies',
+      'Exclusive content',
+    ]
+  },
+  {
+    id: 'service-peacock-premium',
+    name: 'Peacock Premium',
+    description: 'Peacock Premium subscription',
+    price: 4.99,
+    wholesalePrice: 3.99,
+    type: 'subscription',
+    image: '/images/peacock-premium.png',
+    categoryId: 'streaming',

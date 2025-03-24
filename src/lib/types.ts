@@ -1,3 +1,4 @@
+
 // Add serviceName to Order type:
 export interface Order {
   id: string;
@@ -28,7 +29,7 @@ export interface Order {
     [key: string]: any;
   };
   credentialStatus?: 'available' | 'pending' | 'assigned';
-  paymentMethod?: string; // Add this for Checkout.tsx
+  paymentMethod?: string;
   notes?: string;
 }
 
@@ -124,6 +125,7 @@ export interface ServiceCategory {
 export interface MonthlyPricing {
   months: number;
   price: number;
+  wholesalePrice?: number;
   savings?: number;
 }
 
@@ -145,6 +147,31 @@ export interface Subscription {
   };
 }
 
+// Add SubscriptionIssue type (missing in original code)
+export interface SubscriptionIssue {
+  id: string;
+  userId: string;
+  subscriptionId: string;
+  type: IssueType;
+  status: IssueStatus;
+  createdAt: string;
+  updatedAt: string;
+  serviceId?: string;
+  description?: string;
+  subject?: string;
+  customerName?: string;
+  serviceName?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    [key: string]: any;
+  };
+  notes?: string;
+}
+
 // Add WholesaleOrder type
 export interface WholesaleOrder {
   id: string;
@@ -156,6 +183,7 @@ export interface WholesaleOrder {
   totalPrice?: number;
   status: string;
   createdAt: string;
+  durationMonths?: number;
   credentials?: {
     username?: string;
     password?: string;
@@ -169,7 +197,6 @@ export interface WholesaleOrder {
   customerAddress?: string;
   customerCompany?: string;
   notes?: string;
-  durationMonths?: number;
   services?: string[];
 }
 
@@ -205,6 +232,20 @@ export interface SimpleCustomer {
   phone?: string;
 }
 
+// Add Customer type (missing in original code)
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  wholesalerId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  address?: string;
+  notes?: string;
+}
+
 // Add AdminNotification type
 export interface AdminNotification {
   id: string;
@@ -233,9 +274,28 @@ export interface CustomerNotification {
   userId?: string;
   paymentId?: string;
   amount?: number;
+  serviceName?: string;
+}
+
+// Add Payment and PaymentStatus types (missing in original code)
+export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'refunded';
+
+export interface Payment {
+  id: string;
+  userId: string;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: string;
+  method: string;
+  description?: string;
+  notes?: string;
+  userName?: string;
+  userEmail?: string;
+  transactionId?: string;
+  receiptUrl?: string;
+  reviewedAt?: string;
 }
 
 // Add SubscriptionIssue types
 export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue';
-
-
+export type IssueStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';

@@ -4,10 +4,9 @@ import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ServiceCard from '@/components/ServiceCard';
-import { Customer } from '@/lib/data';
-import { Service, ServiceType } from '@/lib/types';
-import { WholesaleOrder } from '@/lib/types';
-import { toast } from '@/lib/toast';
+import { Customer } from '@/lib/types';
+import { Service, ServiceType, WholesaleOrder } from '@/lib/types';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -74,11 +73,11 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
       }
       
       if (showSubscriptionsOnly) {
-        filtered = filtered.filter(service => service.type === "subscription" as ServiceType);
+        filtered = filtered.filter(service => service.type === "subscription");
       } else if (showRechargesOnly) {
-        filtered = filtered.filter(service => service.type === "recharge" as ServiceType || service.type === "topup");
-      } else if (service.type === "service" as ServiceType) {
-        filtered = filtered.filter(service => service.type === "service" as ServiceType);
+        filtered = filtered.filter(service => service.type === "recharge" || service.type === "topup");
+      } else if (services && services.length > 0 && services[0].type === "service") {
+        filtered = filtered.filter(service => service.type === "service");
       }
       
       setFilteredServices(filtered);
@@ -112,9 +111,9 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
     setSearchQuery('');
   };
 
-  const subscriptionsCount = services.filter(s => s.type === "subscription" as ServiceType).length;
-  const rechargesCount = services.filter(s => s.type === "recharge" as ServiceType || s.type === "topup").length;
-  const regularServicesCount = services.filter(s => !s.type || s.type === "service" as ServiceType).length;
+  const subscriptionsCount = services.filter(s => s.type === "subscription").length;
+  const rechargesCount = services.filter(s => s.type === "recharge" || s.type === "topup").length;
+  const regularServicesCount = services.filter(s => !s.type || s.type === "service").length;
 
   return (
     <motion.div

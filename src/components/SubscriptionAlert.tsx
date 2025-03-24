@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Subscription } from '@/lib/types';
 import { format } from 'date-fns';
-import { toast } from '@/lib/toast';
+import { toast } from 'sonner';
 import { getServiceById } from '@/lib/mockData';
 
 interface SubscriptionAlertProps {
