@@ -1,128 +1,99 @@
-
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { useLocation } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "@/components/MainLayout";
-import ServiceFilters from "@/components/services/ServiceFilters";
-import ServiceSearchBar from "@/components/services/ServiceSearchBar";
-import ServicesList from "@/components/services/ServicesList";
-import { serviceCategories } from "@/lib/mockData";
 import { Service } from "@/lib/types";
-import { loadServices, initProductManager, PRODUCT_EVENTS } from "@/lib/productManager";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { ServiceCard } from "@/components/services/ServiceCard";
+import { useSubscription } from "@/hooks/useSubscription";
 
-const Services: React.FC = () => {
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const categoryParam = queryParams.get("category");
-  
+const categories = [
+  { id: "streaming", name: "Streaming Services", description: "Enjoy your favorite movies and TV shows.", icon: "tv" },
+  { id: "gaming", name: "Gaming Credits", description: "Top up your gaming accounts.", icon: "gamepad" },
+  { id: "social", name: "Social Media", description: "Boost your social media presence.", icon: "users" },
+  { id: "recharge", name: "Recharge Services", description: "Recharge your mobile and other services.", icon: "phone" },
+  { id: "giftcard", name: "Gift Cards", description: "Send gift cards to your loved ones.", icon: "gift" },
+  { id: "vpn", name: "VPN Services", description: "Secure your internet connection.", icon: "lock" },
+  { id: "other", name: "Other Services", description: "Explore a variety of other services.", icon: "box" }
+];
+
+const ServicesPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { subscription, isLoading } = useSubscription();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
-  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  
-  // Initialize product manager and load services
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+
   useEffect(() => {
-    initProductManager();
-    const loadedServices = loadServices();
-    setServices(loadedServices);
-    
-    // Listen for service updates
-    const handleServiceUpdated = () => {
-      console.log("Services updated, refreshing services list");
-      setServices(loadServices());
-    };
-    
-    window.addEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
-    window.addEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
-    window.addEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
-    
-    return () => {
-      window.removeEventListener(PRODUCT_EVENTS.SERVICE_UPDATED, handleServiceUpdated);
-      window.removeEventListener(PRODUCT_EVENTS.SERVICE_ADDED, handleServiceUpdated);
-      window.removeEventListener(PRODUCT_EVENTS.SERVICE_DELETED, handleServiceUpdated);
-    };
+    const storedServices = localStorage.getItem('services');
+    const parsedServices = storedServices ? JSON.parse(storedServices) : [];
+    setServices(parsedServices);
+    setFilteredServices(parsedServices);
   }, []);
-  
-  // Get services by category helper function
-  const getServicesByCategory = (category: string) => {
-    return services.filter(service => 
-      service.category?.toLowerCase() === category.toLowerCase() || 
-      service.categoryId?.toLowerCase() === category.toLowerCase()
-    );
-  };
-  
+
   useEffect(() => {
-    let result = services;
-    
-    // Filter by category
-    if (selectedCategory) {
-      result = getServicesByCategory(selectedCategory);
-    }
-    
-    // Filter by search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(service => 
-        service.name.toLowerCase().includes(query) || 
-        (service.description?.toLowerCase().includes(query) || false)
+      const results = services.filter(service =>
+        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
+      setFilteredServices(results);
+    } else {
+      setFilteredServices(services);
     }
-    
-    setFilteredServices(result);
-  }, [selectedCategory, searchQuery, services]);
-  
+  }, [searchQuery, services]);
+
+  const handleCategoryClick = (categoryId: string) => {
+    navigate(`/services/${categoryId}`);
+  };
+
   return (
     <MainLayout>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="space-y-8 pb-32" // Increased padding-bottom from pb-16 to pb-32
+        className="container py-8"
       >
-        {/* Header */}
-        <div className="flex flex-col space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Browse Services
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Discover our wide range of digital services tailored to your needs.
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Our Services</h1>
+          <p className="text-muted-foreground">
+            Explore our wide range of services designed to meet your needs.
           </p>
         </div>
-        
-        {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Filters - Desktop */}
-          <ServiceFilters 
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            serviceCategories={serviceCategories}
+
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search for services..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          
-          {/* Services Grid */}
-          <div className="md:col-span-3 space-y-6">
-            {/* Search */}
-            <ServiceSearchBar 
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              serviceCategories={serviceCategories}
-            />
-            
-            {/* Services List */}
-            <ServicesList 
-              filteredServices={filteredServices}
-              serviceCategories={serviceCategories}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-            />
-          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredServices.map(service => {
+            const categoryId = service.categoryId || "";
+            return (
+              <ServiceCard
+                key={`service-${service.id}`}
+                service={service}
+              />
+            );
+          })}
         </div>
       </motion.div>
     </MainLayout>
   );
 };
 
-export default Services;
+export default ServicesPage;

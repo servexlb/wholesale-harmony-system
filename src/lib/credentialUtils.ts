@@ -2,7 +2,6 @@
 import { CredentialStock, Credential, Order } from './types';
 
 // Functions to manage credential stock
-
 // Helper function to get all credentials from localStorage
 export const getAllCredentialStock = (): CredentialStock[] => {
   try {
@@ -159,3 +158,4 @@ export const fulfillOrderWithCredentials = (order: Order): Order => {
     return order;
   }
 };
+

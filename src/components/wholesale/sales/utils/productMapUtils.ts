@@ -1,4 +1,3 @@
-
 import { Service, Product } from '@/lib/types';
 import { loadServices, loadProducts } from '@/lib/productManager';
 import { services as mockServices } from '@/lib/mockData';
@@ -17,7 +16,7 @@ export const createServiceMap = () => {
   if (servicesToUse && Array.isArray(servicesToUse)) {
     servicesToUse.forEach(service => {
       // Make sure we have a valid category value
-      const category = service.category || service.categoryId || 'Uncategorized';
+      const category = service.category || service.categoryId || "Other";
       
       serviceMap.set(service.id, {
         id: service.id,
@@ -75,7 +74,7 @@ export const getAllServices = (): Service[] => {
   // If no services from product manager, fall back to mockData
   const servicesWithCategory = (services.length > 0 ? services : mockServices).map(service => ({
     ...service,
-    category: service.category || service.categoryId || 'Uncategorized'
+    category: service.category || service.categoryId || "Other"
   }));
   
   return servicesWithCategory;

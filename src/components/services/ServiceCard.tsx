@@ -1,34 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Service, ServiceType } from '@/lib/types';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Service, ServiceType } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils";
+import { PurchaseDialog } from "@/components/PurchaseDialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { 
-  Clock, 
   Calendar, 
-  Wallet, 
+  Clock, 
   Tag, 
-  RotateCw, 
-  Zap, 
-  Gift,
-  Loader2
-} from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+  Wallet,
+  Loader2,
+  RotateCw,
+  Zap,
+  Gift
+} from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { fulfillOrderWithCredentials, checkCredentialAvailability } from '@/lib/credentialUtils';
-import PurchaseSuccessDialog from '@/components/PurchaseSuccessDialog';
+} from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { PurchaseSuccessDialog } from "@/components/PurchaseSuccessDialog";
+import { checkCredentialAvailability, fulfillOrderWithCredentials } from "@/lib/credentialUtils";
 
 interface ServiceCardProps {
   service: Service;
@@ -42,7 +39,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onAddToCart }) => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAvailableCredentials, setHasAvailableCredentials] = useState(false);
-  
+  const { user } = useAuth();
+
   useEffect(() => {
     const checkAvailability = async () => {
       if (service.type === 'subscription') {
@@ -128,7 +126,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onAddToCart }) => {
         )}
       </CardContent>
       <CardFooter className="flex items-center justify-between p-4 bg-gray-50">
-        <div className="text-lg font-bold">${service.price.toFixed(2)}</div>
+        <div className="text-lg font-bold">${formatCurrency(service.price)}</div>
         <div>
           {service.type === 'subscription' ? (
             <div className="flex items-center space-x-2">

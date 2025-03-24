@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { Calendar, Zap, Package } from 'lucide-react';
 import { Service, ServiceType } from '@/lib/types';
 
 interface ProductSearchProps {
-  products: Service[]; // Changed from Product to Service
+  products: Service[];
   selectedProductId: string;
   onProductSelect: (productId: string) => void;
 }
@@ -22,7 +21,6 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   const [activeTab, setActiveTab] = useState('all');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
 
-  // Filter products based on search query and active tab
   const filteredProducts = useMemo(() => {
     if (!products || products.length === 0) return [];
     
@@ -33,18 +31,16 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
         
       if (activeTab === 'all') return matchesSearch;
       if (activeTab === 'subscription') return matchesSearch && product.type === 'subscription';
-      if (activeTab === 'recharge') return matchesSearch && (product.type === 'recharge' || product.type === 'topup');
-      if (activeTab === 'giftcard') return matchesSearch && (product.type === 'giftcard' || !product.type);
+      if (activeTab === 'recharge') return matchesSearch && (product.type === 'recharge' as ServiceType || product.type === 'topup');
+      if (activeTab === 'giftcard') return matchesSearch && (product.type === 'giftcard' as ServiceType || !product.type);
       
       return matchesSearch;
     });
   }, [products, productSearch, activeTab]);
 
-  // Group products by category
   const productsByCategory = useMemo(() => {
     const categorizedProducts = {} as Record<string, Service[]>;
     
-    // First pass: collect all unique categories
     filteredProducts.forEach(product => {
       const category = product.categoryId || 'Uncategorized';
       if (!categorizedProducts[category]) {
@@ -53,9 +49,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
       categorizedProducts[category].push(product);
     });
     
-    // Make sure we have at least one product in each category
     if (Object.keys(categorizedProducts).length === 0 && products.length > 0) {
-      // If filtering resulted in no products, show all products under 'All Products' category
       return { 'All Products': products };
     }
     
@@ -64,7 +58,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
 
   const renderProductIcon = useCallback((type?: ServiceType) => {
     if (type === 'subscription') return <Calendar className="h-4 w-4 text-blue-500" />;
-    if (type === 'recharge' || type === 'topup') return <Zap className="h-4 w-4 text-amber-500" />;
+    if (type === 'recharge' as ServiceType || type === 'topup') return <Zap className="h-4 w-4 text-amber-500" />;
     return <Package className="h-4 w-4 text-green-500" />;
   }, []);
 
@@ -88,7 +82,6 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
   }, []);
 
   const handleBlur = useCallback(() => {
-    // Delay hiding the command to allow for product selection
     setTimeout(() => {
       setIsCommandOpen(false);
     }, 200);

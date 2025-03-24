@@ -21,7 +21,7 @@ export const serviceToProduct = (service: Service): Product => {
     wholesalePrice: service.wholesalePrice,
     image: service.image,
     category: service.category || service.categoryId || 'Uncategorized',
-    categoryId: service.categoryId,
+    categoryId: service.categoryId || service.category?.toLowerCase().replace(/\s+/g, '-') || 'uncategorized',
     featured: service.featured,
     type: service.type,
     value: service.value,
@@ -30,9 +30,9 @@ export const serviceToProduct = (service: Service): Product => {
     apiUrl: service.apiUrl,
     minQuantity: service.minQuantity,
     requiresId: service.requiresId,
-    monthlyPricing: service.monthlyPricing,
-    features: service.features,
-    availableForCustomers: service.availableForCustomers
+    monthlyPricing: service.monthlyPricing || [],
+    features: service.features || [],
+    availableForCustomers: service.availableForCustomers !== undefined ? service.availableForCustomers : true
   };
 };
 
@@ -55,8 +55,8 @@ export const productToService = (product: Product): Service => {
     minQuantity: product.minQuantity,
     requiresId: product.requiresId,
     value: product.value,
-    monthlyPricing: product.monthlyPricing,
-    features: product.features,
+    monthlyPricing: product.monthlyPricing || [],
+    features: product.features || [],
     availableForCustomers: product.availableForCustomers
   };
 };
@@ -221,7 +221,7 @@ export const getMonthlyPrice = (
   months: number, 
   isWholesale: boolean = false
 ): number => {
-  if (!product.monthlyPricing || product.monthlyPricing.length === 0) {
+  if (!product.monthlyPricing || (product.monthlyPricing as MonthlyPricing[]).length === 0) {
     // If no monthly pricing, use the base price * months
     return isWholesale 
       ? (product.wholesalePrice || 0) * months
@@ -229,7 +229,7 @@ export const getMonthlyPrice = (
   }
   
   // Find the exact match for the months
-  const exactMatch = product.monthlyPricing.find(p => p.months === months);
+  const exactMatch = (product.monthlyPricing as MonthlyPricing[]).find(p => p.months === months);
   if (exactMatch) {
     return isWholesale ? exactMatch.wholesalePrice : exactMatch.price;
   }

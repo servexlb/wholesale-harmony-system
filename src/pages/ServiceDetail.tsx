@@ -59,8 +59,8 @@ const ServiceDetail = () => {
   }, [id]);
 
   const isSubscription = service?.type === "subscription";
-  const isRecharge = service?.type === "recharge";
-  const isGiftCard = service?.type === "giftcard" || service?.type === "service";
+  const isRecharge = service?.type === "recharge" as ServiceType;
+  const isGiftCard = service?.type === "giftcard" as ServiceType || service?.type === "service" as ServiceType;
 
   const shouldUseMonths = isSubscription || 
     (category?.name.toLowerCase().includes('streaming') || 
@@ -251,20 +251,24 @@ const ServiceDetail = () => {
               
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Features & Benefits</h3>
-                <ul className="space-y-2">
-                  {service.features && service.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                  {!service.features && (
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                      <span>Premium quality service</span>
-                    </li>
-                  )}
-                </ul>
+                {service.features && service.features.length > 0 ? (
+                  <ul className="space-y-2">
+                    {service.features?.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                    {!service.features && (
+                      <li className="flex items-start">
+                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
+                        <span>Premium quality service</span>
+                      </li>
+                    )}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">No features available</p>
+                )}
               </div>
             </div>
           </div>

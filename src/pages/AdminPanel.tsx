@@ -24,7 +24,7 @@ import { toast } from "@/lib/toast";
 // Import the AdminDashboard component
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminServices from "@/components/admin/AdminServices";
-import AdminOrders from "@/components/admin/AdminOrders";
+import { AdminOrders } from "@/components/admin/AdminOrders";
 import AdminCustomization from "@/components/admin/AdminCustomization";
 
 const AdminPanel: React.FC = () => {

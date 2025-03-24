@@ -1,15 +1,82 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Order } from "@/lib/types";
+import { format } from "date-fns";
 
-// Fix for the toString error in AdminOrders.tsx
-// You would need to find the specific line that's causing the error and ensure that
-// whatever value you're trying to call toString() on is not null or undefined.
+const AdminOrders: React.FC = () => {
+  const [orders, setOrders] = useState<Order[]>([]);
 
-// For example, if the line is something like:
-// <div>{order.products[0].price.toString()}</div>
+  useEffect(() => {
+    // Fetch orders from localStorage
+    const storedOrders = localStorage.getItem('orders');
+    const parsedOrders = storedOrders ? JSON.parse(storedOrders) : [];
+    
+    // Process orders to ensure all products have a name property
+    const processedOrders = processOrders(parsedOrders);
+    
+    setOrders(processedOrders);
+  }, []);
 
-// Change it to:
-// <div>{order.products[0]?.price?.toString() || '0'}</div>
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="space-y-1">
+          <CardTitle>Orders</CardTitle>
+          <CardDescription>
+            A list of all orders placed by customers.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order ID</TableHead>
+              <TableHead>Customer ID</TableHead>
+              <TableHead>Products</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created At</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell>{order.id}</TableCell>
+                <TableCell>{order.customerId}</TableCell>
+                <TableCell>
+                  {order.products.map((product, index) => (
+                    <div key={index}>
+                      {product.name}: {product.quantity} x ${product.price}
+                    </div>
+                  ))}
+                </TableCell>
+                <TableCell>${order.total.toFixed(2)}</TableCell>
+                <TableCell>{order.status}</TableCell>
+                <TableCell>{format(new Date(order.createdAt), 'PPP')}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+};
 
-// We'll provide a more general fix by ensuring all products have name property:
 export const processOrders = (orders: any[]) => {
   return orders.map(order => {
     // Ensure all products have a name property
@@ -28,3 +95,5 @@ export const processOrders = (orders: any[]) => {
     return order;
   });
 };
+
+export { AdminOrders };

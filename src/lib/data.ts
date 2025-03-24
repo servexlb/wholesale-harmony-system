@@ -312,7 +312,7 @@ export const createSubscriptionIssue = (issueData: {
     customerName: issueData.customerName,
     serviceName: issueData.serviceName,
     type: issueData.type,
-    status: "pending",
+    status: "pending" as IssueStatus,
     createdAt: new Date().toISOString(),
     credentials: issueData.credentials
   };
@@ -412,7 +412,7 @@ export const fixSubscriptionProfile = (subscriptionId: string, userId: string, c
     userId,
     customerName,
     serviceName,
-    type: "profile_fix",
+    type: "profile_fix" as IssueType,
     credentials: subscription?.credentials
   });
 };
@@ -424,7 +424,7 @@ export const reportPaymentIssue = (subscriptionId: string, userId: string, custo
     userId,
     customerName,
     serviceName,
-    type: "payment_issue",
+    type: "payment_issue" as IssueType,
     credentials: subscription?.credentials
   });
 };

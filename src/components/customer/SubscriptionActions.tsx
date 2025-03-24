@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserCog, CreditCard, KeyRound } from 'lucide-react';
@@ -46,7 +45,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         userId: customerId,
         customerName: customer.name,
         serviceName: product.name,
-        type: "profile_fix",
+        type: "profile_fix" as IssueType,
         credentials: subscription?.credentials
       });
       
@@ -82,7 +81,7 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({
         userId: customerId,
         customerName: customer.name,
         serviceName: product.name,
-        type: "payment_issue",
+        type: "payment_issue" as IssueType,
         credentials: subscription?.credentials
       });
       

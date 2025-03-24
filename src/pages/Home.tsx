@@ -280,7 +280,7 @@ const Home: React.FC = () => {
                   <Card className="bg-card h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                     <CardContent className="p-6 flex flex-col h-full">
                       <div className="bg-primary/10 rounded-full p-3 w-12 h-12 flex items-center justify-center mb-4">
-                        {renderCategoryIcon(category.icon)}
+                        {renderCategoryIcon(category.icon || "box")}
                       </div>
                       <h3 className="text-xl font-semibold mb-2">
                         {category.name}

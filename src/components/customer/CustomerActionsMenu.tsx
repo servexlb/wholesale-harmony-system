@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MoreHorizontal, PlusCircle, CreditCard, PackageOpen, Edit, Trash } from 'lucide-react';
 import { toast } from '@/lib/toast';
@@ -70,7 +69,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
       try {
         const products = loadServices();
         const productsForCustomers = products.filter(product => 
-          product.availableForCustomers === true
+          product.availableForCustomers !== false
         );
         setAvailableProducts(productsForCustomers);
       } catch (error) {
@@ -97,7 +96,7 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
     searchTerm === "" || 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
+    (product.categoryId && product.categoryId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
   // Grouped products by type

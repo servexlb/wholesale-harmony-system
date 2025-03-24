@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag, Search, Filter, X, Info } from 'lucide-react';
@@ -75,9 +74,11 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
       }
       
       if (showSubscriptionsOnly) {
-        filtered = filtered.filter(service => service.type === 'subscription');
+        filtered = filtered.filter(service => service.type === "subscription" as ServiceType);
       } else if (showRechargesOnly) {
-        filtered = filtered.filter(service => service.type === 'recharge' || service.type === 'topup');
+        filtered = filtered.filter(service => service.type === "recharge" as ServiceType || service.type === "topup");
+      } else if (service.type === "service" as ServiceType) {
+        filtered = filtered.filter(service => service.type === "service" as ServiceType);
       }
       
       setFilteredServices(filtered);
@@ -111,9 +112,9 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
     setSearchQuery('');
   };
 
-  const subscriptionsCount = services.filter(s => s.type === 'subscription').length;
-  const rechargesCount = services.filter(s => s.type === 'recharge' || s.type === 'topup').length;
-  const regularServicesCount = services.filter(s => !s.type || s.type === 'service').length;
+  const subscriptionsCount = services.filter(s => s.type === "subscription" as ServiceType).length;
+  const rechargesCount = services.filter(s => s.type === "recharge" as ServiceType || s.type === "topup").length;
+  const regularServicesCount = services.filter(s => !s.type || s.type === "service" as ServiceType).length;
 
   return (
     <motion.div

@@ -1,4 +1,3 @@
-
 // Add serviceName to Order type:
 export interface Order {
   id: string;
@@ -30,6 +29,7 @@ export interface Order {
   };
   credentialStatus?: 'available' | 'pending' | 'assigned';
   paymentMethod?: string; // Add this for Checkout.tsx
+  notes?: string;
 }
 
 // Add Credential and CredentialStock types
@@ -65,7 +65,7 @@ export interface User {
 }
 
 // Add Product and Service types
-export type ServiceType = 'subscription' | 'topup' | 'one-time' | 'lifetime';
+export type ServiceType = 'subscription' | 'topup' | 'one-time' | 'lifetime' | 'recharge' | 'giftcard' | 'service';
 
 export interface Service {
   id: string;
@@ -76,6 +76,7 @@ export interface Service {
   type: ServiceType;
   image?: string;
   categoryId?: string;
+  category?: string; // For backward compatibility
   featured?: boolean;
   deliveryTime?: string;
   apiUrl?: string;
@@ -83,6 +84,9 @@ export interface Service {
   value?: number;
   minQuantity?: number;
   requiresId?: boolean;
+  monthlyPricing?: MonthlyPricing[];
+  features?: string[];
+  availableForCustomers?: boolean;
 }
 
 export interface Product {
@@ -102,6 +106,9 @@ export interface Product {
   value?: number;
   minQuantity?: number;
   requiresId?: boolean;
+  monthlyPricing?: MonthlyPricing[];
+  features?: string[];
+  availableForCustomers?: boolean;
 }
 
 // Add ServiceCategory type
@@ -110,6 +117,7 @@ export interface ServiceCategory {
   name: string;
   description?: string;
   order?: number;
+  icon?: string;
 }
 
 // Add MonthlyPricing type
@@ -161,6 +169,8 @@ export interface WholesaleOrder {
   customerAddress?: string;
   customerCompany?: string;
   notes?: string;
+  durationMonths?: number;
+  services?: string[];
 }
 
 // Add SupportTicket type
@@ -184,6 +194,7 @@ export interface TicketResponse {
   message: string;
   createdAt: string;
   isStaff: boolean;
+  sentBy?: string;
 }
 
 // Add SimpleCustomer type
@@ -191,6 +202,7 @@ export interface SimpleCustomer {
   id: string;
   name: string;
   email?: string;
+  phone?: string;
 }
 
 // Add AdminNotification type
@@ -205,6 +217,8 @@ export interface AdminNotification {
   createdAt: string;
   customerId?: string;
   serviceId?: string;
+  subscriptionId?: string;
+  userId?: string;
 }
 
 // Add CustomerNotification type
@@ -216,36 +230,12 @@ export interface CustomerNotification {
   createdAt: string;
   serviceId?: string;
   subscriptionId?: string;
+  userId?: string;
+  paymentId?: string;
+  amount?: number;
 }
 
 // Add SubscriptionIssue types
-export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other';
-export type IssueStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
+export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue';
 
-export interface SubscriptionIssue {
-  id: string;
-  userId: string;
-  subscriptionId: string;
-  type: IssueType;
-  description: string;
-  status: IssueStatus;
-  createdAt: string;
-  updatedAt: string;
-  serviceId?: string;
-  resolution?: string;
-}
 
-// Add Payment types
-export type PaymentStatus = 'pending' | 'completed' | 'cancelled' | 'failed';
-
-export interface Payment {
-  id: string;
-  userId: string;
-  amount: number;
-  status: PaymentStatus;
-  method: string;
-  createdAt: string;
-  completedAt?: string;
-  reference?: string;
-  orderId?: string;
-}

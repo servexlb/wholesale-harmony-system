@@ -1,737 +1,924 @@
-import {
-  User,
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  wholesalePrice: number;
+  image: string;
+  category: string;
+  categoryId?: string;
+  type?: "subscription" | "recharge" | "giftcard" | "service" | "topup";
+  value?: number;
+  deliveryTime?: string;
+  featured?: boolean;
+  availableMonths?: number[];
+  apiUrl?: string;
+  minQuantity?: number;
+  requiresId?: boolean;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  company?: string;
+  notes?: string;
+  wholesalerId?: string;
+  balance: number;
+}
+
+export interface Sale {
+  id: string;
+  customerId: string;
+  date: string;
+  products: {
+    productId: string;
+    quantity: number;
+    priceAtSale: number;
+  }[];
+  total: number;
+  paid: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  customerId: string;
+  productId: string;
+  startDate: string;
+  endDate: string;
+  status: "active" | "expired" | "cancelled";
+  price: number;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+}
+
+import { 
+  AdminNotification, 
+  SubscriptionIssue, 
+  IssueType, 
+  IssueStatus,
+  CustomerNotification,
   ServiceCategory,
-  Service,
-  Subscription,
-  Order,
-  SupportTicket,
-  TicketResponse,
-  SimpleCustomer,
-  AdminNotification,
-} from "./types";
+  ServiceType
+} from '@/lib/types';
 
-// Mock data for users
-export const users: User[] = [
+export const products: Product[] = [
   {
-    id: "user1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "customer",
-    balance: 150,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "user2",
-    name: "Alice Smith",
-    email: "alice.smith@example.com",
-    role: "wholesale",
-    phone: "123-456-7890",
-    balance: 500,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "user3",
-    name: "Bob Johnson",
-    email: "bob.johnson@example.com",
-    role: "admin",
-    balance: 9000,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "user4",
-    name: "Emily White",
-    email: "emily.white@example.com",
-    role: "customer",
-    balance: 200,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "user5",
-    name: "David Brown",
-    email: "david.brown@example.com",
-    role: "wholesale",
-    phone: "987-654-3210",
-    balance: 750,
-    createdAt: new Date().toISOString(),
-  },
-];
-
-// Mock data for service categories
-export const serviceCategories: ServiceCategory[] = [
-  {
-    id: "category1",
-    name: "Streaming Services",
-    description: "Premium streaming platforms for movies, TV shows, and music",
-    icon: "tv",
-  },
-  {
-    id: "category2",
-    name: "Gaming",
-    description: "Gaming subscriptions, gift cards, and in-game currencies",
-    icon: "gamepad-2",
-  },
-  {
-    id: "category3",
-    name: "Gift Cards",
-    description: "Digital gift cards for various platforms and services",
-    icon: "gift",
-  },
-  {
-    id: "category4",
-    name: "VPN & Security",
-    description: "Virtual Private Networks and security services",
-    icon: "shield",
-  },
-  {
-    id: "category5",
-    name: "Productivity",
-    description: "Software subscriptions for productivity and creativity",
-    icon: "briefcase",
-  },
-  {
-    id: "category6",
-    name: "Game Recharges",
-    description: "In-game currency and items for popular mobile games",
-    icon: "zap",
-  },
-];
-
-// Update the services array to include the required 'category' property
-export const services: Service[] = [
-  {
-    id: "service1",
-    name: "Netflix Premium",
-    description: "Access to all Netflix content in 4K UHD quality with the ability to stream on multiple devices simultaneously.",
-    price: 19.99,
-    wholesalePrice: 15.99,
-    categoryId: "category1",
-    category: "Streaming Services",
-    image: "/images/netflix.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
-  },
-  {
-    id: "service2",
-    name: "Amazon Prime Video",
-    description: "Stream thousands of movies and TV shows, including Amazon Originals.",
-    price: 14.99,
-    wholesalePrice: 11.99,
-    categoryId: "category1",
-    category: "Streaming Services",
-    image: "/images/prime-video.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
-  },
-  {
-    id: "service3",
-    name: "Disney+",
-    description: "Stream movies, shows, and originals from Disney, Pixar, Marvel, Star Wars, National Geographic, and more.",
-    price: 12.99,
-    wholesalePrice: 9.99,
-    categoryId: "category1",
-    category: "Streaming Services",
-    image: "/images/disney-plus.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
-  },
-  {
-    id: "service4",
-    name: "Spotify Premium",
-    description: "Ad-free music streaming with offline listening and high-quality audio.",
-    price: 10.99,
-    wholesalePrice: 8.99,
-    categoryId: "category1",
-    category: "Streaming Services",
-    image: "/images/spotify.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "subscription"
-  },
-  {
-    id: "service5",
-    name: "YouTube Premium",
-    description: "Ad-free videos, background playback, and YouTube Music Premium.",
-    price: 11.99,
-    wholesalePrice: 9.99,
-    categoryId: "category1",
-    category: "Streaming Services",
-    image: "/images/youtube.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "subscription"
-  },
-  {
-    id: "service6",
-    name: "HBO Max",
-    description: "Stream HBO original series, blockbuster movies, and exclusive content.",
-    price: 15.99,
-    wholesalePrice: 12.99,
-    categoryId: "category1",
-    category: "Streaming Services",
-    image: "/images/hbo-max.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "subscription"
-  },
-  {
-    id: "service7",
-    name: "PlayStation Plus (12 Months)",
-    description: "Access to online multiplayer, free monthly games, and exclusive discounts.",
-    price: 59.99,
-    wholesalePrice: 49.99,
-    categoryId: "category2",
-    category: "Gaming",
-    image: "/images/ps-plus.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
-  },
-  {
-    id: "service8",
-    name: "Xbox Game Pass Ultimate",
-    description: "Access to over 100 high-quality games on Xbox and PC, plus Xbox Live Gold.",
-    price: 14.99,
-    wholesalePrice: 12.99,
-    categoryId: "category2",
-    category: "Gaming",
-    image: "/images/xbox-gamepass.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
-  },
-  {
-    id: "service9",
-    name: "Google Play Gift Card",
-    description: "Digital gift card for apps, games, movies, and more on Google Play.",
-    price: 25.00,
-    wholesalePrice: 22.50,
-    categoryId: "category3",
-    category: "Gift Cards",
-    image: "/images/google-play.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "giftcard"
-  },
-  {
-    id: "service10",
-    name: "iTunes Gift Card",
-    description: "Digital gift card for apps, games, music, movies, and more on Apple App Store.",
-    price: 25.00,
-    wholesalePrice: 22.50,
-    categoryId: "category3",
-    category: "Gift Cards",
-    image: "/images/itunes.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "giftcard"
-  },
-  {
-    id: "service11",
-    name: "Steam Wallet Code",
-    description: "Digital gift card for games, software, and hardware on Steam.",
-    price: 25.00,
-    wholesalePrice: 22.50,
-    categoryId: "category3",
-    category: "Gift Cards",
-    image: "/images/steam.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "giftcard"
-  },
-  {
-    id: "service12",
-    name: "NordVPN (2 Years)",
-    description: "Secure VPN service with high-speed connections and no logs policy.",
+    id: "p1",
+    name: "Premium Ceramic Vase",
+    description: "Handcrafted ceramic vase with a modern, minimalist design.",
     price: 89.99,
-    wholesalePrice: 79.99,
-    categoryId: "category4",
-    category: "VPN & Security",
-    image: "/images/nordvpn.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
+    wholesalePrice: 49.99,
+    image: "https://images.unsplash.com/photo-1602748828300-57c35baaef48?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor"
   },
   {
-    id: "service13",
-    name: "ExpressVPN (1 Year)",
-    description: "Fast and secure VPN service with servers in 94 countries.",
-    price: 99.99,
-    wholesalePrice: 89.99,
-    categoryId: "category4",
-    category: "VPN & Security",
-    image: "/images/expressvpn.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "subscription"
+    id: "p2",
+    name: "Artisanal Coffee Mug",
+    description: "Handmade ceramic mug with a unique glazed finish.",
+    price: 34.99,
+    wholesalePrice: 19.99,
+    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop",
+    category: "Kitchenware"
   },
   {
-    id: "service14",
-    name: "Microsoft 365 (1 Year)",
-    description: "Productivity suite with Word, Excel, PowerPoint, and more.",
+    id: "p3",
+    name: "Minimalist Wall Clock",
+    description: "Simple yet elegant wall clock with a silent quartz movement.",
+    price: 59.99,
+    wholesalePrice: 32.99,
+    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor"
+  },
+  {
+    id: "p4",
+    name: "Natural Linen Throw Pillow",
+    description: "Soft, natural linen pillow cover with a feather insert.",
+    price: 49.99,
+    wholesalePrice: 28.99,
+    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop",
+    category: "Textiles"
+  },
+  {
+    id: "p5",
+    name: "Handwoven Basket",
+    description: "Traditional handwoven basket made from sustainable materials.",
+    price: 79.99,
+    wholesalePrice: 42.99,
+    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop",
+    category: "Storage"
+  },
+  {
+    id: "p6",
+    name: "Glass Terrarium",
+    description: "Geometric glass terrarium for displaying small plants and succulents.",
     price: 69.99,
-    wholesalePrice: 59.99,
-    categoryId: "category5",
-    category: "Productivity",
-    image: "/images/microsoft-365.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "subscription"
-  },
-  {
-    id: "service15",
-    name: "Adobe Creative Cloud (1 Year)",
-    description: "Creative suite with Photoshop, Illustrator, Premiere Pro, and more.",
-    price: 239.99,
-    wholesalePrice: 219.99,
-    categoryId: "category5",
-    category: "Productivity",
-    image: "/images/adobe-cc.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "subscription"
-  },
-  {
-    id: "service16",
-    name: "PUBG Mobile UC",
-    description: "Recharge Unknown Cash (UC) for PUBG Mobile. Buy weapons, outfits, and battle passes.",
-    price: 10.99,
-    wholesalePrice: 9.50,
-    categoryId: "category6",
-    category: "Game Recharges",
-    image: "/images/pubg-mobile.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "topup",
-    apiUrl: "https://api.example.com/recharge/pubg",
-  },
-  {
-    id: "service17",
-    name: "Free Fire Diamonds",
-    description: "Purchase Diamonds for Garena Free Fire. Get exclusive items, characters, and weapons.",
-    price: 9.99,
-    wholesalePrice: 8.75,
-    categoryId: "category6",
-    category: "Game Recharges",
-    image: "/images/free-fire.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "topup",
-    apiUrl: "https://api.example.com/recharge/freefire",
-  },
-  {
-    id: "service18",
-    name: "Soulchill Credits",
-    description: "Buy credits for Soulchill games. Enhance your gaming experience with premium features.",
-    price: 7.99,
-    wholesalePrice: 6.99,
-    categoryId: "category6",
-    category: "Game Recharges",
-    image: "/images/soulchill.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "topup",
-    apiUrl: "https://api.example.com/recharge/soulchill",
-  },
-  {
-    id: "service19",
-    name: "Bingo Coins",
-    description: "Recharge Bingo Coins for various Bingo games. Join premium tables and win big rewards.",
-    price: 5.99,
-    wholesalePrice: 4.99,
-    categoryId: "category6",
-    category: "Game Recharges",
-    image: "/images/bingo.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "topup",
-    apiUrl: "https://api.example.com/recharge/bingo",
-  },
-  {
-    id: "service20",
-    name: "Valorant Points",
-    description: "Buy Valorant Points (VP) for Riot's competitive FPS. Get new agents, skins, and battle passes.",
-    price: 12.99,
-    wholesalePrice: 11.50,
-    categoryId: "category6",
-    category: "Game Recharges",
-    image: "/images/valorant.jpg",
-    deliveryTime: "Instant",
-    featured: true,
-    type: "topup",
-    apiUrl: "https://api.example.com/recharge/valorant",
-  },
-  {
-    id: "service21",
-    name: "Mobile Legends Diamonds",
-    description: "Purchase Diamonds for Mobile Legends: Bang Bang. Unlock heroes, skins, and other in-game items.",
-    price: 8.99,
-    wholesalePrice: 7.99,
-    categoryId: "category6",
-    category: "Game Recharges",
-    image: "/images/mobile-legends.jpg",
-    deliveryTime: "Instant",
-    featured: false,
-    type: "topup",
-    apiUrl: "https://api.example.com/recharge/mobilelegends",
+    wholesalePrice: 38.99,
+    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop",
+    category: "Plants"
   },
 ];
 
-// Update the subscriptions to match the Subscription interface
-export const subscriptions: Subscription[] = [
+export const customers: Customer[] = [
   {
-    id: "sub1",
-    userId: "user1",
-    serviceId: "service1",
-    startDate: new Date().toISOString(),
-    endDate: new Date(
-      new Date().setDate(new Date().getDate() + 30)
-    ).toISOString(),
-    status: "active",
-    credentials: {
-      email: "john.doe@example.com",
-      password: "password123",
-    },
+    id: "c1",
+    name: "Jane Smith",
+    phone: "+1 (555) 123-4567",
+    email: "jane@example.com",
+    company: "Smith Home Goods",
+    notes: "Prefers delivery on Tuesdays",
+    wholesalerId: "wholesaler1",
+    balance: 0
   },
   {
-    id: "sub2",
-    userId: "user2",
-    serviceId: "service2",
-    startDate: new Date().toISOString(),
-    endDate: new Date(
-      new Date().setDate(new Date().getDate() + 60)
-    ).toISOString(),
-    status: "active",
-    credentials: {
-      email: "alice.smith@example.com",
-      password: "password456",
-    },
+    id: "c2",
+    name: "Michael Johnson",
+    phone: "+1 (555) 987-6543",
+    email: "michael@example.com",
+    company: "Urban Living Co.",
+    notes: "",
+    wholesalerId: "admin",
+    balance: 0
   },
   {
-    id: "sub3",
-    userId: "user4",
-    serviceId: "service3",
-    startDate: new Date().toISOString(),
-    endDate: new Date(
-      new Date().setDate(new Date().getDate() + 90)
-    ).toISOString(),
-    status: "active",
-    credentials: {
-      email: "emily.white@example.com",
-      password: "password789",
-    },
+    id: "c3",
+    name: "Emma Williams",
+    phone: "+1 (555) 456-7890",
+    email: "emma@example.com",
+    company: "Williams Decor",
+    notes: "New customer as of Jan 2023",
+    wholesalerId: "wholesaler1",
+    balance: 0
   },
 ];
 
-// Update the orders to match the Order interface
-export const orders: Order[] = [
+export const sales: Sale[] = [
   {
-    id: "order1",
-    userId: "user1",
-    serviceId: "service1",
-    quantity: 1,
-    totalPrice: 9.99,
-    status: "completed",
-    createdAt: new Date().toISOString(),
-    completedAt: new Date().toISOString(),
-    products: [],
-    total: 9.99
+    id: "s1",
+    customerId: "c1",
+    date: "2023-05-15",
+    products: [
+      { productId: "p1", quantity: 5, priceAtSale: 49.99 },
+      { productId: "p3", quantity: 3, priceAtSale: 32.99 }
+    ],
+    total: 348.92,
+    paid: true
   },
   {
-    id: "order2",
-    userId: "user2",
-    serviceId: "service2",
-    quantity: 1,
-    totalPrice: 49.99,
-    status: "processing",
-    createdAt: new Date().toISOString(),
-    products: [],
-    total: 49.99
+    id: "s2",
+    customerId: "c2",
+    date: "2023-05-20",
+    products: [
+      { productId: "p2", quantity: 10, priceAtSale: 19.99 },
+      { productId: "p4", quantity: 8, priceAtSale: 28.99 }
+    ],
+    total: 431.82,
+    paid: true
   },
   {
-    id: "order3",
-    userId: "user4",
-    serviceId: "service3",
-    quantity: 1,
-    totalPrice: 79.99,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    products: [],
-    total: 79.99
+    id: "s3",
+    customerId: "c3",
+    date: "2023-06-01",
+    products: [
+      { productId: "p5", quantity: 4, priceAtSale: 42.99 },
+      { productId: "p6", quantity: 6, priceAtSale: 38.99 }
+    ],
+    total: 405.90,
+    paid: false
   },
 ];
 
-// Mock data for support tickets
-export const supportTickets: SupportTicket[] = [
+export const subscriptions: Subscription[] = [];
+
+export const adminNotifications: AdminNotification[] = [
   {
-    id: "ticket1",
-    userId: "user1",
-    subject: "Issue with web hosting",
-    description: "My website is down",
-    status: "open",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "ticket2",
-    userId: "user2",
-    subject: "Social media marketing question",
-    description: "How to improve engagement?",
-    status: "in-progress",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "ticket3",
-    userId: "user4",
-    subject: "Logo design feedback",
-    description: "Need revisions on the logo",
-    status: "resolved",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-// Update ticket responses to include the sentBy property
-export const ticketResponses: TicketResponse[] = [
-  {
-    id: "response1",
-    ticketId: "ticket1",
-    userId: "user3",
-    message: "We are looking into your hosting issue.",
-    createdAt: new Date().toISOString(),
-    sentBy: "admin"
-  },
-  {
-    id: "response2",
-    ticketId: "ticket2",
-    userId: "user3",
-    message: "Here are some tips to improve engagement.",
-    createdAt: new Date().toISOString(),
-    sentBy: "admin"
-  },
-  {
-    id: "response3",
-    ticketId: "ticket3",
-    userId: "user3",
-    message: "Please provide specific feedback for revisions.",
-    createdAt: new Date().toISOString(),
-    sentBy: "admin"
-  },
-];
-
-// Mock function to simulate user login
-export const loginUser = (email: string, password: string): User | null => {
-  const user = users.find((u) => u.email === email);
-  if (user) {
-    // Basic password check (in a real app, use proper authentication)
-    return user;
-  }
-  return null;
-};
-
-// Mock function to get service by ID
-export const getServiceById = (id: string): Service | undefined => {
-  return services.find((service) => service.id === id);
-};
-
-// Mock function to get category by ID
-export const getCategoryById = (id: string): ServiceCategory | undefined => {
-  return serviceCategories.find((category) => category.id === id);
-};
-
-// Mock function to get services by category
-export const getServicesByCategory = (categoryId: string): Service[] => {
-  return services.filter(service => service.categoryId === categoryId);
-};
-
-// Mock function to get user by ID
-export const getUserById = (id: string): User | undefined => {
-  return users.find((user) => user.id === id);
-};
-
-// Update simple customers to include the email property
-export const simpleCustomers: SimpleCustomer[] = [
-  {
-    id: "customer1",
-    name: "Acme Corp",
-    phone: "555-123-4567",
-    email: "info@acmecorp.com"
-  },
-  {
-    id: "customer2",
-    name: "Beta Industries",
-    phone: "555-987-6543",
-    email: "sales@betaindustries.com"
-  },
-];
-
-// Mock function to get customer by ID
-export const getCustomerById = (id: string): SimpleCustomer | undefined => {
-  return simpleCustomers.find((customer) => customer.id === id);
-};
-
-// Mock function to get product by ID - Keep this for backwards compatibility
-export const getProductById = (id: string): Service | undefined => {
-  return services.find((product) => product.id === id);
-};
-
-// Mock function to simulate fixing a subscription profile
-export const fixSubscriptionProfile = async (
-  subscriptionId: string,
-  userId: string,
-  customerName: string,
-  serviceName: string
-): Promise<void> => {
-  // Simulate an API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Create a new admin notification
-  const newNotification: AdminNotification = {
-    id: `notification-${Date.now()}`,
+    id: "n1",
     type: "profile_fix",
-    subscriptionId: subscriptionId,
-    userId: userId,
-    customerName: customerName,
-    serviceName: serviceName,
-    createdAt: new Date().toISOString(),
+    customerName: "Jane Smith",
+    serviceName: "Premium Ceramic Vase",
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
     read: false,
-  };
-
-  adminNotifications.push(newNotification);
-  console.log("Profile fix requested", subscriptionId);
-};
-
-// Mock function to simulate reporting a payment issue
-export const reportPaymentIssue = async (
-  subscriptionId: string,
-  userId: string,
-  customerName: string,
-  serviceName: string
-): Promise<void> => {
-  // Simulate an API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Create a new admin notification
-  const newNotification: AdminNotification = {
-    id: `notification-${Date.now()}`,
-    type: "payment_issue",
-    subscriptionId: subscriptionId,
-    userId: userId,
-    customerName: customerName,
-    serviceName: serviceName,
-    createdAt: new Date().toISOString(),
-    read: false,
-  };
-
-  adminNotifications.push(newNotification);
-  console.log("Payment issue reported", subscriptionId);
-};
-
-// Mock function to simulate reporting a password issue
-export const reportPasswordIssue = async (
-  subscriptionId: string,
-  userId: string,
-  customerName: string,
-  serviceName: string
-): Promise<void> => {
-  // Simulate an API call
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Create a new admin notification
-  const newNotification: AdminNotification = {
-    id: `notification-${Date.now()}`,
-    type: "password_reset",
-    subscriptionId: subscriptionId,
-    userId: userId,
-    customerName: customerName,
-    serviceName: serviceName,
-    createdAt: new Date().toISOString(),
-    read: false,
-  };
-
-  adminNotifications.push(newNotification);
-  console.log("Password reset requested", subscriptionId);
-};
-
-// Update admin notifications to include subscriptionId property
-let adminNotifications: AdminNotification[] = [
-  {
-    id: "notification1",
-    type: "profile_fix",
-    subscriptionId: "sub1",
-    userId: "user1",
-    customerName: "John Doe",
-    serviceName: "Basic Web Hosting",
-    createdAt: new Date().toISOString(),
-    read: false,
+    subscriptionId: "sub-1"
   },
   {
-    id: "notification2",
+    id: "n2",
     type: "payment_issue",
-    subscriptionId: "sub2",
-    orderId: "order2",
-    userId: "user2",
-    customerName: "Alice Smith",
-    serviceName: "Social Media Marketing",
-    createdAt: new Date().toISOString(),
-    read: false,
-  },
-  {
-    id: "notification3",
-    type: "password_reset",
-    subscriptionId: "sub2",
-    userId: "user2",
-    customerName: "Alice Smith",
-    serviceName: "Social Media Marketing",
-    createdAt: new Date().toISOString(),
+    customerName: "Michael Johnson",
+    serviceName: "Minimalist Wall Clock",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
     read: true,
+    subscriptionId: "sub-3"
   },
   {
-    id: "notification4",
-    type: "new_order",
-    subscriptionId: "sub1",
-    orderId: "order1",
-    userId: "user1",
-    customerName: "John Doe",
-    serviceName: "Basic Web Hosting",
-    createdAt: new Date().toISOString(),
+    id: "n3",
+    type: "password_reset",
+    customerName: "Jane Smith",
+    serviceName: "Artisanal Coffee Mug",
+    createdAt: new Date(Date.now() - 43200000).toISOString(),
     read: false,
-  },
+    subscriptionId: "sub-2"
+  }
 ];
 
-// Mock function to get admin notifications
-export const getAdminNotifications = (): AdminNotification[] => {
-  return adminNotifications;
+export const subscriptionIssues: SubscriptionIssue[] = [];
+export const customerNotifications: CustomerNotification[] = [];
+
+const wholesaleUsers = [
+  { username: 'wholesaler1', password: 'password123' },
+  { username: 'admin', password: 'admin123' }
+];
+
+export const checkWholesalePassword = (password: string): boolean => {
+  return password === 'wholesale2023';
 };
 
-// Mock function to mark a notification as read
-export const markNotificationAsRead = (id: string): void => {
-  const notification = adminNotifications.find((n) => n.id === id);
+export const checkWholesaleCredentials = (username: string, password: string): boolean => {
+  return wholesaleUsers.some(
+    user => user.username === username && user.password === password
+  );
+};
+
+export const calculateTotalSales = (): number => {
+  return sales.reduce((total, sale) => total + (sale.paid ? sale.total : 0), 0);
+};
+
+export const getCustomerById = (id: string): Customer | undefined => {
+  return customers.find(customer => customer.id === id);
+};
+
+export const getProductById = (id: string): Product | undefined => {
+  return products.find(product => product.id === id);
+};
+
+export const getSalesByCustomerId = (customerId: string): Sale[] => {
+  return sales.filter(sale => sale.customerId === customerId);
+};
+
+export const getSubscriptionsByCustomerId = (customerId: string): Subscription[] => {
+  return subscriptions.filter(subscription => subscription.customerId === customerId);
+};
+
+export const getSubscriptionById = (id: string): Subscription | undefined => {
+  return subscriptions.find(subscription => subscription.id === id);
+};
+
+export const addCustomerBalance = (customerId: string, amount: number): boolean => {
+  const customer = customers.find(c => c.id === customerId);
+  if (customer) {
+    customer.balance += amount;
+    return true;
+  }
+  return false;
+};
+
+export const deductCustomerBalance = (customerId: string, amount: number): boolean => {
+  const customer = customers.find(c => c.id === customerId);
+  if (customer && customer.balance >= amount) {
+    customer.balance -= amount;
+    return true;
+  }
+  return false;
+};
+
+export const addSubscription = (subscription: Subscription): void => {
+  subscriptions.push(subscription);
+};
+
+export const createSubscriptionIssue = (issueData: {
+  subscriptionId: string;
+  userId: string;
+  customerName: string;
+  serviceName: string;
+  type: IssueType;
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+}): Promise<boolean> => {
+  const newIssue: SubscriptionIssue = {
+    id: `issue-${Date.now()}`,
+    subscriptionId: issueData.subscriptionId,
+    userId: issueData.userId,
+    customerName: issueData.customerName,
+    serviceName: issueData.serviceName,
+    type: issueData.type,
+    status: "pending" as IssueStatus,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    credentials: issueData.credentials
+  };
+  
+  subscriptionIssues.unshift(newIssue);
+  
+  const newNotification: AdminNotification = {
+    id: `n${adminNotifications.length + 1}`,
+    type: issueData.type,
+    customerName: issueData.customerName,
+    serviceName: issueData.serviceName,
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: issueData.subscriptionId
+  };
+  
+  adminNotifications.unshift(newNotification);
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const getSubscriptionIssues = (): SubscriptionIssue[] => {
+  return subscriptionIssues;
+};
+
+export const resolveSubscriptionIssue = (
+  issueId: string, 
+  resolvedBy: string, 
+  notes?: string
+): Promise<boolean> => {
+  const issue = subscriptionIssues.find(i => i.id === issueId);
+  if (issue) {
+    issue.status = "resolved";
+    issue.resolvedAt = new Date().toISOString();
+    issue.resolvedBy = resolvedBy;
+    if (notes) {
+      issue.notes = notes;
+    }
+  }
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 1000);
+  });
+};
+
+export const sendCustomerNotification = (notificationData: {
+  userId: string;
+  type: "profile_fixed" | "payment_resolved" | "password_reset" | "order_completed";
+  message: string;
+  subscriptionId?: string;
+  serviceName?: string;
+}): Promise<boolean> => {
+  const newNotification: CustomerNotification = {
+    id: `cn-${Date.now()}`,
+    userId: notificationData.userId,
+    type: notificationData.type,
+    message: notificationData.message,
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: notificationData.subscriptionId,
+    serviceName: notificationData.serviceName
+  };
+  
+  customerNotifications.unshift(newNotification);
+  
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 500);
+  });
+};
+
+export const getCustomerNotifications = (userId: string): CustomerNotification[] => {
+  return customerNotifications.filter(notification => notification.userId === userId);
+};
+
+export const markCustomerNotificationAsRead = (notificationId: string): void => {
+  const notification = customerNotifications.find(n => n.id === notificationId);
   if (notification) {
     notification.read = true;
   }
 };
 
-// Mock function to mark all notifications as read
-export const markAllNotificationsAsRead = (): void => {
-  adminNotifications = adminNotifications.map((n) => ({ ...n, read: true }));
+export const markAllCustomerNotificationsAsRead = (userId: string): void => {
+  customerNotifications.forEach(notification => {
+    if (notification.userId === userId) {
+      notification.read = true;
+    }
+  });
 };
 
-// Export mock user subscriptions for testing the alert
-(window as any).mockUserSubscriptions = [
+export const fixSubscriptionProfile = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "profile_fix" as IssueType,
+    credentials: subscription?.credentials
+  });
+};
+
+export const reportPaymentIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "payment_issue" as IssueType,
+    credentials: subscription?.credentials
+  });
+};
+
+export const reportPasswordIssue = (subscriptionId: string, userId: string, customerName: string, serviceName: string): Promise<boolean> => {
+  const subscription = getSubscriptionById(subscriptionId);
+  return createSubscriptionIssue({
+    subscriptionId,
+    userId,
+    customerName,
+    serviceName,
+    type: "password_reset" as IssueType,
+    credentials: subscription?.credentials
+  });
+};
+
+export const getAdminNotifications = (): AdminNotification[] => {
+  return adminNotifications;
+};
+
+export const markNotificationAsRead = (notificationId: string): void => {
+  const notification = adminNotifications.find(n => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
+  }
+};
+
+export const markAllNotificationsAsRead = (): void => {
+  adminNotifications.forEach(notification => {
+    notification.read = true;
+  });
+};
+
+export const serviceCategories: ServiceCategory[] = [
+  { id: "streaming", name: "Streaming Services", description: "Video and music streaming subscriptions", order: 1, icon: "home" },
+  { id: "gaming", name: "Gaming Credits", description: "In-game currency and subscriptions", order: 2, icon: "gamepad" },
+  { id: "social", name: "Social Media", description: "Social media boosting and services", order: 3, icon: "users" },
+  { id: "recharge", name: "Recharge Services", description: "Mobile and utility recharge options", order: 4, icon: "phone" },
+  { id: "giftcard", name: "Gift Cards", description: "Digital gift cards for various platforms", order: 5, icon: "gift" },
+  { id: "vpn", name: "VPN Services", description: "Virtual Private Network subscriptions", order: 6, icon: "shield" },
+  { id: "other", name: "Other Services", description: "Miscellaneous digital services", order: 7, icon: "box" }
+];
+
+export const mockServices = [
   {
-    id: "sub-expired-1",
-    userId: "user1", // Make sure this matches a valid user ID in your login function
-    serviceId: "service1",
-    startDate: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(), // 40 days ago
-    endDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
-    status: "expired",
-    credentials: {
-      email: "user@streamingservice.com",
-      password: "expired123",
-    },
+    id: "s1",
+    name: "Netflix Premium",
+    description: "Stream unlimited movies and TV shows in 4K.",
+    price: 15.99,
+    wholesalePrice: 12.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/netflix.jpg",
+    categoryId: "streaming",
+    category: "Streaming Services",
+    featured: true,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
   },
+  {
+    id: "s2",
+    name: "Spotify Premium",
+    description: "Ad-free music streaming with offline playback.",
+    price: 9.99,
+    wholesalePrice: 7.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/spotify.jpg",
+    categoryId: "streaming",
+    category: "Streaming Services",
+    featured: true,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s3",
+    name: "Xbox Game Pass",
+    description: "Access to a library of games on Xbox and PC.",
+    price: 9.99,
+    wholesalePrice: 7.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/xbox.jpg",
+    categoryId: "gaming",
+    category: "Gaming Credits",
+    featured: true,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s4",
+    name: "PlayStation Plus",
+    description: "Online multiplayer access and free monthly games.",
+    price: 9.99,
+    wholesalePrice: 7.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/playstation.jpg",
+    categoryId: "gaming",
+    category: "Gaming Credits",
+    featured: true,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s5",
+    name: "Facebook Ads Credit",
+    description: "Credit for running ads on Facebook and Instagram.",
+    price: 25.00,
+    wholesalePrice: 20.00,
+    type: "recharge" as ServiceType,
+    image: "https://example.com/facebook.jpg",
+    categoryId: "social",
+    category: "Social Media",
+    featured: true,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s6",
+    name: "Instagram Followers",
+    description: "Increase your follower count on Instagram.",
+    price: 10.00,
+    wholesalePrice: 8.00,
+    type: "service" as ServiceType,
+    image: "https://example.com/instagram.jpg",
+    categoryId: "social",
+    category: "Social Media",
+    featured: true,
+    deliveryTime: "24 hours"
+  },
+  {
+    id: "s7",
+    name: "Amazon Gift Card",
+    description: "Digital gift card for shopping on Amazon.",
+    price: 50.00,
+    wholesalePrice: 45.00,
+    type: "giftcard" as ServiceType,
+    image: "https://example.com/amazon.jpg",
+    categoryId: "giftcard",
+    category: "Gift Cards",
+    featured: true,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s8",
+    name: "Steam Gift Card",
+    description: "Digital gift card for purchasing games on Steam.",
+    price: 20.00,
+    wholesalePrice: 18.00,
+    type: "giftcard" as ServiceType,
+    image: "https://example.com/steam.jpg",
+    categoryId: "giftcard",
+    category: "Gift Cards",
+    featured: true,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s9",
+    name: "NordVPN",
+    description: "Secure and private internet access with NordVPN.",
+    price: 11.99,
+    wholesalePrice: 9.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/nordvpn.jpg",
+    categoryId: "vpn",
+    category: "VPN Services",
+    featured: true,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s10",
+    name: "ExpressVPN",
+    description: "High-speed VPN service for secure browsing.",
+    price: 12.95,
+    wholesalePrice: 10.95,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/expressvpn.jpg",
+    categoryId: "vpn",
+    category: "VPN Services",
+    featured: true,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s11",
+    name: "Hulu",
+    description: "Stream TV shows, movies, and original content.",
+    price: 7.99,
+    wholesalePrice: 6.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/hulu.jpg",
+    categoryId: "streaming",
+    category: "Streaming Services",
+    featured: false,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s12",
+    name: "Disney+",
+    description: "Stream movies and TV shows from Disney, Pixar, Marvel, Star Wars, and National Geographic.",
+    price: 7.99,
+    wholesalePrice: 6.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/disneyplus.jpg",
+    categoryId: "streaming",
+    category: "Streaming Services",
+    featured: false,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s13",
+    name: "Call of Duty Points",
+    description: "In-game currency for Call of Duty.",
+    price: 9.99,
+    wholesalePrice: 7.99,
+    type: "recharge" as ServiceType,
+    image: "https://example.com/codpoints.jpg",
+    categoryId: "gaming",
+    category: "Gaming Credits",
+    featured: false,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s14",
+    name: "Robux",
+    description: "In-game currency for Roblox.",
+    price: 10.00,
+    wholesalePrice: 8.00,
+    type: "recharge" as ServiceType,
+    image: "https://example.com/robux.jpg",
+    categoryId: "gaming",
+    category: "Gaming Credits",
+    featured: false,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s15",
+    name: "YouTube Premium",
+    description: "Ad-free access to YouTube videos and music.",
+    price: 11.99,
+    wholesalePrice: 9.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/youtubepremium.jpg",
+    categoryId: "streaming",
+    category: "Streaming Services",
+    featured: false,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s16",
+    name: "Twitch Bits",
+    description: "Support your favorite streamers with Twitch Bits.",
+    price: 5.00,
+    wholesalePrice: 4.00,
+    type: "recharge" as ServiceType,
+    image: "https://example.com/twitchbits.jpg",
+    categoryId: "social",
+    category: "Social Media",
+    featured: false,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s17",
+    name: "Uber Gift Card",
+    description: "Digital gift card for Uber rides and Uber Eats.",
+    price: 25.00,
+    wholesalePrice: 22.00,
+    type: "giftcard" as ServiceType,
+    image: "https://example.com/ubergiftcard.jpg",
+    categoryId: "giftcard",
+    category: "Gift Cards",
+    featured: false,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s18",
+    name: "Lyft Gift Card",
+    description: "Digital gift card for Lyft rides.",
+    price: 20.00,
+    wholesalePrice: 18.00,
+    type: "giftcard" as ServiceType,
+    image: "https://example.com/lyftgiftcard.jpg",
+    categoryId: "giftcard",
+    category: "Gift Cards",
+    featured: false,
+    deliveryTime: "Instant"
+  },
+  {
+    id: "s19",
+    name: "Surfshark VPN",
+    description: "Secure your online activity with Surfshark VPN.",
+    price: 2.49,
+    wholesalePrice: 1.99,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/surfsharkvpn.jpg",
+    categoryId: "vpn",
+    category: "VPN Services",
+    featured: false,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  },
+  {
+    id: "s20",
+    name: "CyberGhost VPN",
+    description: "Protect your privacy with CyberGhost VPN.",
+    price: 2.29,
+    wholesalePrice: 1.79,
+    type: "subscription" as ServiceType,
+    image: "https://example.com/cyberghostvpn.jpg",
+    categoryId: "vpn",
+    category: "VPN Services",
+    featured: false,
+    deliveryTime: "Instant",
+    availableMonths: [1, 3, 6, 12]
+  }
+];
+
+export const mockCustomers = [
+  {
+    id: "cust-1",
+    name: "Alice Johnson",
+    email: "alice.johnson@example.com",
+    phone: "+15551234567"
+  },
+  {
+    id: "cust-2",
+    name: "Bob Smith",
+    email: "bob.smith@example.com",
+    phone: "+15559876543"
+  },
+  {
+    id: "cust-3",
+    name: "Charlie Brown",
+    email: "charlie.brown@example.com",
+    phone: "+15554567890"
+  }
+];
+
+export const mockSupportTickets = [
+  {
+    id: "ticket-1",
+    userId: "user-1",
+    subject: "Login Issue",
+    description: "I can't log in to my account.",
+    status: "open",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "ticket-2",
+    userId: "user-2",
+    subject: "Payment Failed",
+    description: "My payment failed during checkout.",
+    status: "in-progress",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "ticket-3",
+    userId: "user-3",
+    subject: "Subscription Issue",
+    description: "My subscription is not active.",
+    status: "resolved",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+export const mockTicketResponses = [
+  {
+    id: "response-1",
+    ticketId: "ticket-1",
+    userId: "admin-1",
+    message: "We are looking into your login issue.",
+    createdAt: new Date().toISOString(),
+    isStaff: true,
+    sentBy: "admin"
+  },
+  {
+    id: "response-2",
+    ticketId: "ticket-2",
+    userId: "admin-2",
+    message: "Please check your payment details and try again.",
+    createdAt: new Date().toISOString(),
+    isStaff: true,
+    sentBy: "admin"
+  },
+  {
+    id: "response-3",
+    ticketId: "ticket-3",
+    userId: "admin-3",
+    message: "Your subscription is now active.",
+    createdAt: new Date().toISOString(),
+    isStaff: true,
+    sentBy: "admin"
+  }
+];
+
+export const mockSimpleCustomers = [
+  {
+    id: "simple-cust-1",
+    name: "Alice Johnson",
+    email: "alice.johnson@example.com",
+    phone: "+15551234567"
+  },
+  {
+    id: "simple-cust-2",
+    name: "Bob Smith",
+    email: "bob.smith@example.com",
+    phone: "+15559876543"
+  }
+];
+
+export const mockAdminNotifications: AdminNotification[] = [
+  {
+    id: "admin-notif-1",
+    type: "profile_fix",
+    customerName: "Alice Johnson",
+    serviceName: "Netflix Premium",
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: "sub-1"
+  },
+  {
+    id: "admin-notif-2",
+    type: "payment_issue",
+    customerName: "Bob Smith",
+    serviceName: "Spotify Premium",
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: "sub-2"
+  },
+  {
+    id: "admin-notif-3",
+    type: "password_reset",
+    customerName: "Charlie Brown",
+    serviceName: "Xbox Game Pass",
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: "sub-3"
+  },
+  {
+    id: "admin-notif-4",
+    type: "new_order",
+    customerName: "David Lee",
+    serviceName: "PlayStation Plus",
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: "sub-4"
+  },
+  {
+    id: "admin-notif-5",
+    type: "payment_request",
+    customerName: "Eve White",
+    serviceName: "Facebook Ads Credit",
+    amount: 25.00,
+    paymentMethod: "Credit Card",
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: "sub-5"
+  },
+  {
+    id: "admin-notif-6",
+    type: "profile_fix",
+    customerName: "Frank Green",
+    serviceName: "Instagram Followers",
+    createdAt: new Date().toISOString(),
+    read: false,
+    subscriptionId: "sub-6"
+  }
+];
+
+export const mockCustomerNotifications: CustomerNotification[] = [
+  {
+    id: "cust-notif-1",
+    userId: "user-1",
+    type: "profile_fixed",
+    message: "Your profile has been fixed.",
+    createdAt: new Date().toISOString(),
+    read: false
+  },
+  {
+    id: "cust-notif-2",
+    userId: "user-2",
+    type: "payment_resolved",
+    message: "Your payment issue has been resolved.",
+    createdAt: new Date().toISOString(),
+    read: false
+  },
+  {
+    id: "cust-notif-3",
+    userId: "user-3",
+    type: "password_reset",
+    message: "Your password has been reset.",
+    createdAt: new Date().toISOString(),
+    read: false
+  }
 ];
