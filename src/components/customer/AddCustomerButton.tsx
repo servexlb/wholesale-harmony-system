@@ -30,8 +30,14 @@ const AddCustomerButton: React.FC<AddCustomerButtonProps> = ({
       if (onAddCustomer) {
         console.log('Adding customer:', customer);
         onAddCustomer(customer);
+        
+        // Explicitly dispatch the customerAdded event to ensure metrics are updated
+        window.dispatchEvent(new CustomEvent('customerAdded', {
+          detail: { customerId: customer.id, customerName: customer.name }
+        }));
       } else {
         console.error('No onAddCustomer handler provided');
+        toast.error('Error: Cannot add customer (missing handler)');
       }
       
       setOpen(false);

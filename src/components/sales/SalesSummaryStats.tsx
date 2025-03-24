@@ -73,7 +73,7 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
       }
     };
     
-    const handleCustomerAdded = async () => {
+    const handleCustomerAdded = async (event?: Event) => {
       console.log('Customer added event detected in SalesSummaryStats');
       // Always update local state immediately for responsiveness
       setTotalCustomers(prev => prev + 1);

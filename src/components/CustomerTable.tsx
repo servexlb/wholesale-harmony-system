@@ -47,7 +47,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
       window.dispatchEvent(new CustomEvent('customerAdded'));
     } else {
       console.warn('No onAddCustomer handler provided');
-      toast.warn('Customer added locally only');
+      toast.warning('Customer added locally only');
     }
   };
 

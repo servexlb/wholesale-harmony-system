@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Customer } from '@/lib/data';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { v4 as uuidv4 } from 'uuid';
 
-// Customer form schema - removed email completely
+// Customer form schema - only requiring name and phone
 const customerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(6, "Phone number must be at least 6 characters"),
@@ -42,28 +42,38 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     },
   });
 
-  // Update the form submission handler to auto-save to Supabase
+  // Update the form submission handler to handle customer creation
   const handleAddCustomer = (data: CustomerFormValues) => {
-    // Create a new customer with the form data
-    // Generate a UUID instead of using a timestamp to ensure compatibility with Supabase
-    const newCustomer: Customer = {
-      id: uuidv4(),
-      name: data.name,
-      phone: data.phone,
-      email: '', // Keep email field in the Customer object but always set it to empty string
-      company: data.company || '',
-      address: data.address || '',
-      wholesalerId: wholesalerId,
-      balance: 0,
-      createdAt: new Date().toISOString() // Add required createdAt field
-    };
-    
-    // Pass the new customer to the parent component
-    onAddCustomer(newCustomer);
-    
-    // Reset form and close dialog
-    form.reset();
-    onClose();
+    try {
+      // Create a new customer with the form data
+      // Generate a UUID instead of using a timestamp to ensure compatibility with Supabase
+      const newCustomer: Customer = {
+        id: uuidv4(),
+        name: data.name,
+        phone: data.phone,
+        email: '', // Keep email field in the Customer object but always set it to empty string
+        company: data.company || '',
+        address: data.address || '',
+        wholesalerId: wholesalerId,
+        balance: 0,
+        createdAt: new Date().toISOString() // Add required createdAt field
+      };
+      
+      console.log('Creating new customer with data:', newCustomer);
+      
+      // Pass the new customer to the parent component
+      onAddCustomer(newCustomer);
+      
+      // Reset form and close dialog
+      form.reset();
+      onClose();
+      
+      // Show feedback to the user
+      toast.success(`Customer ${data.name} added`);
+    } catch (error) {
+      console.error('Error adding customer:', error);
+      toast.error('Failed to add customer');
+    }
   };
 
   return (

@@ -69,6 +69,8 @@ export function useWholesaleData(currentWholesaler: string) {
             createdAt: customer.created_at
           }));
           setCustomersData(formattedCustomers);
+          
+          localStorage.setItem('wholesaleCustomers', JSON.stringify(formattedCustomers));
         }
 
         const { data: subs, error: subsError } = await supabase
@@ -401,12 +403,16 @@ export function useWholesaleData(currentWholesaler: string) {
         } else {
           console.log('Customer saved to Supabase successfully:', data);
           toast.success('Customer added successfully');
+          
+          window.dispatchEvent(new CustomEvent('customerAdded', { 
+            detail: { customerId: newCustomer.id, customerName: newCustomer.name }
+          }));
         }
       } else {
         console.log('No authenticated session, customer saved to localStorage only');
+        window.dispatchEvent(new CustomEvent('customerAdded'));
+        toast.success('Customer added to local storage');
       }
-      
-      window.dispatchEvent(new CustomEvent('customerAdded'));
     } catch (error) {
       console.error('Error in handleAddCustomer:', error);
       toast.error('Error adding customer');
