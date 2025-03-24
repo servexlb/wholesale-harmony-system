@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,11 +17,15 @@ interface WholesaleUser {
   showPassword: boolean;
 }
 
+// Predefined data instead of using state to initialize state
+const initialWholesaleUsers: WholesaleUser[] = [
+  { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
+  { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
+];
+
 const WholesaleUserManagement = () => {
-  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>([
-    { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
-    { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
-  ]);
+  // Initialize directly with array literal to avoid deep type instantiation
+  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>(initialWholesaleUsers);
   
   const [newWholesaleUser, setNewWholesaleUser] = useState({
     username: '',
