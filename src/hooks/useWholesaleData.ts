@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useMemo } from 'react';
-import { WholesaleOrder, Subscription, Service } from '@/lib/types';
+import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
 import { loadServices } from '@/lib/productManager';
 import { addCredentialToStock, convertSubscriptionToStock, generateRandomPassword } from '@/lib/credentialUtils';
@@ -108,20 +109,22 @@ export function useWholesaleData(currentWholesaler: string) {
       
       if (order.serviceId) {
         try {
-          const credentials = order.credentials || {
-            email: "",
-            password: generateRandomPassword(),
-            username: "",
-            pinCode: ""
-          };
-          
           if (order.credentials) {
+            // Ensure all required fields are present when converting from order.credentials
             const stockCredentials = convertSubscriptionToStock({
               credentials: order.credentials
             });
             addCredentialToStock(order.serviceId, stockCredentials);
           } 
           else {
+            // Create a properly formatted Credential object with all required fields
+            const credentials: Credential = {
+              email: "",
+              password: generateRandomPassword(),
+              username: "",
+              pinCode: ""
+            };
+            
             addCredentialToStock(order.serviceId, credentials);
           }
           

@@ -1,4 +1,3 @@
-
 import { Credential, CredentialStock } from "@/lib/types";
 import { addCredentialToStock as addToSupabase } from "./credentialService";
 
@@ -119,7 +118,7 @@ export function mapSupabaseCredentialsToLocal(supabaseCredentials: any[]): Crede
   return supabaseCredentials.map(mapSupabaseCredentialToLocal);
 }
 
-// New function to convert subscription credential to stock format
+// Updated function to convert subscription credential to stock format
 export function convertSubscriptionToStock(subscription: any): Credential {
   // Safely extract credentials from subscription with type checking
   const credentials = subscription.credentials || {};
