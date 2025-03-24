@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -33,11 +34,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Payment, PaymentStatus, CustomerNotification } from "@/lib/types";
-import { Check, X, AlertTriangle, ExternalLink, Filter } from "lucide-react";
+import { Check, X, AlertTriangle, ExternalLink, Filter, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-import { useFirestore } from "@/hooks/useFirestore";
 import { toast } from "@/lib/toast";
 import { addCustomerBalance } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminPayments: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -47,14 +48,51 @@ const AdminPayments: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterMethod, setFilterMethod] = useState<string>("all");
   const [notes, setNotes] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   
-  const { updateDocument } = useFirestore("payments");
+  // Fetch payments from Supabase
+  const fetchPayments = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching payments:', error);
+        toast.error("Failed to load payments");
+      } else {
+        console.log('Fetched payments:', data);
+        setPayments(data || []);
+      }
+    } catch (error) {
+      console.error('Exception fetching payments:', error);
+      toast.error("Failed to load payments");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const storedPayments = localStorage.getItem('payments');
-    const parsedPayments = storedPayments ? JSON.parse(storedPayments) : [];
+    fetchPayments();
     
-    setPayments(parsedPayments);
+    // Set up real-time subscription for payments
+    const paymentsChannel = supabase
+      .channel('public:payments')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'payments'
+      }, (payload) => {
+        console.log('Payment changed:', payload);
+        fetchPayments();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(paymentsChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -77,59 +115,93 @@ const AdminPayments: React.FC = () => {
     setDetailsOpen(true);
   };
 
-  const notifyCustomer = (userId: string, type: 'payment_approved' | 'payment_rejected', amount: number, paymentId: string) => {
-    const notificationsKey = `customerNotifications_${userId}`;
-    const existingNotifications = JSON.parse(localStorage.getItem(notificationsKey) || '[]');
-    
-    const notification: CustomerNotification = {
-      id: `custnotif-${Date.now()}`,
-      userId: userId,
-      type: type,
-      message: type === 'payment_approved' 
-        ? `Your payment of $${amount.toFixed(2)} has been approved` 
-        : `Your payment of $${amount.toFixed(2)} has been rejected`,
-      createdAt: new Date().toISOString(),
-      read: false,
-      paymentId: paymentId,
-      amount: amount
-    };
-    
-    existingNotifications.push(notification);
-    localStorage.setItem(notificationsKey, JSON.stringify(existingNotifications));
+  const notifyCustomer = async (userId: string, type: 'payment_approved' | 'payment_rejected', amount: number, paymentId: string) => {
+    try {
+      const notification = {
+        user_id: userId,
+        type: type,
+        title: type === 'payment_approved' ? 'Payment Approved' : 'Payment Rejected',
+        message: type === 'payment_approved' 
+          ? `Your payment of $${amount.toFixed(2)} has been approved` 
+          : `Your payment of $${amount.toFixed(2)} has been rejected`,
+        is_read: false,
+        amount: amount
+      };
+      
+      const { error } = await supabase
+        .from('admin_notifications')
+        .insert(notification);
+        
+      if (error) {
+        console.error('Error creating notification:', error);
+      }
+    } catch (error) {
+      console.error('Error in notifyCustomer:', error);
+    }
   };
 
   const handleStatusChange = async (paymentId: string, newStatus: PaymentStatus) => {
+    if (!selectedPayment) return;
+    
     try {
-      const updatedPayments = payments.map(payment => 
-        payment.id === paymentId 
-          ? { 
-              ...payment, 
-              status: newStatus, 
-              reviewedAt: new Date().toISOString(),
-              notes: notes 
-            } 
-          : payment
-      );
+      setIsLoading(true);
       
-      localStorage.setItem('payments', JSON.stringify(updatedPayments));
-      setPayments(updatedPayments);
+      // Update payment status in database
+      const { error } = await supabase
+        .from('payments')
+        .update({ 
+          status: newStatus,
+          reviewed_at: new Date().toISOString(),
+          notes: notes
+        })
+        .eq('id', paymentId);
+        
+      if (error) {
+        console.error('Error updating payment status:', error);
+        toast.error("Failed to update payment status");
+        return;
+      }
       
-      if (newStatus === "approved" && selectedPayment && selectedPayment.userId) {
+      if (newStatus === "approved" && selectedPayment.userId) {
         const userId = selectedPayment.userId;
-        addCustomerBalance(userId, selectedPayment.amount);
+        
+        // Update user balance
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', userId)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+        } else if (profileData) {
+          const newBalance = (profileData.balance || 0) + selectedPayment.amount;
+          
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ balance: newBalance })
+            .eq('id', userId);
+            
+          if (updateError) {
+            console.error('Error updating user balance:', updateError);
+          } else {
+            toast.success(`Added $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.userName}'s balance`);
+          }
+        }
         
         notifyCustomer(userId, 'payment_approved', selectedPayment.amount, selectedPayment.id);
-        
-        toast.success(`Added $${selectedPayment.amount.toFixed(2)} to ${selectedPayment.userName}'s balance`);
-      } else if (newStatus === "rejected" && selectedPayment && selectedPayment.userId) {
+      } else if (newStatus === "rejected" && selectedPayment.userId) {
         notifyCustomer(selectedPayment.userId, 'payment_rejected', selectedPayment.amount, selectedPayment.id);
       }
       
       toast.success(`Payment ${newStatus === "approved" ? "approved" : "rejected"} successfully`);
       setDetailsOpen(false);
+      fetchPayments();
     } catch (error) {
       console.error("Error updating payment status:", error);
       toast.error("Failed to update payment status");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -200,6 +272,15 @@ const AdminPayments: React.FC = () => {
           </CardDescription>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchPayments}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Select value={filterMethod} onValueChange={setFilterMethod}>
             <SelectTrigger className="w-[180px]">
               <Filter className="w-4 h-4 mr-2" />
@@ -233,7 +314,13 @@ const AdminPayments: React.FC = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {filteredPayments.length === 0 ? (
+        {isLoading ? (
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
+          </div>
+        ) : filteredPayments.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No payments found matching the selected filters.
           </div>
@@ -253,7 +340,7 @@ const AdminPayments: React.FC = () => {
             <TableBody>
               {filteredPayments.map((payment) => (
                 <TableRow key={payment.id}>
-                  <TableCell>{payment.id}</TableCell>
+                  <TableCell className="font-mono text-xs">{payment.id.substring(0, 8)}</TableCell>
                   <TableCell>
                     {format(new Date(payment.createdAt), 'MMM dd, yyyy')}
                   </TableCell>
@@ -289,12 +376,12 @@ const AdminPayments: React.FC = () => {
               <div className="space-y-4 my-4">
                 <div className="flex justify-between">
                   <span className="font-medium">Payment ID:</span>
-                  <span>{selectedPayment.id}</span>
+                  <span className="font-mono text-sm">{selectedPayment.id}</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="font-medium">Order ID:</span>
-                  <span>{selectedPayment.orderId}</span>
+                  <span>{selectedPayment.orderId || 'N/A'}</span>
                 </div>
                 
                 <div className="flex justify-between">
@@ -373,6 +460,7 @@ const AdminPayments: React.FC = () => {
                     type="button" 
                     variant="destructive"
                     onClick={() => handleStatusChange(selectedPayment.id, 'rejected')}
+                    disabled={isLoading}
                   >
                     <X className="mr-2 h-4 w-4" />
                     Reject
@@ -380,8 +468,10 @@ const AdminPayments: React.FC = () => {
                   
                   <Button 
                     type="button" 
-                    variant="success"
+                    variant="default"
                     onClick={() => handleStatusChange(selectedPayment.id, 'approved')}
+                    disabled={isLoading}
+                    className="bg-green-600 hover:bg-green-700"
                   >
                     <Check className="mr-2 h-4 w-4" />
                     Approve

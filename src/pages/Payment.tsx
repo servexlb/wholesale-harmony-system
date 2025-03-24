@@ -86,7 +86,71 @@ const Payment: React.FC = () => {
     }
   };
 
-  const handleWishMoneySubmit = (e: React.FormEvent) => {
+  const createPaymentRecord = async (method: string) => {
+    if (!user) return null;
+    
+    try {
+      const amountValue = parseFloat(amount);
+      if (isNaN(amountValue) || amountValue <= 0) {
+        toast.error("Please enter a valid amount");
+        return null;
+      }
+      
+      // Create payment record in database
+      const paymentData = {
+        user_id: user.id,
+        user_name: user.name || user.email,
+        user_email: user.email,
+        method: method,
+        amount: amountValue,
+        status: 'pending',
+        notes: notes,
+        created_at: new Date().toISOString()
+      };
+      
+      console.log('Creating payment record:', paymentData);
+      
+      const { data, error } = await supabase
+        .from('payments')
+        .insert(paymentData)
+        .select();
+        
+      if (error) {
+        console.error('Error creating payment record:', error);
+        toast.error("Failed to record payment. Please try again");
+        return null;
+      }
+      
+      console.log('Payment record created:', data);
+      
+      // Create admin notification
+      const notificationData = {
+        type: 'payment_request',
+        customer_name: user.name || user.email,
+        user_id: user.id,
+        amount: amountValue,
+        payment_method: method,
+        message: `New payment request of $${amountValue.toFixed(2)} via ${method}`,
+        is_read: false
+      };
+      
+      const { error: notificationError } = await supabase
+        .from('admin_notifications')
+        .insert(notificationData);
+        
+      if (notificationError) {
+        console.error('Error creating admin notification:', notificationError);
+      }
+      
+      return data[0];
+    } catch (error) {
+      console.error('Error in createPaymentRecord:', error);
+      toast.error("An error occurred while processing your payment");
+      return null;
+    }
+  };
+
+  const handleWishMoneySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
@@ -97,54 +161,23 @@ const Payment: React.FC = () => {
       return;
     }
     
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
     setIsProcessing(true);
 
-    const amountValue = parseFloat(amount);
-    
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      type: "deposit",
-      amount: amountValue,
-      method: "Wish Money",
-      status: "pending",
-      date: new Date().toISOString()
-    };
-    
-    if (user?.id) {
-      const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${user.id}`) || '[]');
-      transactionHistory.push(transaction);
-      localStorage.setItem(`transactionHistory_${user.id}`, JSON.stringify(transactionHistory));
-
-      const adminNotification: Partial<AdminNotification> = {
-        type: "payment_issue",
-        customerName: user?.name || "Current User",
-        serviceName: `Top-up $${amount} via Wish Money`,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-
-      console.log("ADMIN NOTIFICATION: User topped up with Wish Money:", {
-        amount,
-        timestamp: new Date().toISOString(),
-        notes,
-        adminNotification,
-        userId: user.id
-      });
-    }
-    
-    setTimeout(() => {
-      toast.success(`Your payment of $${amount} has been recorded`);
+    try {
+      const paymentRecord = await createPaymentRecord("wish_money");
+      
+      if (paymentRecord) {
+        toast.success(`Your payment request of $${amount} has been recorded`, {
+          description: "An administrator will review and approve it soon"
+        });
+        setPaymentStatus("pending");
+      }
+    } finally {
       setIsProcessing(false);
-      setPaymentStatus("pending");
-    }, 1500);
+    }
   };
   
-  const handleCreditCardSubmit = (e: React.FormEvent) => {
+  const handleCreditCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
@@ -155,38 +188,23 @@ const Payment: React.FC = () => {
       return;
     }
     
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
+    setIsProcessing(true);
+    
+    try {
+      const paymentRecord = await createPaymentRecord("credit_card");
+      
+      if (paymentRecord) {
+        toast.success(`Your payment request of $${amount} has been recorded`, {
+          description: "An administrator will review and approve it soon"
+        });
+        setPaymentStatus("pending");
+      }
+    } finally {
+      setIsProcessing(false);
     }
-
-    const amountValue = parseFloat(amount);
-    
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      type: "deposit",
-      amount: amountValue,
-      method: "Credit Card",
-      status: "pending",
-      date: new Date().toISOString()
-    };
-    
-    if (user?.id) {
-      const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${user.id}`) || '[]');
-      transactionHistory.push(transaction);
-      localStorage.setItem(`transactionHistory_${user.id}`, JSON.stringify(transactionHistory));
-    }
-
-    toast("Redirecting to bank payment page...");
-    window.open("https://www.yourbank.com/payments", "_blank");
-    
-    setTimeout(() => {
-      toast.success(`Your payment request of $${amount} has been initiated`);
-      setPaymentStatus("pending");
-    }, 1000);
   };
   
-  const handleBinancePaySubmit = (e: React.FormEvent) => {
+  const handleBinancePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
@@ -197,35 +215,23 @@ const Payment: React.FC = () => {
       return;
     }
     
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
+    setIsProcessing(true);
+    
+    try {
+      const paymentRecord = await createPaymentRecord("usdt");
+      
+      if (paymentRecord) {
+        toast("Redirecting to Binance Pay...");
+        window.open(binancePayUrl, "_blank");
+        
+        toast.success(`Your payment request of $${amount} has been recorded`, {
+          description: "An administrator will review and approve it soon"
+        });
+        setPaymentStatus("pending");
+      }
+    } finally {
+      setIsProcessing(false);
     }
-
-    const amountValue = parseFloat(amount);
-    
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      type: "deposit",
-      amount: amountValue,
-      method: "Binance Pay",
-      status: "pending",
-      date: new Date().toISOString()
-    };
-    
-    if (user?.id) {
-      const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${user.id}`) || '[]');
-      transactionHistory.push(transaction);
-      localStorage.setItem(`transactionHistory_${user.id}`, JSON.stringify(transactionHistory));
-    }
-
-    toast("Redirecting to Binance Pay...");
-    window.open(binancePayUrl, "_blank");
-    
-    setTimeout(() => {
-      toast.success(`Your Binance Pay transaction of $${amount} has been initiated`);
-      setPaymentStatus("pending");
-    }, 1000);
   };
   
   const handleReturnToShopping = () => {
@@ -462,9 +468,10 @@ const Payment: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="w-full"
+                      disabled={isProcessing}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
-                      Proceed to Bank Payment
+                      {isProcessing ? "Processing..." : "Proceed to Bank Payment"}
                       <ExternalLink className="h-4 w-4 ml-2" />
                     </Button>
                   </form>
@@ -493,8 +500,9 @@ const Payment: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="w-full"
+                      disabled={isProcessing}
                     >
-                      Proceed with Binance Pay
+                      {isProcessing ? "Processing..." : "Proceed with Binance Pay"}
                       <ExternalLink className="h-4 w-4 ml-2" />
                     </Button>
                   </form>

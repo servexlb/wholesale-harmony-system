@@ -33,7 +33,7 @@ const DashboardCredentials: React.FC = () => {
     const fetchData = async () => {
       try {
         // Fetch subscriptions
-        const { data: subscriptions, error: subError } = await supabase
+        const { data: subscriptionsData, error: subError } = await supabase
           .from('subscriptions')
           .select('*')
           .eq('user_id', userId)
@@ -41,12 +41,23 @@ const DashboardCredentials: React.FC = () => {
           
         if (subError) {
           console.error('Error fetching subscriptions:', subError);
-        } else {
-          setActiveSubscriptions(subscriptions || []);
+        } else if (subscriptionsData) {
+          // Map database fields to our application types
+          const formattedSubscriptions: Subscription[] = subscriptionsData.map(sub => ({
+            id: sub.id,
+            userId: sub.user_id,
+            serviceId: sub.service_id,
+            startDate: sub.start_date,
+            endDate: sub.end_date,
+            status: sub.status,
+            credentials: sub.credentials
+          }));
+          
+          setActiveSubscriptions(formattedSubscriptions);
         }
         
         // Fetch recent orders
-        const { data: orders, error: orderError } = await supabase
+        const { data: ordersData, error: orderError } = await supabase
           .from('orders')
           .select('*')
           .eq('user_id', userId)
@@ -55,8 +66,29 @@ const DashboardCredentials: React.FC = () => {
           
         if (orderError) {
           console.error('Error fetching orders:', orderError);
-        } else {
-          setRecentOrders(orders || []);
+        } else if (ordersData) {
+          // Map database fields to our application types
+          const formattedOrders: Order[] = ordersData.map(order => ({
+            id: order.id,
+            userId: order.user_id,
+            products: [
+              {
+                productId: order.service_id,
+                quantity: order.quantity,
+                price: order.total_price / order.quantity,
+                name: order.service_name
+              }
+            ],
+            total: order.total_price,
+            status: order.status,
+            createdAt: order.created_at,
+            paymentMethod: 'default',
+            serviceName: order.service_name,
+            notes: order.notes,
+            credentials: order.credentials
+          }));
+          
+          setRecentOrders(formattedOrders);
         }
         
         setIsLoading(false);
@@ -220,7 +252,7 @@ const DashboardCredentials: React.FC = () => {
                   <CredentialDisplay
                     key={order.id}
                     orderId={order.id}
-                    serviceId={order.serviceId || ''}
+                    serviceId={order.products[0]?.productId || ''}
                     serviceName={order.serviceName || 'Order'}
                     credentials={order.credentials}
                     isPending={order.status === 'pending'}
