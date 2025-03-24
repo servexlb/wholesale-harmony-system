@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,27 +6,71 @@ import MainLayout from '@/components/MainLayout';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, Wallet, User, History, Package } from 'lucide-react';
 import DashboardCredentials from '@/components/dashboard/DashboardCredentials';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  
-  // Get current user ID
-  const userId = localStorage.getItem('currentUserId');
-  
-  // Get user balance from localStorage
-  const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
-  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
+  const { user, isAuthenticated } = useAuth();
+  const [userBalance, setUserBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     // Check if user is logged in
-    if (!userId) {
+    if (!isAuthenticated) {
       navigate('/login');
+      return;
     }
-  }, [userId, navigate]);
+    
+    // Fetch user balance from Supabase
+    const fetchUserBalance = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user balance:', error);
+          // Fallback to user object
+          setUserBalance(user.balance || 0);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data) {
+          setUserBalance(data.balance || 0);
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error in fetchUserBalance:', error);
+        setUserBalance(user.balance || 0);
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserBalance();
+  }, [user, isAuthenticated, navigate]);
   
   const handleAddFunds = () => {
     navigate('/payment');
   };
+  
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="container py-8">
+          <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
   
   return (
     <MainLayout>

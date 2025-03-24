@@ -1,16 +1,19 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { CreditCard, Repeat, AlertCircle, Copy, Check, Clock, User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getCustomerById, addCustomerBalance } from "@/lib/data";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const UserPaymentOptions = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("wish-money");
   const [amount, setAmount] = useState<number | null>(null);
   const [cardNumber, setCardNumber] = useState("");
@@ -21,21 +24,10 @@ const UserPaymentOptions = () => {
   const [copied, setCopied] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  // Get current user ID (check for both customer and wholesaler)
-  const customerId = localStorage.getItem('currentUserId');
-  const wholesalerId = localStorage.getItem('wholesalerId');
-  const userId = wholesalerId || customerId || '';
   
   useEffect(() => {
     // Check if user is authenticated
-    if (wholesalerId) {
-      setIsAuthenticated(true);
-    } else if (customerId && customerId.startsWith('user_')) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
+    if (!isAuthenticated) {
       toast.error("Authentication required", {
         description: "Please log in to access payment options"
       });
@@ -43,27 +35,38 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Load user balance from localStorage only for authenticated users
-    let balance = 0;
-    
-    if (wholesalerId) {
-      const balanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
-      balance = balanceStr ? parseFloat(balanceStr) : 0;
-    } else if (customerId && customerId.startsWith('user_')) {
-      const customer = getCustomerById(customerId);
-      if (customer) {
-        balance = customer.balance || 0;
-      } else {
-        const balanceStr = localStorage.getItem(`userBalance_${customerId}`);
-        balance = balanceStr ? parseFloat(balanceStr) : 0;
+    // Load user balance from Supabase
+    const fetchUserBalance = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user balance:', error);
+          // Fallback to localStorage or user object
+          setUserBalance(user.balance || 0);
+          return;
+        }
+        
+        if (data) {
+          setUserBalance(data.balance || 0);
+        }
+      } catch (error) {
+        console.error('Error in fetchUserBalance:', error);
+        setUserBalance(user.balance || 0);
       }
-    }
+    };
     
-    setUserBalance(balance);
-  }, [customerId, wholesalerId, navigate]);
+    fetchUserBalance();
+  }, [user, isAuthenticated, navigate]);
   
   // If not authenticated, show login required component
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Balance & Payments</h1>
@@ -100,83 +103,89 @@ const UserPaymentOptions = () => {
     setTimeout(() => setCopied(false), 2000);
   };
   
-  // Function to create admin notification for payments
-  const createPaymentNotification = (paymentMethod: string, amount: number) => {
-    // Get existing notifications
-    const existingNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+  // Function to create payment notification and record in Supabase
+  const createPaymentRequest = async (paymentMethod: string, amount: number) => {
+    if (!user) return;
     
-    // Get user info
-    let userName = "Unknown User";
-    if (userId) {
-      const userInfo = localStorage.getItem(`userData_${userId}`);
-      if (userInfo) {
-        const parsedUser = JSON.parse(userInfo);
-        userName = parsedUser.name || userName;
-      } else {
-        const customer = getCustomerById(userId);
-        if (customer) {
-          userName = customer.name || userName;
-        }
+    try {
+      // Create payment record in Supabase
+      const paymentId = `pmt-${Date.now()}`;
+      const payment = {
+        id: paymentId,
+        userId: user.id,
+        amount: amount,
+        method: paymentMethod,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        description: "Account Balance Top-up",
+        userName: user.name,
+        userEmail: user.email
+      };
+      
+      // Try to save payment to Supabase if available
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert(payment);
+      
+      if (paymentError) {
+        console.error('Error creating payment record:', paymentError);
+        // Fallback to localStorage
+        const payments = JSON.parse(localStorage.getItem('payments') || '[]');
+        payments.push(payment);
+        localStorage.setItem('payments', JSON.stringify(payments));
       }
+      
+      // Create admin notification
+      const notification = {
+        id: `notif-${Date.now()}`,
+        type: "payment_request",
+        userId: user.id,
+        customerName: user.name,
+        serviceName: "Account Balance Top-up",
+        createdAt: new Date().toISOString(),
+        read: false,
+        paymentId: paymentId,
+        amount: amount,
+        paymentMethod: paymentMethod
+      };
+      
+      // Try to save notification to Supabase if available
+      const { error: notificationError } = await supabase
+        .from('admin_notifications')
+        .insert(notification);
+      
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Fallback to localStorage
+        const existingNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+        existingNotifications.push(notification);
+        localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
+      }
+      
+      return paymentId;
+    } catch (error) {
+      console.error('Error in createPaymentRequest:', error);
+      // Create a fallback payment record in localStorage
+      const paymentId = `pmt-${Date.now()}`;
+      const payments = JSON.parse(localStorage.getItem('payments') || '[]');
+      payments.push({
+        id: paymentId,
+        userId: user.id,
+        amount: amount,
+        method: paymentMethod,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        description: "Account Balance Top-up",
+        userName: user.name,
+        userEmail: user.email
+      });
+      localStorage.setItem('payments', JSON.stringify(payments));
+      return paymentId;
     }
-    
-    // Create payment ID
-    const paymentId = `pmt-${Date.now()}`;
-    
-    // Create payment record
-    const payment = {
-      id: paymentId,
-      orderId: "manual-topup",
-      amount: amount,
-      method: paymentMethod,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      userId: userId,
-      userName: userName,
-    };
-    
-    // Save payment record
-    const payments = JSON.parse(localStorage.getItem('payments') || '[]');
-    payments.push(payment);
-    localStorage.setItem('payments', JSON.stringify(payments));
-    
-    // Create notification
-    const notification = {
-      id: `notif-${Date.now()}`,
-      type: "payment_request",
-      subscriptionId: "",
-      userId: userId,
-      customerName: userName,
-      serviceName: "Account Balance Top-up",
-      createdAt: new Date().toISOString(),
-      read: false,
-      paymentId: paymentId,
-      amount: amount,
-      paymentMethod: paymentMethod
-    };
-    
-    // Add to notifications and save
-    existingNotifications.push(notification);
-    localStorage.setItem('adminNotifications', JSON.stringify(existingNotifications));
-    
-    return paymentId;
-  }
-  
-  const updateUserBalance = (newAmount: number) => {
-    const newBalance = userBalance + newAmount;
-    
-    // Update balance in localStorage
-    if (wholesalerId) {
-      localStorage.setItem(`userBalance_${wholesalerId}`, newBalance.toString());
-    } else if (customerId) {
-      // For regular customers, update through the data function
-      addCustomerBalance(customerId, newAmount);
-    }
-    
-    setUserBalance(newBalance);
   };
   
-  const handleCreditCardSubmit = (e: React.FormEvent) => {
+  // Function to handle credit card payment submission
+  const handleCreditCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     
@@ -186,19 +195,26 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Create payment notification for admin
-    createPaymentNotification("credit_card", amount);
-    
-    // Notify user that payment is pending admin approval
-    toast.success(`Payment request of $${amount.toFixed(2)} has been submitted`, {
-      description: "Your payment is pending admin approval."
-    });
-    
-    resetForm();
-    setIsProcessing(false);
+    try {
+      // Create payment request
+      await createPaymentRequest("credit_card", amount);
+      
+      // Notify user that payment is pending admin approval
+      toast.success(`Payment request of $${amount.toFixed(2)} has been submitted`, {
+        description: "Your payment is pending admin approval."
+      });
+      
+      resetForm();
+    } catch (error) {
+      console.error('Error in handleCreditCardSubmit:', error);
+      toast.error("An error occurred while submitting your payment request");
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
-  const handleWishMoneySubmit = (e: React.FormEvent) => {
+  // Function to handle Wish Money payment submission
+  const handleWishMoneySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     
@@ -208,19 +224,26 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Create payment notification for admin
-    createPaymentNotification("wish_money", amount);
-    
-    // Notify user that payment is pending admin approval
-    toast.success("Wish Money payment request submitted", {
-      description: "Your payment is pending admin approval."
-    });
-    
-    resetForm();
-    setIsProcessing(false);
+    try {
+      // Create payment request
+      await createPaymentRequest("wish_money", amount);
+      
+      // Notify user that payment is pending admin approval
+      toast.success("Wish Money payment request submitted", {
+        description: "Your payment is pending admin approval."
+      });
+      
+      resetForm();
+    } catch (error) {
+      console.error('Error in handleWishMoneySubmit:', error);
+      toast.error("An error occurred while submitting your payment request");
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
-  const handleBinancePaySubmit = (e: React.FormEvent) => {
+  // Function to handle Binance Pay payment submission
+  const handleBinancePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     
@@ -230,16 +253,22 @@ const UserPaymentOptions = () => {
       return;
     }
     
-    // Create payment notification for admin
-    createPaymentNotification("usdt", amount);
-    
-    // Notify user that payment is pending admin approval
-    toast.success("USDT payment request submitted", { 
-      description: "Your payment is pending admin approval."
-    });
-    
-    resetForm();
-    setIsProcessing(false);
+    try {
+      // Create payment request
+      await createPaymentRequest("usdt", amount);
+      
+      // Notify user that payment is pending admin approval
+      toast.success("USDT payment request submitted", { 
+        description: "Your payment is pending admin approval."
+      });
+      
+      resetForm();
+    } catch (error) {
+      console.error('Error in handleBinancePaySubmit:', error);
+      toast.error("An error occurred while submitting your payment request");
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const resetForm = () => {

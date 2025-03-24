@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Subscription, Service } from '@/lib/types';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
 
 interface SubscriptionContextType {
   subscription: Subscription | null;
@@ -21,7 +22,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean>(false);
 
-  const fetchSubscription = () => {
+  const fetchSubscription = async () => {
     if (!user) {
       setSubscription(null);
       setIsLoading(false);
@@ -32,14 +33,48 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
 
     try {
-      // In a real app, this would be an API call
+      // First try to fetch from Supabase if available
+      const { data: supabaseSubscriptions, error: supabaseError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('userId', user.id)
+        .eq('status', 'active')
+        .order('endDate', { ascending: false })
+        .limit(1);
+      
+      if (supabaseError) {
+        console.error('Supabase fetch error:', supabaseError);
+        // Fall back to localStorage if Supabase query fails
+        fallbackToLocalStorage();
+        return;
+      }
+      
+      if (supabaseSubscriptions && supabaseSubscriptions.length > 0) {
+        const latestSubscription = supabaseSubscriptions[0];
+        setSubscription(latestSubscription);
+        setHasActiveSubscription(true);
+        setIsLoading(false);
+        return;
+      }
+      
+      // If no data in Supabase, fall back to localStorage
+      fallbackToLocalStorage();
+    } catch (err) {
+      console.error('Failed to fetch subscription:', err);
+      fallbackToLocalStorage();
+    }
+  };
+  
+  const fallbackToLocalStorage = () => {
+    try {
+      // Fallback to localStorage
       const storedSubscriptions = localStorage.getItem('subscriptions');
       let userSubscriptions: Subscription[] = [];
       
       if (storedSubscriptions) {
         const allSubscriptions = JSON.parse(storedSubscriptions);
         userSubscriptions = allSubscriptions.filter(
-          (sub: Subscription) => sub.userId === user.id && sub.status === 'active'
+          (sub: Subscription) => sub.userId === user?.id && sub.status === 'active'
         );
       }
       
@@ -54,7 +89,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setHasActiveSubscription(!!latestSubscription);
       setIsLoading(false);
     } catch (err) {
-      console.error('Failed to fetch subscription:', err);
+      console.error('Failed to fetch subscription from localStorage:', err);
       setError('Failed to load subscription data');
       setIsLoading(false);
     }
