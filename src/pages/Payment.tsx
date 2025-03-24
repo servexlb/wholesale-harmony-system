@@ -10,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import { Copy, Check, AlertCircle, CreditCard, ExternalLink, Clock, User, LogIn } from "lucide-react";
 import { AdminNotification } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Payment: React.FC = () => {
   const navigate = useNavigate();
@@ -24,28 +26,42 @@ const Payment: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "success" | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const userId = localStorage.getItem('currentUserId');
+  const { user, isAuthenticated } = useAuth();
   
   useEffect(() => {
-    const isUserLoggedIn = !!userId && userId.startsWith('user_');
-    setIsAuthenticated(isUserLoggedIn);
+    const fetchUserBalance = async () => {
+      setIsLoading(true);
+      
+      if (!isAuthenticated || !user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching user balance:', error);
+          setIsLoading(false);
+          return;
+        }
+        
+        setUserBalance(data?.balance || 0);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error in fetchUserBalance:', error);
+        setIsLoading(false);
+      }
+    };
     
-    if (!isUserLoggedIn) {
-      toast.error("Authentication required", {
-        description: "Please log in to add funds"
-      });
-      return;
-    }
-    
-    const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
-    if (userBalanceStr && userId) {
-      setUserBalance(parseFloat(userBalanceStr));
-    } else {
-      setUserBalance(0);
-    }
-  }, [userId]);
+    fetchUserBalance();
+  }, [user, isAuthenticated]);
   
   const wishMoneyAccount = "76349522";
   const bankAccount = {
@@ -99,29 +115,30 @@ const Payment: React.FC = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${userId}`) || '[]');
-    transactionHistory.push(transaction);
-    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify(transactionHistory));
+    if (user?.id) {
+      const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${user.id}`) || '[]');
+      transactionHistory.push(transaction);
+      localStorage.setItem(`transactionHistory_${user.id}`, JSON.stringify(transactionHistory));
 
-    const adminNotification: Partial<AdminNotification> = {
-      type: "payment_issue",
-      customerName: "Current User",
-      serviceName: `Top-up $${amount} via Wish Money`,
-      read: false,
-      createdAt: new Date().toISOString()
-    };
+      const adminNotification: Partial<AdminNotification> = {
+        type: "payment_issue",
+        customerName: user?.name || "Current User",
+        serviceName: `Top-up $${amount} via Wish Money`,
+        read: false,
+        createdAt: new Date().toISOString()
+      };
 
-    console.log("ADMIN NOTIFICATION: User topped up with Wish Money:", {
-      amount,
-      timestamp: new Date().toISOString(),
-      notes,
-      adminNotification,
-      userId
-    });
+      console.log("ADMIN NOTIFICATION: User topped up with Wish Money:", {
+        amount,
+        timestamp: new Date().toISOString(),
+        notes,
+        adminNotification,
+        userId: user.id
+      });
+    }
     
     setTimeout(() => {
       toast.success(`Your payment of $${amount} has been recorded`);
-      
       setIsProcessing(false);
       setPaymentStatus("pending");
     }, 1500);
@@ -154,16 +171,17 @@ const Payment: React.FC = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${userId}`) || '[]');
-    transactionHistory.push(transaction);
-    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify(transactionHistory));
+    if (user?.id) {
+      const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${user.id}`) || '[]');
+      transactionHistory.push(transaction);
+      localStorage.setItem(`transactionHistory_${user.id}`, JSON.stringify(transactionHistory));
+    }
 
     toast("Redirecting to bank payment page...");
     window.open("https://www.yourbank.com/payments", "_blank");
     
     setTimeout(() => {
       toast.success(`Your payment request of $${amount} has been initiated`);
-      
       setPaymentStatus("pending");
     }, 1000);
   };
@@ -195,16 +213,17 @@ const Payment: React.FC = () => {
       date: new Date().toISOString()
     };
     
-    const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${userId}`) || '[]');
-    transactionHistory.push(transaction);
-    localStorage.setItem(`transactionHistory_${userId}`, JSON.stringify(transactionHistory));
+    if (user?.id) {
+      const transactionHistory = JSON.parse(localStorage.getItem(`transactionHistory_${user.id}`) || '[]');
+      transactionHistory.push(transaction);
+      localStorage.setItem(`transactionHistory_${user.id}`, JSON.stringify(transactionHistory));
+    }
 
     toast("Redirecting to Binance Pay...");
     window.open(binancePayUrl, "_blank");
     
     setTimeout(() => {
       toast.success(`Your Binance Pay transaction of $${amount} has been initiated`);
-      
       setPaymentStatus("pending");
     }, 1000);
   };
@@ -212,6 +231,20 @@ const Payment: React.FC = () => {
   const handleReturnToShopping = () => {
     navigate("/services");
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="container py-8 flex justify-center items-center min-h-[60vh]">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-12 w-12 rounded-full bg-primary/20 mb-4"></div>
+            <div className="h-4 w-48 bg-primary/20 rounded mb-2"></div>
+            <div className="h-3 w-32 bg-primary/10 rounded"></div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
