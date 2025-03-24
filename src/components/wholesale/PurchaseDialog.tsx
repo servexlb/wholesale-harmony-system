@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -36,6 +35,8 @@ interface PurchaseDialogProps {
   isSubmitting: boolean;
   isMobile: boolean;
   children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
@@ -48,9 +49,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   onPurchase,
   isSubmitting,
   isMobile,
-  children
+  children,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(externalOpen || false);
+
   const [services, setServices] = useState<Service[]>([]);
   const [serviceId, setServiceId] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -69,7 +73,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [customerId, setCustomerId] = useState('');
 
-  // Initialize services
   useEffect(() => {
     const storedServices = localStorage.getItem('services');
     if (storedServices) {
@@ -81,7 +84,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       }
     }
     
-    // Listen for custom events that might update service list
     const handleServiceUpdated = () => {
       const updatedServices = localStorage.getItem('services');
       if (updatedServices) {
@@ -105,7 +107,19 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     };
   }, []);
   
-  // Listen for purchase dialog events
+  useEffect(() => {
+    if (externalOpen !== undefined) {
+      setOpen(externalOpen);
+    }
+  }, [externalOpen]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (externalOnOpenChange) {
+      externalOnOpenChange(newOpen);
+    }
+  };
+
   useEffect(() => {
     const handleOpenPurchaseDialog = (event: Event) => {
       try {
@@ -118,7 +132,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           setServiceId(customEvent.detail.serviceId);
         }
         
-        // Check for customer details
         if (customEvent.detail?.customerName) {
           setCustomerName(customEvent.detail.customerName);
         }
@@ -131,7 +144,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           setCustomerPhone(customEvent.detail.customerPhone);
         }
         
-        setOpen(true);
+        handleOpenChange(true);
       } catch (error) {
         console.error('Error opening purchase dialog:', error);
       }
@@ -144,7 +157,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     };
   }, []);
 
-  // Load service pricing
   useEffect(() => {
     if (!serviceId) {
       setPricingData([]);
@@ -154,7 +166,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     
     const fetchPricing = async () => {
       try {
-        // Try to get pricing from service_pricing table
         const { data, error } = await supabase
           .from('service_pricing')
           .select('*')
@@ -162,25 +173,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           
         if (error) {
           console.error('Error fetching pricing data:', error);
-          // Fallback to local storage
           fallbackToLocalPricing();
           return;
         }
         
         if (data && data.length > 0) {
-          // Use the data from the database
           setPricingData(data);
           
-          // Extract available durations
           const durations = data.map(item => item.duration_months);
           setAvailableDurations(durations.length > 0 ? durations : [1]);
           
-          // Set default duration to the first available
           if (durations.length > 0) {
             setDuration(durations[0]);
           }
         } else {
-          // Fallback to local storage
           fallbackToLocalPricing();
         }
       } catch (error) {
@@ -190,27 +196,22 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     };
     
     const fallbackToLocalPricing = () => {
-      // Get the selected service
       const selectedService = services.find(s => s.id === serviceId);
       
       if (selectedService) {
-        // If service has monthly pricing information
         if (selectedService.monthlyPricing && selectedService.monthlyPricing.length > 0) {
           const durations = selectedService.monthlyPricing.map(item => item.months);
           setAvailableDurations(durations);
           
-          // Set default duration to the first available
           if (durations.length > 0) {
             setDuration(durations[0]);
           }
         } else if (selectedService.availableMonths && selectedService.availableMonths.length > 0) {
-          // Legacy format
           setAvailableDurations(selectedService.availableMonths);
           if (selectedService.availableMonths.length > 0) {
             setDuration(selectedService.availableMonths[0]);
           }
         } else {
-          // Default to 1 month
           setAvailableDurations([1]);
           setDuration(1);
         }
@@ -220,7 +221,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     fetchPricing();
   }, [serviceId, services]);
 
-  // Calculate total price
   useEffect(() => {
     if (!serviceId) {
       setTotalPrice(0);
@@ -228,7 +228,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
     
     const calculatePrice = () => {
-      // First try to get price from pricing data (from DB)
       if (pricingData.length > 0) {
         const pricingItem = pricingData.find(item => item.duration_months === duration);
         if (pricingItem) {
@@ -236,13 +235,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         }
       }
       
-      // Fallback to service object
       const selectedService = services.find(s => s.id === serviceId);
       if (!selectedService) {
         return 0;
       }
       
-      // First try monthly pricing array
       if (selectedService.monthlyPricing && selectedService.monthlyPricing.length > 0) {
         const pricingItem = selectedService.monthlyPricing.find(item => item.months === duration);
         if (pricingItem && pricingItem.wholesalePrice !== undefined) {
@@ -250,7 +247,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         }
       }
       
-      // Fallback to default wholesale price
       return (selectedService.wholesalePrice || 0) * quantity * duration;
     };
     
@@ -268,7 +264,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
     
-    // Create order object
     const order: WholesaleOrder = {
       id: `order-${Date.now()}`,
       customerId: customerId,
@@ -286,12 +281,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       notes: customerNotes
     };
     
-    // Check for credentials if duration > 0
     if (duration > 0) {
       const service = services.find(s => s.id === serviceId);
       if (service?.type === 'subscription' || service?.type === 'service') {
-        // In a real implementation, we might want to add credential fields
-        // For now, we'll just create an empty credentials object
         order.credentials = {
           email: '',
           password: '',
@@ -302,16 +294,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
     
     try {
-      // Save to Supabase
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
         order.wholesalerId = session.session.user.id;
       }
       
-      // Process the order through the parent component's handler
       onPurchase(order);
       
-      // Reset the form
       setServiceId('');
       setQuantity(1);
       setDuration(1);
@@ -323,7 +312,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setCustomerCompany('');
       setCustomerNotes('');
       
-      // Close the dialog
       setOpen(false);
     } catch (error) {
       console.error('Error submitting purchase:', error);
@@ -334,7 +322,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const selectedService = services.find(s => s.id === serviceId);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
@@ -500,4 +488,3 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 };
 
 export default PurchaseDialog;
-

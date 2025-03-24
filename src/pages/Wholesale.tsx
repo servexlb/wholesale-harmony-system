@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers } from '@/lib/data';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
@@ -163,8 +162,6 @@ const Wholesale = () => {
       >
         {/* Show the purchase dialog when needed */}
         <PurchaseDialog
-          open={purchaseDialogOpen}
-          onOpenChange={setPurchaseDialogOpen}
           customerName={customerName}
           customerEmail={customerEmail}
           customerPhone={customerPhone}
@@ -174,9 +171,8 @@ const Wholesale = () => {
           onPurchase={handlePurchaseSubmit}
           isSubmitting={isSubmitting}
           isMobile={false}
-        >
-          <Button style={{ display: 'none' }}>Open Purchase Dialog</Button>
-        </PurchaseDialog>
+          children={<Button style={{ display: 'none' }}>Open Purchase Dialog</Button>}
+        />
         
         <WholesaleTabContent 
           activeTab={activeTab}
