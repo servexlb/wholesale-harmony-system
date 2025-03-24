@@ -80,6 +80,7 @@ const CustomerRow: React.FC<CustomerRowProps> = ({
               size="sm" 
               onClick={handlePurchaseClick}
               title="New purchase"
+              className="transition-all hover:bg-primary hover:text-primary-foreground"
             >
               <ShoppingCart className="h-4 w-4 mr-1" />
               <span className="hidden sm:inline">Purchase</span>

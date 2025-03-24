@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Service, ServiceType } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { ShoppingCart, Info, Check, Clock, Star } from 'lucide-react';
+import { ShoppingCart, Info, Check, Clock, Star, Gift, Zap, Infinity, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
@@ -59,6 +59,42 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
   };
 
+  // Get icon based on service type
+  const getTypeIcon = () => {
+    switch(service.type) {
+      case 'subscription':
+        return <CreditCard className="h-3 w-3 mr-1" />;
+      case 'one-time':
+        return <ShoppingCart className="h-3 w-3 mr-1" />;
+      case 'lifetime':
+        return <Infinity className="h-3 w-3 mr-1" />;
+      case 'topup':
+      case 'recharge':
+        return <Zap className="h-3 w-3 mr-1" />;
+      case 'giftcard':
+        return <Gift className="h-3 w-3 mr-1" />;
+      default:
+        return null;
+    }
+  };
+
+  // Get price display based on service type
+  const getPriceDisplay = () => {
+    if (service.type === 'subscription') {
+      return `${isWholesale 
+        ? formatCurrency(service.wholesalePrice || service.price)
+        : formatCurrency(service.price)}/month`;
+    } else if (service.type === 'topup' || service.type === 'recharge') {
+      return `${isWholesale 
+        ? formatCurrency(service.wholesalePrice || service.price)
+        : formatCurrency(service.price)} per unit`;
+    } else {
+      return isWholesale 
+        ? formatCurrency(service.wholesalePrice || service.price)
+        : formatCurrency(service.price);
+    }
+  };
+
   return (
     <Card 
       className="overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col"
@@ -74,10 +110,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           )}
         </div>
         {service.type && (
-          <Badge variant="outline" className="mt-1">
+          <Badge variant="outline" className="mt-1 flex items-center">
+            {getTypeIcon()}
             {service.type === 'subscription' ? 'Subscription' : 
              service.type === 'one-time' ? 'One-time' : 
              service.type === 'lifetime' ? 'Lifetime' : 
+             service.type === 'topup' ? 'Top-up' :
+             service.type === 'recharge' ? 'Recharge' :
+             service.type === 'giftcard' ? 'Gift Card' :
              service.type}
           </Badge>
         )}
@@ -107,17 +147,39 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
         )}
         
+        {service.type === 'subscription' && service.monthlyPricing && service.monthlyPricing.length > 0 && (
+          <div className="text-xs text-muted-foreground mb-2">
+            <span>Available durations: </span>
+            <span className="font-medium">
+              {service.monthlyPricing.map(p => `${p.months} month${p.months > 1 ? 's' : ''}`).join(', ')}
+            </span>
+          </div>
+        )}
+        
+        {(service.type === 'topup' || service.type === 'recharge') && service.value && (
+          <div className="text-xs text-muted-foreground mb-2">
+            <span>Value: </span>
+            <span className="font-medium">${service.value.toFixed(2)}</span>
+          </div>
+        )}
+        
+        {service.minQuantity && service.minQuantity > 1 && (
+          <div className="text-xs text-muted-foreground mb-2">
+            <span>Min quantity: </span>
+            <span className="font-medium">{service.minQuantity}</span>
+          </div>
+        )}
+        
         <div className="mt-auto">
           <div className="flex justify-between items-baseline">
             <div className="font-semibold text-lg">
-              {isWholesale 
-                ? formatCurrency(service.wholesalePrice || service.price)
-                : formatCurrency(service.price)
-              }
+              {getPriceDisplay()}
             </div>
             {isWholesale && (
               <div className="text-xs text-muted-foreground">
-                Retail: {formatCurrency(service.price)}
+                Retail: {service.type === 'subscription' 
+                  ? `${formatCurrency(service.price)}/month` 
+                  : formatCurrency(service.price)}
               </div>
             )}
           </div>

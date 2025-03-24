@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WholesaleOrder, Service } from '@/lib/types';
+import { WholesaleOrder, Service, ServiceType } from '@/lib/types';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,6 +59,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [availableDurations, setAvailableDurations] = useState<number[]>([1]);
   const [pricingData, setPricingData] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState('');
+  const [productTypeOptions, setProductTypeOptions] = useState<{[key in ServiceType]: boolean}>({
+    subscription: false,
+    topup: false,
+    'one-time': false,
+    lifetime: false,
+    recharge: false,
+    giftcard: false,
+    service: false
+  });
 
   useEffect(() => {
     const storedServices = localStorage.getItem('services');
@@ -65,6 +75,25 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       try {
         const parsedServices = JSON.parse(storedServices);
         setServices(parsedServices);
+        
+        // Determine which product types are available
+        const availableTypes: {[key in ServiceType]: boolean} = {
+          subscription: false,
+          topup: false,
+          'one-time': false,
+          lifetime: false,
+          recharge: false,
+          giftcard: false,
+          service: false
+        };
+        
+        parsedServices.forEach((service: Service) => {
+          if (service.type) {
+            availableTypes[service.type as ServiceType] = true;
+          }
+        });
+        
+        setProductTypeOptions(availableTypes);
       } catch (error) {
         console.error('Error parsing services:', error);
       }
@@ -76,6 +105,25 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         try {
           const parsedServices = JSON.parse(updatedServices);
           setServices(parsedServices);
+          
+          // Update available product types
+          const availableTypes: {[key in ServiceType]: boolean} = {
+            subscription: false,
+            topup: false,
+            'one-time': false,
+            lifetime: false,
+            recharge: false,
+            giftcard: false,
+            service: false
+          };
+          
+          parsedServices.forEach((service: Service) => {
+            if (service.type) {
+              availableTypes[service.type as ServiceType] = true;
+            }
+          });
+          
+          setProductTypeOptions(availableTypes);
         } catch (error) {
           console.error('Error parsing updated services:', error);
         }
@@ -237,6 +285,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
     
+    const selectedService = services.find(s => s.id === serviceId);
+    if (!selectedService) {
+      toast.error('Service not found');
+      return;
+    }
+    
     const order: WholesaleOrder = {
       id: `order-${Date.now()}`,
       customerId: customerId,
@@ -245,21 +299,27 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       totalPrice: totalPrice,
       status: "completed",
       createdAt: new Date().toISOString(),
-      durationMonths: duration,
+      durationMonths: selectedService.type === 'subscription' ? duration : undefined,
       customerName: customerName,
       notes: customerNotes
     };
     
-    if (duration > 0) {
-      const service = services.find(s => s.id === serviceId);
-      if (service?.type === 'subscription' || service?.type === 'service') {
-        order.credentials = {
-          email: '',
-          password: '',
-          username: '',
-          notes: ''
-        };
-      }
+    // Different handling based on product type
+    if (selectedService.type === 'subscription' || selectedService.type === 'service') {
+      order.credentials = {
+        email: '',
+        password: '',
+        username: '',
+        notes: ''
+      };
+      order.durationMonths = duration;
+    } else if (selectedService.type === 'topup' || selectedService.type === 'recharge') {
+      // For topups and recharges, we primarily care about the quantity
+      order.quantity = quantity;
+      order.durationMonths = undefined;
+    } else if (selectedService.type === 'giftcard') {
+      // For gift cards, include additional notes for redemption
+      order.notes = `${customerNotes ? customerNotes + '\n' : ''}Gift card will be delivered to ${customerName}.`;
     }
     
     try {
@@ -285,6 +345,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   };
 
   const selectedService = services.find(s => s.id === serviceId);
+  const productType = selectedService?.type || 'service';
+
+  // Group services by type for better organization
+  const servicesByType = services.reduce((acc: {[key: string]: Service[]}, service) => {
+    const type = service.type || 'service';
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type].push(service);
+    return acc;
+  }, {});
+
+  // Determine if the current service requires an account ID
+  const requiresAccountId = selectedService?.requiresId || false;
+  const [accountId, setAccountId] = useState('');
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -307,10 +382,22 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 <SelectValue placeholder="Select a service" />
               </SelectTrigger>
               <SelectContent>
-                {services.map((service) => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {service.name} - ${service.wholesalePrice?.toFixed(2)}
-                  </SelectItem>
+                {Object.entries(servicesByType).map(([type, servicesOfType]) => (
+                  <div key={type} className="py-1">
+                    <div className="px-2 text-xs text-muted-foreground font-semibold uppercase">
+                      {type === 'one-time' ? 'One-Time Purchase' : 
+                       type === 'subscription' ? 'Subscription' :
+                       type === 'topup' ? 'Top-up' :
+                       type === 'recharge' ? 'Recharge' :
+                       type === 'lifetime' ? 'Lifetime' :
+                       type === 'giftcard' ? 'Gift Card' : 'Service'}
+                    </div>
+                    {servicesOfType.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name} - ${service.wholesalePrice?.toFixed(2)}
+                      </SelectItem>
+                    ))}
+                  </div>
                 ))}
               </SelectContent>
             </Select>
@@ -318,9 +405,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           
           {selectedService && (
             <>
-              {(selectedService.type === 'subscription' || availableDurations.length > 1) && (
+              {(productType === 'subscription' || availableDurations.length > 1) && (
                 <div>
-                  <Label htmlFor="duration">Duration</Label>
+                  <Label htmlFor="duration">
+                    {productType === 'subscription' ? 'Subscription Duration' : 'Duration'}
+                  </Label>
                   <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value))}>
                     <SelectTrigger id="duration" className="mt-1">
                       <SelectValue placeholder="Select duration" />
@@ -337,16 +426,39 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               )}
               
               <div>
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity">
+                  {productType === 'topup' || productType === 'recharge' ? 'Credits/Units' : 'Quantity'}
+                </Label>
                 <Input
                   id="quantity"
                   type="number"
-                  min="1"
+                  min={selectedService.minQuantity || 1}
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                   className="mt-1"
                 />
+                {selectedService.minQuantity && selectedService.minQuantity > 1 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Minimum quantity: {selectedService.minQuantity}
+                  </p>
+                )}
               </div>
+
+              {requiresAccountId && (
+                <div>
+                  <Label htmlFor="accountId">Account ID / Username <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="accountId"
+                    value={accountId}
+                    onChange={(e) => setAccountId(e.target.value)}
+                    placeholder="Customer's account ID for this service"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Required for service authentication
+                  </p>
+                </div>
+              )}
             </>
           )}
           
@@ -367,7 +479,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               <span>{selectedService?.name || 'None selected'}</span>
             </div>
             
-            {selectedService?.type === 'subscription' && (
+            {productType === 'subscription' && (
               <div className="flex justify-between text-sm">
                 <span>Duration:</span>
                 <span>{duration} {duration === 1 ? 'month' : 'months'}</span>
@@ -375,7 +487,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             )}
             
             <div className="flex justify-between text-sm">
-              <span>Quantity:</span>
+              <span>
+                {productType === 'topup' || productType === 'recharge' ? 'Credits/Units:' : 'Quantity:'}
+              </span>
               <span>{quantity}</span>
             </div>
             
@@ -390,7 +504,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !serviceId}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting || !serviceId || (requiresAccountId && !accountId.trim())}
+          >
             {isSubmitting ? 'Processing...' : 'Complete Purchase'}
           </Button>
         </DialogFooter>
