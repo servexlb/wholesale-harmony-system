@@ -8,6 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Customer } from '@/lib/data';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 // Customer form schema - making email truly optional
 const customerSchema = z.object({
@@ -44,8 +45,9 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
   // Update the form submission handler to auto-save to Supabase
   const handleAddCustomer = (data: CustomerFormValues) => {
     // Create a new customer with the form data
+    // Generate a UUID instead of using a timestamp to ensure compatibility with Supabase
     const newCustomer: Customer = {
-      id: `customer-${Date.now()}`,
+      id: uuidv4(),
       name: data.name,
       phone: data.phone,
       email: '', // Set email to empty string by default
@@ -62,7 +64,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
     // Reset form and close dialog
     form.reset();
     onClose();
-    toast.success(`Customer ${data.name} added successfully`);
   };
 
   return (

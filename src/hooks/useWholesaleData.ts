@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -56,6 +55,7 @@ export function useWholesaleData(currentWholesaler: string) {
           console.error('Error fetching customers:', customersError);
           toast.error('Error loading customer data');
         } else if (customers) {
+          console.log('Fetched customers from Supabase:', customers);
           const formattedCustomers = customers.map(customer => ({
             id: customer.id,
             name: customer.name,
@@ -203,7 +203,6 @@ export function useWholesaleData(currentWholesaler: string) {
       
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
-        // Add order to database first
         const { error } = await supabase
           .from('wholesale_orders')
           .insert({
@@ -229,10 +228,8 @@ export function useWholesaleData(currentWholesaler: string) {
           return;
         }
         
-        // Update user balance to reflect the order
         const totalPrice = order.totalPrice || 0;
         
-        // Get current user balance
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('balance')
@@ -248,7 +245,6 @@ export function useWholesaleData(currentWholesaler: string) {
         const currentBalance = profileData?.balance || 0;
         const newBalance = currentBalance - totalPrice;
         
-        // Update the balance in Supabase
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ balance: newBalance })
@@ -260,10 +256,8 @@ export function useWholesaleData(currentWholesaler: string) {
           return;
         }
         
-        // Also update localStorage for fallback
         localStorage.setItem(`userBalance_${session.session.user.id}`, newBalance.toString());
         
-        // Create payment record
         const paymentId = `pmt-${Date.now()}`;
         const { error: paymentError } = await supabase
           .from('payments')
@@ -371,28 +365,52 @@ export function useWholesaleData(currentWholesaler: string) {
       
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
-        const { error } = await supabase
+        console.log('Saving customer to Supabase:', newCustomer);
+        
+        const customerData = {
+          id: newCustomer.id,
+          wholesaler_id: session.session.user.id,
+          name: newCustomer.name,
+          email: newCustomer.email || null,
+          phone: newCustomer.phone || null,
+          company: newCustomer.company || null,
+          address: newCustomer.address || null,
+          notes: newCustomer.notes || null,
+          balance: newCustomer.balance || 0
+        };
+        
+        const { data, error } = await supabase
           .from('wholesale_customers')
-          .insert({
-            id: newCustomer.id,
-            wholesaler_id: session.session.user.id,
-            name: newCustomer.name,
-            email: newCustomer.email || null,
-            phone: newCustomer.phone || null,
-            company: newCustomer.company || null,
-            address: newCustomer.address || null,
-            notes: newCustomer.notes || null,
-            balance: newCustomer.balance || 0
-          });
+          .insert(customerData)
+          .select();
           
         if (error) {
           console.error('Error saving customer to Supabase:', error);
-          toast.error('Error saving customer to database');
+          if (error.code === '23505') {
+            toast.error('A customer with this ID already exists');
+          } else {
+            toast.error('Error saving customer to database');
+          }
+          
+          const currentCustomers = localStorage.getItem('wholesaleCustomers');
+          const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
+          localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
+        } else {
+          console.log('Customer saved to Supabase successfully:', data);
+          toast.success('Customer added successfully');
         }
+      } else {
+        const currentCustomers = localStorage.getItem('wholesaleCustomers');
+        const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
+        localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
       }
     } catch (error) {
       console.error('Error in handleAddCustomer:', error);
       toast.error('Error adding customer');
+      
+      const currentCustomers = localStorage.getItem('wholesaleCustomers');
+      const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
+      localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
     }
   };
 
