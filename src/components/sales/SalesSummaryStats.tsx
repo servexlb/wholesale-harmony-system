@@ -47,6 +47,10 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
     
     const handleOrderPlaced = async () => {
       console.log('Order placed event detected');
+      // Always update local state immediately for responsiveness
+      setTotalSales(prev => prev + 1);
+      
+      // Only attempt to fetch from database if we have a valid UUID wholesalerId
       if (wholesalerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wholesalerId)) {
         try {
           const { data, error } = await supabase
@@ -66,15 +70,15 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
         } catch (error) {
           console.error('Error updating metrics after order:', error);
         }
-      } else {
-        setTotalSales(prev => prev + 1); // Simple increment for UI responsiveness
       }
     };
     
     const handleCustomerAdded = async () => {
       console.log('Customer added event detected in SalesSummaryStats');
-      setTotalCustomers(prev => prev + 1); // Always update local state immediately for responsiveness
+      // Always update local state immediately for responsiveness
+      setTotalCustomers(prev => prev + 1);
       
+      // Only attempt to fetch from database if we have a valid UUID wholesalerId
       if (wholesalerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wholesalerId)) {
         try {
           const { data, error } = await supabase

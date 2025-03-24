@@ -5,6 +5,7 @@ import { Subscription } from '@/lib/types';
 import CustomerSearchBar from './customer/CustomerSearchBar';
 import CustomerList from './customer/CustomerList';
 import AddCustomerButton from './customer/AddCustomerButton';
+import { toast } from '@/lib/toast';
 
 interface CustomerTableProps {
   subscriptions?: Subscription[];
@@ -32,12 +33,21 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
   }, [customers]);
 
   const handleAddCustomer = (newCustomer: Customer) => {
+    console.log('CustomerTable: handleAddCustomer called with', newCustomer);
+    
     // Add to the customers list
     setCustomersList(prev => [...prev, newCustomer]);
     
     // Pass the new customer to the parent component if onAddCustomer is provided
     if (onAddCustomer) {
+      console.log('Calling parent onAddCustomer with:', newCustomer);
       onAddCustomer(newCustomer);
+      
+      // Manually dispatch the customerAdded event as a fallback
+      window.dispatchEvent(new CustomEvent('customerAdded'));
+    } else {
+      console.warn('No onAddCustomer handler provided');
+      toast.warn('Customer added locally only');
     }
   };
 

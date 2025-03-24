@@ -364,10 +364,15 @@ export function useWholesaleData(currentWholesaler: string) {
   const handleAddCustomer = async (newCustomer: Customer) => {
     try {
       setCustomersData(prev => [...prev, newCustomer]);
+      console.log('Adding customer to local state:', newCustomer);
+      
+      const currentCustomers = localStorage.getItem('wholesaleCustomers');
+      const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
+      localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
       
       const { data: session } = await supabase.auth.getSession();
-      if (session?.session) {
-        console.log('Saving customer to Supabase:', newCustomer);
+      if (session?.session && session.session.user?.id) {
+        console.log('Saving customer to Supabase with wholesaler_id:', session.session.user.id);
         
         const customerData = {
           id: newCustomer.id,
@@ -393,28 +398,18 @@ export function useWholesaleData(currentWholesaler: string) {
           } else {
             toast.error('Error saving customer to database');
           }
-          
-          const currentCustomers = localStorage.getItem('wholesaleCustomers');
-          const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
-          localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
         } else {
           console.log('Customer saved to Supabase successfully:', data);
           toast.success('Customer added successfully');
         }
       } else {
-        const currentCustomers = localStorage.getItem('wholesaleCustomers');
-        const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
-        localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
+        console.log('No authenticated session, customer saved to localStorage only');
       }
       
       window.dispatchEvent(new CustomEvent('customerAdded'));
     } catch (error) {
       console.error('Error in handleAddCustomer:', error);
       toast.error('Error adding customer');
-      
-      const currentCustomers = localStorage.getItem('wholesaleCustomers');
-      const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
-      localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
     }
   };
 
