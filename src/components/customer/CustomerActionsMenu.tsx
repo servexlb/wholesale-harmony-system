@@ -365,27 +365,24 @@ const CustomerActionsMenu: React.FC<CustomerActionsMenuProps> = ({
                         </Select>
                       </div>
                       
-                      <div className="space-y-4 border p-3 rounded-md">
-                        <h4 className="font-medium">Credentials</h4>
-                        <div className="grid gap-2">
-                          <Label htmlFor="username">Username/Email</Label>
-                          <Input
-                            id="username"
-                            value={credential1}
-                            onChange={(e) => setCredential1(e.target.value)}
-                            placeholder="Username or Email"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="password">Password</Label>
-                          <Input
-                            id="password"
-                            type="password"
-                            value={credential2}
-                            onChange={(e) => setCredential2(e.target.value)}
-                            placeholder="Password"
-                          />
-                        </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="username">Username/Email</Label>
+                        <Input
+                          id="username"
+                          value={credential1}
+                          onChange={(e) => setCredential1(e.target.value)}
+                          placeholder="Username or Email"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={credential2}
+                          onChange={(e) => setCredential2(e.target.value)}
+                          placeholder="Password"
+                        />
                       </div>
                     </TabsContent>
                   )}
