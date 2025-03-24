@@ -6,59 +6,133 @@ import { Subscription, Order } from '@/lib/types';
 import CredentialDisplay from '../CredentialDisplay';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const DashboardCredentials: React.FC = () => {
   const [activeSubscriptions, setActiveSubscriptions] = useState<Subscription[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   
   // Get current user ID
-  const userId = localStorage.getItem('currentUserId') || '';
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session) {
+        setUserId(session.session.user.id);
+      }
+    };
+    
+    getUserId();
+  }, []);
   
-  // Load subscriptions and orders with credentials from localStorage
+  // Load subscriptions and orders from Supabase
   useEffect(() => {
     if (!userId) return;
     
-    // Load subscriptions
-    const subscriptionsKey = `userSubscriptions_${userId}`;
-    const subscriptionsData = JSON.parse(localStorage.getItem(subscriptionsKey) || '[]');
-    const activeSubscriptions = subscriptionsData.filter(
-      (sub: Subscription) => sub.status === 'active' && sub.credentials
-    );
-    setActiveSubscriptions(activeSubscriptions);
-    
-    // Load orders
-    const ordersKey = `customerOrders_${userId}`;
-    const ordersData = JSON.parse(localStorage.getItem(ordersKey) || '[]');
-    // Sort by date, newest first
-    const sortedOrders = ordersData
-      .sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5); // Get last 5 orders
-    
-    setRecentOrders(sortedOrders);
-    setIsLoading(false);
-  }, [userId]);
-  
-  // Extract service name from service ID (in a real app, this would fetch from a database)
-  const getServiceName = (serviceId: string) => {
-    // Simple mapping for demo purposes
-    const serviceNames: {[key: string]: string} = {
-      'service-netflix': 'Netflix Premium',
-      'service-spotify': 'Spotify Premium',
-      'service-disney': 'Disney+',
-      'service-hbo': 'HBO Max',
-      'service-amazon': 'Amazon Prime',
-      'service-youtube': 'YouTube Premium',
+    const fetchData = async () => {
+      try {
+        // Fetch subscriptions
+        const { data: subscriptions, error: subError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('status', 'active');
+          
+        if (subError) {
+          console.error('Error fetching subscriptions:', subError);
+        } else {
+          setActiveSubscriptions(subscriptions || []);
+        }
+        
+        // Fetch recent orders
+        const { data: orders, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(5);
+          
+        if (orderError) {
+          console.error('Error fetching orders:', orderError);
+        } else {
+          setRecentOrders(orders || []);
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setIsLoading(false);
+      }
     };
     
-    // If service ID starts with 'service-', extract the part after it
-    const serviceName = serviceId.startsWith('service-') ? 
-      serviceId.substring('service-'.length) : serviceId;
+    fetchData();
     
-    // Return mapped name or capitalize first letter
-    return serviceNames[serviceId] || 
-      serviceName.charAt(0).toUpperCase() + serviceName.slice(1).replace(/-/g, ' ');
-  };
+    // Set up real-time subscription for subscriptions and orders
+    const subscriptionsChannel = supabase
+      .channel('public:subscriptions')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'subscriptions',
+        filter: `user_id=eq.${userId}`
+      }, (payload) => {
+        // Refresh subscriptions when data changes
+        fetchData();
+      })
+      .subscribe();
+      
+    const ordersChannel = supabase
+      .channel('public:orders')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders',
+        filter: `user_id=eq.${userId}`
+      }, (payload) => {
+        // Refresh orders when data changes
+        fetchData();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(subscriptionsChannel);
+      supabase.removeChannel(ordersChannel);
+    };
+  }, [userId]);
+  
+  // If the Supabase fetch fails, try to load from localStorage as fallback
+  useEffect(() => {
+    if (!userId || activeSubscriptions.length > 0 || recentOrders.length > 0) return;
+    
+    // Load from localStorage as fallback
+    const loadFromLocalStorage = () => {
+      // Load subscriptions
+      const subscriptionsKey = `userSubscriptions_${userId}`;
+      const subscriptionsData = JSON.parse(localStorage.getItem(subscriptionsKey) || '[]');
+      const activeSubsLocal = subscriptionsData.filter(
+        (sub: Subscription) => sub.status === 'active' && sub.credentials
+      );
+      if (activeSubsLocal.length > 0) {
+        setActiveSubscriptions(activeSubsLocal);
+      }
+      
+      // Load orders
+      const ordersKey = `customerOrders_${userId}`;
+      const ordersData = JSON.parse(localStorage.getItem(ordersKey) || '[]');
+      // Sort by date, newest first
+      const sortedOrders = ordersData
+        .sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5); // Get last 5 orders
+      
+      if (sortedOrders.length > 0) {
+        setRecentOrders(sortedOrders);
+      }
+    };
+    
+    loadFromLocalStorage();
+    setIsLoading(false);
+  }, [userId, activeSubscriptions.length, recentOrders.length]);
   
   if (isLoading) {
     return (
@@ -128,7 +202,7 @@ const DashboardCredentials: React.FC = () => {
                     key={subscription.id}
                     orderId={subscription.id}
                     serviceId={subscription.serviceId}
-                    serviceName={getServiceName(subscription.serviceId)}
+                    serviceName={subscription.serviceId}
                     credentials={subscription.credentials}
                     purchaseDate={subscription.startDate}
                   />
@@ -147,9 +221,9 @@ const DashboardCredentials: React.FC = () => {
                     key={order.id}
                     orderId={order.id}
                     serviceId={order.serviceId || ''}
-                    serviceName={order.serviceId ? getServiceName(order.serviceId) : 'Order'}
+                    serviceName={order.serviceName || 'Order'}
                     credentials={order.credentials}
-                    isPending={!order.credentials}
+                    isPending={order.status === 'pending'}
                     purchaseDate={order.createdAt}
                   />
                 ))

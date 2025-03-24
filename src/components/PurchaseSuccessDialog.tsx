@@ -9,9 +9,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Copy } from "lucide-react";
 import { Service, Subscription } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
+import { toast } from "sonner";
 
 interface PurchaseSuccessDialogProps {
   open: boolean;
@@ -38,6 +39,21 @@ export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
   const handleViewDashboard = () => {
     onOpenChange(false);
     navigate('/dashboard');
+  };
+
+  const handleCopyCredentials = () => {
+    if (!credentials) return;
+    
+    const credentialText = `
+Service: ${service.name}
+${credentials.email ? `Email: ${credentials.email}` : ''}
+${credentials.username ? `Username: ${credentials.username}` : ''}
+${credentials.password ? `Password: ${credentials.password}` : ''}
+${credentials.notes ? `Notes: ${credentials.notes}` : ''}
+    `.trim();
+    
+    navigator.clipboard.writeText(credentialText);
+    toast.success("Credentials copied to clipboard");
   };
 
   return (
@@ -74,7 +90,18 @@ export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
           
           {credentials && (
             <div className="border rounded-md p-4 space-y-2">
-              <h4 className="text-sm font-medium">Your Access Credentials</h4>
+              <div className="flex justify-between items-center">
+                <h4 className="text-sm font-medium">Your Access Credentials</h4>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCopyCredentials}
+                  className="h-8"
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1" />
+                  Copy
+                </Button>
+              </div>
               
               {credentials.email && (
                 <div className="grid grid-cols-3 text-sm">

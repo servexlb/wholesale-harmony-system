@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -17,6 +16,7 @@ import { Service } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import PurchaseSuccessDialog from '@/components/PurchaseSuccessDialog';
 
 interface PurchaseDialogProps {
   service: Service;
@@ -42,8 +42,9 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [quantity, setQuantity] = useState(initialQuantity);
   const [duration, setDuration] = useState(initialDuration.toString());
   const [availableDurations, setAvailableDurations] = useState<string[]>(['1', '3', '6', '12']);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [credentials, setCredentials] = useState<{email?: string, password?: string, username?: string, notes?: string} | undefined>();
 
-  // Reset values when dialog opens
   useEffect(() => {
     if (open) {
       setQuantity(initialQuantity);
@@ -53,7 +54,6 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   }, [open, initialQuantity, initialDuration]);
 
-  // Calculate total price based on service type and duration
   const calculateTotalPrice = () => {
     if (service.type === 'subscription') {
       return service.price * parseInt(duration);
@@ -75,6 +75,14 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       const userId = session.session.user.id;
       const orderId = `ord-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       
+      // Generate mock credentials for the purchased service
+      const mockCredentials = service.type === 'subscription' ? {
+        email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
+        password: `pass${Math.random().toString(36).substring(2, 10)}`,
+        username: `user${Math.floor(Math.random() * 10000)}`,
+        notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
+      } : undefined;
+      
       // Save to orders table
       const { error: orderError } = await supabase
         .from('orders')
@@ -89,7 +97,8 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           duration_months: service.type === 'subscription' ? parseInt(duration) : null,
           account_id: accountId || null,
           notes: notes || null,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
         });
         
       if (orderError) {
@@ -111,7 +120,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             end_date: endDate.toISOString(),
             status: 'active',
             duration_months: parseInt(duration),
-            order_id: orderId
+            credentials: mockCredentials
           });
           
         if (subscriptionError) {
@@ -119,6 +128,9 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           // Don't return false here, as the order was successfully saved
         }
       }
+      
+      // Set credentials for the success dialog
+      setCredentials(mockCredentials);
       
       // Create a payment record
       const { error: paymentError } = await supabase
@@ -134,7 +146,6 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         
       if (paymentError) {
         console.error('Error saving payment:', paymentError);
-        // Don't return false here, as the order was successfully saved
       }
       
       // Update user balance if available
@@ -181,7 +192,19 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       if (!saveSuccess) {
         // If saving to database fails, store in localStorage as fallback
         const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-        orders.push({
+        
+        // Generate mock credentials for the purchased service
+        const mockCredentials = service.type === 'subscription' ? {
+          email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
+          password: `pass${Math.random().toString(36).substring(2, 10)}`,
+          username: `user${Math.floor(Math.random() * 10000)}`,
+          notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
+        } : undefined;
+        
+        // Set credentials for the success dialog
+        setCredentials(mockCredentials);
+        
+        const newOrder = {
           id: `order-${Date.now()}`,
           serviceId: service.id,
           serviceName: service.name,
@@ -191,19 +214,21 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           durationMonths: service.type === 'subscription' ? parseInt(duration) : null,
           accountId: accountId,
           notes: notes,
-          createdAt: new Date().toISOString()
-        });
+          createdAt: new Date().toISOString(),
+          credentials: mockCredentials
+        };
+        
+        orders.push(newOrder);
         localStorage.setItem('orders', JSON.stringify(orders));
       }
       
-      // Notify parent component and close dialog
+      // Notify parent component 
       onPurchase();
       setIsProcessing(false);
-      onOpenChange(false);
       
-      toast.success('Purchase Successful', {
-        description: `Your ${service.name} order has been processed successfully`,
-      });
+      // Show success dialog instead of closing this dialog
+      setShowSuccessDialog(true);
+      
     } catch (error) {
       console.error('Error processing purchase:', error);
       setIsProcessing(false);
@@ -217,121 +242,142 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const isSubscription = service.type === 'subscription';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Confirm Purchase</DialogTitle>
-          <DialogDescription>
-            Please review your order details before proceeding
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">Order Summary</h4>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Service:</span>
-              <span>{service.name}</span>
-            </div>
-            
-            {isSubscription && (
-              <div className="space-y-2">
-                <Label htmlFor="duration" className="text-sm">Subscription Duration</Label>
-                <Select 
-                  value={duration} 
-                  onValueChange={setDuration}
-                >
-                  <SelectTrigger id="duration" className="w-full">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDurations.map((months) => (
-                      <SelectItem key={months} value={months}>
-                        {months} {parseInt(months) === 1 ? 'month' : 'months'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Subscription will renew every {duration} {parseInt(duration) === 1 ? 'month' : 'months'}</span>
-                </div>
-              </div>
-            )}
-            
-            {!isSubscription && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Quantity:</span>
-                <span>{quantity}</span>
-              </div>
-            )}
-            
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Price:</span>
-              <span>${service.price.toFixed(2)} {isSubscription ? '/month' : 'each'}</span>
-            </div>
-            
-            <div className="flex justify-between font-medium border-t pt-2 mt-2">
-              <span>Total:</span>
-              <span>${totalPrice.toFixed(2)}</span>
-            </div>
-          </div>
+    <>
+      <Dialog open={open} onOpenChange={(newOpen) => {
+        // Only allow closing if we're not showing the success dialog
+        if (!showSuccessDialog) {
+          onOpenChange(newOpen);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Purchase</DialogTitle>
+            <DialogDescription>
+              Please review your order details before proceeding
+            </DialogDescription>
+          </DialogHeader>
           
-          {service.requiresId && (
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label htmlFor="accountId" className="text-sm font-medium block">
-                Your Account ID <span className="text-red-500">*</span>
+              <h4 className="font-medium">Order Summary</h4>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Service:</span>
+                <span>{service.name}</span>
+              </div>
+              
+              {isSubscription && (
+                <div className="space-y-2">
+                  <Label htmlFor="duration" className="text-sm">Subscription Duration</Label>
+                  <Select 
+                    value={duration} 
+                    onValueChange={setDuration}
+                  >
+                    <SelectTrigger id="duration" className="w-full">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDurations.map((months) => (
+                        <SelectItem key={months} value={months}>
+                          {months} {parseInt(months) === 1 ? 'month' : 'months'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span>Subscription will renew every {duration} {parseInt(duration) === 1 ? 'month' : 'months'}</span>
+                  </div>
+                </div>
+              )}
+              
+              {!isSubscription && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Quantity:</span>
+                  <span>{quantity}</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Price:</span>
+                <span>${service.price.toFixed(2)} {isSubscription ? '/month' : 'each'}</span>
+              </div>
+              
+              <div className="flex justify-between font-medium border-t pt-2 mt-2">
+                <span>Total:</span>
+                <span>${totalPrice.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            {service.requiresId && (
+              <div className="space-y-2">
+                <label htmlFor="accountId" className="text-sm font-medium block">
+                  Your Account ID <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="accountId"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  placeholder="Enter your account ID for this service"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Required for service authentication
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <label htmlFor="notes" className="text-sm font-medium block">
+                Order Notes (Optional)
               </label>
               <Input
-                id="accountId"
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                placeholder="Enter your account ID for this service"
-                required
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special instructions for this order"
               />
-              <p className="text-xs text-muted-foreground">
-                Required for service authentication
-              </p>
             </div>
-          )}
-          
-          <div className="space-y-2">
-            <label htmlFor="notes" className="text-sm font-medium block">
-              Order Notes (Optional)
-            </label>
-            <Input
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any special instructions for this order"
-            />
           </div>
-        </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isProcessing}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handlePurchase}
-            disabled={isProcessing || (service.requiresId && !accountId.trim())}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>Confirm Purchase</>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePurchase}
+              disabled={isProcessing || (service.requiresId && !accountId.trim())}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>Confirm Purchase</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <PurchaseSuccessDialog 
+        open={showSuccessDialog}
+        onOpenChange={(open) => {
+          setShowSuccessDialog(open);
+          if (!open) {
+            // When success dialog is closed, also close the purchase dialog
+            onOpenChange(false);
+          }
+        }}
+        service={service}
+        credentials={credentials}
+      />
+    </>
   );
 };
 

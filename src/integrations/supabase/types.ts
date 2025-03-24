@@ -63,6 +63,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          added_at: string
+          id: string
+          price: number
+          quantity: number
+          service_id: string
+          service_name: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          price: number
+          quantity?: number
+          service_id: string
+          service_name: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          price?: number
+          quantity?: number
+          service_id?: string
+          service_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credential_stock: {
         Row: {
           created_at: string
@@ -90,6 +120,51 @@ export type Database = {
           service_id?: string
           status?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          account_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_months: number | null
+          id: string
+          notes: string | null
+          quantity: number
+          service_id: string
+          service_name: string
+          status: string
+          total_price: number
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_months?: number | null
+          id: string
+          notes?: string | null
+          quantity?: number
+          service_id: string
+          service_name: string
+          status?: string
+          total_price: number
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_months?: number | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          service_id?: string
+          service_name?: string
+          status?: string
+          total_price?: number
+          user_id?: string
         }
         Relationships: []
       }
