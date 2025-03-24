@@ -266,7 +266,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           )}
         </div>
 
-        <div className="p-5">
+        <div className="p-5 flex flex-col h-[220px]">
           <div className="mb-2">
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {service.categoryId || 'Uncategorized'}
@@ -279,7 +279,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             {service.description}
           </p>
           
-          <div className="mt-4 flex items-end justify-between">
+          <div className="mt-auto flex items-end justify-between">
             <div>
               <p className="text-xl font-semibold text-primary">
                 ${price.toFixed(2)} {shouldUseMonths ? '/month' : ''}

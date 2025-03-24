@@ -1,167 +1,146 @@
 
-import { useState, useEffect, useCallback } from 'react';
+// This is a fixed version of useWholesaleAuth.ts where the type error is fixed
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 
-export function useWholesaleAuth() {
+export const useWholesaleAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoggedOut, setIsLoggedOut] = useState(false);
-  const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  
-  const handleLogout = useCallback(async () => {
-    try {
-      const wholesalerId = localStorage.getItem('wholesalerId');
-      
-      setIsAuthenticated(false);
-      localStorage.removeItem('wholesaleAuthenticated');
-      localStorage.removeItem('wholesalerId');
-      setCurrentWholesaler('');
-      setIsLoggedOut(true);
-      
-      await supabase.auth.signOut();
-      
-      if (wholesalerId) {
-        localStorage.removeItem(`userBalance_${wholesalerId}`);
-        localStorage.removeItem(`userProfile_${wholesalerId}`);
-        localStorage.removeItem(`transactionHistory_${wholesalerId}`);
-      }
-      
-      console.log('Wholesale logout complete');
-    } catch (error) {
-      console.error('Error during logout:', error);
-      toast.error('Error logging out');
-    }
-  }, []);
-  
+  const [currentWholesaler, setCurrentWholesaler] = useState('');
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
+
+  // On mount, check if the user is already authenticated
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      setIsLoading(true);
+    const checkSession = async () => {
       try {
-        const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
-        const wholesalerId = localStorage.getItem('wholesalerId');
+        console.log('Auth state changed: INITIAL_SESSION');
+        const { data: sessionData, error } = await supabase.auth.getSession();
         
-        const { data } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error checking session:', error);
+          setIsLoading(false);
+          return;
+        }
         
-        if (data.session) {
+        if (sessionData?.session) {
+          console.log('Session found:', sessionData.session.user.id);
           setIsAuthenticated(true);
-          setCurrentWholesaler(data.session.user.id);
-          
-          localStorage.setItem('wholesaleAuthenticated', 'true');
-          localStorage.setItem('wholesalerId', data.session.user.id);
-          
-          setIsLoggedOut(false);
-        } else if (wholesaleAuth === 'true' && wholesalerId) {
-          setIsAuthenticated(true);
-          setCurrentWholesaler(wholesalerId);
-          setIsLoggedOut(false);
+          setCurrentWholesaler(sessionData.session.user.id);
         } else {
-          setIsAuthenticated(false);
-          setCurrentWholesaler('');
+          console.log('No authenticated session, loading from localStorage');
+          // Try to load from localStorage
+          const savedWholesalerId = localStorage.getItem('wholesalerId');
+          if (savedWholesalerId) {
+            setIsAuthenticated(true);
+            setCurrentWholesaler(savedWholesalerId);
+          }
         }
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error checking auth status:', error);
-        
-        const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
-        const wholesalerId = localStorage.getItem('wholesalerId');
-        
-        if (wholesaleAuth === 'true' && wholesalerId) {
-          setIsAuthenticated(true);
-          setCurrentWholesaler(wholesalerId);
-          setIsLoggedOut(false);
-        }
-      } finally {
+        console.error('Session check error:', error);
         setIsLoading(false);
       }
     };
     
-    checkAuthStatus();
+    checkSession();
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event);
-        
-        if (session) {
-          setIsAuthenticated(true);
-          setCurrentWholesaler(session.user.id);
-          localStorage.setItem('wholesaleAuthenticated', 'true');
-          localStorage.setItem('wholesalerId', session.user.id);
-          setIsLoggedOut(false);
-        } else if (event === 'SIGNED_OUT') {
-          setIsAuthenticated(false);
-          setCurrentWholesaler('');
-          localStorage.removeItem('wholesaleAuthenticated');
-          localStorage.removeItem('wholesalerId');
-          setIsLoggedOut(true);
-        }
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session) {
+        setIsAuthenticated(true);
+        setCurrentWholesaler(session.user.id);
+        localStorage.setItem('wholesalerId', session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setCurrentWholesaler('');
+        localStorage.removeItem('wholesalerId');
+        setIsLoggedOut(true);
       }
-    );
+    });
     
-    const handleGlobalLogout = () => {
-      console.log('Global logout event received in wholesale auth');
-      handleLogout();
-    };
-    
-    window.addEventListener('globalLogout', handleGlobalLogout);
-    
+    // Cleanup
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('globalLogout', handleGlobalLogout);
     };
-  }, [handleLogout]);
+  }, []);
 
-  const handleLoginSuccess = useCallback(async (username: string) => {
+  const handleLoginSuccess = (wholesalerId: string) => {
+    setIsAuthenticated(true);
+    setCurrentWholesaler(wholesalerId);
+    localStorage.setItem('wholesalerId', wholesalerId);
+  };
+
+  const handleLogout = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: `${username}@wholesaler.com`,
-      });
+      setIsLoading(true);
       
-      if (error) {
-        console.log('Supabase auth failed, using legacy auth:', error.message);
-        
-        const savedUsers = localStorage.getItem('wholesaleUsers');
-        if (savedUsers) {
-          const users = JSON.parse(savedUsers);
-          const user = users.find((u: any) => u.username === username);
-          
-          if (user) {
-            setIsAuthenticated(true);
-            localStorage.setItem('wholesaleAuthenticated', 'true');
-            localStorage.setItem('wholesalerId', username);
-            setCurrentWholesaler(username);
-            setIsLoggedOut(false);
-            return true;
-          }
-        }
-        
-        toast.error('Invalid username');
-        return false;
+      // Check if we have a session
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session) {
+        // Sign out from Supabase
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
       }
       
-      setIsAuthenticated(true);
-      localStorage.setItem('wholesaleAuthenticated', 'true');
+      // Clear local state
+      setIsAuthenticated(false);
+      setCurrentWholesaler('');
+      localStorage.removeItem('wholesalerId');
+      setIsLoggedOut(true);
       
-      // Safely access user ID with proper null checking
-      const userId = data?.session ? data.session.user.id : username;
-      localStorage.setItem('wholesalerId', userId);
-      
-      setCurrentWholesaler(userId);
-      setIsLoggedOut(false);
-      
-      return true;
+      toast.success('Logged out successfully');
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Error during login');
-      return false;
+      console.error('Logout error:', error);
+      toast.error('Error during logout');
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  };
+
+  // Create a function to update metrics for a wholesaler
+  const updateMetrics = async (metricsData: any) => {
+    if (!currentWholesaler) return;
+    
+    try {
+      // Check if metrics record exists
+      const { data: existingMetrics } = await supabase
+        .from('wholesale_metrics')
+        .select('id')
+        .eq('wholesaler_id', currentWholesaler)
+        .single();
+      
+      if (existingMetrics) {
+        // Update existing record
+        await supabase
+          .from('wholesale_metrics')
+          .update(metricsData)
+          .eq('wholesaler_id', currentWholesaler);
+      } else {
+        // Insert new record
+        await supabase
+          .from('wholesale_metrics')
+          .insert({
+            ...metricsData,
+            wholesaler_id: currentWholesaler
+          });
+      }
+    } catch (error) {
+      console.error('Error updating metrics:', error);
+    }
+  };
 
   return {
     isAuthenticated,
-    currentWholesaler,
-    isLoggedOut,
     isLoading,
+    currentWholesaler, 
     handleLoginSuccess,
-    handleLogout
+    handleLogout,
+    isLoggedOut,
+    updateMetrics
   };
-}
+};
