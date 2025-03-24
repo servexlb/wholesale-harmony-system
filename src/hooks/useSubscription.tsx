@@ -36,7 +36,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       // First try to fetch from Supabase if available
       const { data: supabaseSubscriptions, error: supabaseError } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('*, credential_stock:credential_stock_id(*)')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .order('end_date', { ascending: false })
@@ -55,18 +55,35 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         
         // Parse the credentials JSON if it exists, or default to null/empty object
         let credentialsObj = null;
-        if (subData.credentials) {
-          // Handle both string and object formats that might come from Supabase
-          if (typeof subData.credentials === 'string') {
-            try {
-              credentialsObj = JSON.parse(subData.credentials);
-            } catch (e) {
-              console.error('Error parsing credentials string:', e);
-              credentialsObj = {};
+        
+        // First check if we have linked credential stock
+        if (subData.credential_stock && subData.credential_stock.credentials) {
+          try {
+            // Handle both string and object formats that might come from Supabase
+            if (typeof subData.credential_stock.credentials === 'string') {
+              credentialsObj = JSON.parse(subData.credential_stock.credentials);
+            } else {
+              // Already an object
+              credentialsObj = subData.credential_stock.credentials;
             }
-          } else {
-            // Already an object
-            credentialsObj = subData.credentials;
+          } catch (e) {
+            console.error('Error parsing credential stock credentials:', e);
+            credentialsObj = {};
+          }
+        }
+        // If no credential stock, try the legacy credentials field
+        else if (subData.credentials) {
+          try {
+            // Handle both string and object formats that might come from Supabase
+            if (typeof subData.credentials === 'string') {
+              credentialsObj = JSON.parse(subData.credentials);
+            } else {
+              // Already an object
+              credentialsObj = subData.credentials;
+            }
+          } catch (e) {
+            console.error('Error parsing credentials string:', e);
+            credentialsObj = {};
           }
         }
         
@@ -78,7 +95,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           endDate: subData.end_date,
           status: subData.status as 'active' | 'expired' | 'cancelled',
           durationMonths: subData.duration_months,
-          credentials: credentialsObj
+          credentials: credentialsObj,
+          credentialStockId: subData.credential_stock_id
         };
         
         setSubscription(latestSubscription);

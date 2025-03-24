@@ -148,6 +148,7 @@ export interface Subscription {
     notes?: string;
     [key: string]: any;
   };
+  credentialStockId?: string; // Added for Supabase credential_stock reference
 }
 
 // Update SupportTicket type to include priority and proper status

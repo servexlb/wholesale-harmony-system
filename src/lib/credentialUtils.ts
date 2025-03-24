@@ -1,91 +1,102 @@
 
-// Add uuid module
-import { v4 as uuidv4 } from 'uuid';
-import { CredentialStock, Credential } from './types';
+import { Credential, CredentialStock } from "@/lib/types";
+import { addCredentialToStock as addToSupabase } from "./credentialService";
 
-export const generateRandomPassword = (): string => {
-  const uuid = uuidv4();
-  const password = uuid.substring(0, 12);
-  return password;
-};
+// Legacy function for backwards compatibility
+export function getAllCredentialStock(): CredentialStock[] {
+  try {
+    const storedStock = localStorage.getItem('credentialStock');
+    return storedStock ? JSON.parse(storedStock) : [];
+  } catch (error) {
+    console.error('Error getting credential stock:', error);
+    return [];
+  }
+}
 
-// Get all credential stock from localStorage
-export const getAllCredentialStock = (): CredentialStock[] => {
-  const stockData = localStorage.getItem('credentialStock');
-  return stockData ? JSON.parse(stockData) : [];
-};
-
-// Save credential stock to localStorage
-export const saveCredentialStock = (stock: CredentialStock[]): void => {
-  localStorage.setItem('credentialStock', JSON.stringify(stock));
-  // Dispatch event for components to react to changes
-  window.dispatchEvent(new CustomEvent('credential-stock-updated'));
-};
-
-// Add a new credential to stock
-export const addCredentialToStock = (serviceId: string, credentials: Credential): CredentialStock => {
-  const stock = getAllCredentialStock();
-  const newItem: CredentialStock = {
-    id: uuidv4(),
+// Legacy function for backwards compatibility
+export function addCredentialToStock(serviceId: string, credentials: Credential): CredentialStock {
+  // Legacy implementation - will also add to Supabase if available
+  const id = `cred-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  
+  const newCredential: CredentialStock = {
+    id,
     serviceId,
     credentials,
-    status: 'available',
-    createdAt: new Date().toISOString()
-  };
-  stock.push(newItem);
-  saveCredentialStock(stock);
-  return newItem;
-};
-
-// Update a credential in stock
-export const updateCredentialInStock = (id: string, updates: Partial<CredentialStock>): boolean => {
-  const stock = getAllCredentialStock();
-  const index = stock.findIndex(item => item.id === id);
-  if (index === -1) return false;
-  
-  stock[index] = {
-    ...stock[index],
-    ...updates
+    status: "available",
+    createdAt: new Date().toISOString(),
   };
   
-  saveCredentialStock(stock);
-  return true;
-};
+  try {
+    // Add to localStorage for backward compatibility
+    const currentStock = getAllCredentialStock();
+    const updatedStock = [...currentStock, newCredential];
+    localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
+    
+    // Also add to Supabase if available
+    try {
+      // This is async but we don't wait for it
+      addToSupabase(serviceId, credentials);
+    } catch (e) {
+      console.error('Error adding to Supabase:', e);
+    }
+    
+    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
+    return newCredential;
+  } catch (error) {
+    console.error('Error adding credential to stock:', error);
+    throw error;
+  }
+}
 
-// Delete a credential from stock
-export const deleteCredentialFromStock = (id: string): boolean => {
-  const stock = getAllCredentialStock();
-  const newStock = stock.filter(item => item.id !== id);
-  
-  if (newStock.length === stock.length) return false;
-  
-  saveCredentialStock(newStock);
-  return true;
-};
+// Legacy function for backwards compatibility
+export function deleteCredentialFromStock(id: string): boolean {
+  try {
+    const currentStock = getAllCredentialStock();
+    const updatedStock = currentStock.filter(cred => cred.id !== id);
+    localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
+    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
+    return true;
+  } catch (error) {
+    console.error('Error deleting credential from stock:', error);
+    return false;
+  }
+}
 
-// Check credential availability for a service
-export const checkCredentialAvailability = (serviceId: string): boolean => {
-  const stock = getAllCredentialStock();
-  return stock.some(item => item.serviceId === serviceId && item.status === 'available');
-};
+// Legacy function for backwards compatibility
+export function updateCredentialInStock(id: string, updates: Partial<CredentialStock>): boolean {
+  try {
+    const currentStock = getAllCredentialStock();
+    const updatedStock = currentStock.map(cred => {
+      if (cred.id === id) {
+        return { ...cred, ...updates };
+      }
+      return cred;
+    });
+    localStorage.setItem('credentialStock', JSON.stringify(updatedStock));
+    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
+    return true;
+  } catch (error) {
+    console.error('Error updating credential in stock:', error);
+    return false;
+  }
+}
 
-// Get an available credential for a service
-export const getAvailableCredential = (serviceId: string): CredentialStock | null => {
-  const stock = getAllCredentialStock();
-  return stock.find(item => item.serviceId === serviceId && item.status === 'available') || null;
-};
+// Legacy function for backwards compatibility
+export function saveCredentialStock(stock: CredentialStock[]) {
+  try {
+    localStorage.setItem('credentialStock', JSON.stringify(stock));
+    window.dispatchEvent(new CustomEvent('credential-stock-updated'));
+  } catch (error) {
+    console.error('Error saving credential stock:', error);
+  }
+}
 
-// Fulfill an order with credentials
-export const fulfillOrderWithCredentials = (orderId: string, userId: string, serviceId: string): CredentialStock | null => {
-  const credential = getAvailableCredential(serviceId);
-  if (!credential) return null;
-  
-  // Update credential status to assigned
-  updateCredentialInStock(credential.id, {
-    status: 'assigned',
-    orderId,
-    userId
-  });
-  
-  return credential;
-};
+// Utility function for generating random passwords
+export function generateRandomPassword(length = 10) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}

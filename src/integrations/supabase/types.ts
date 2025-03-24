@@ -63,6 +63,36 @@ export type Database = {
         }
         Relationships: []
       }
+      credential_stock: {
+        Row: {
+          created_at: string
+          credentials: Json
+          id: string
+          order_id: string | null
+          service_id: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credentials: Json
+          id?: string
+          order_id?: string | null
+          service_id: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json
+          id?: string
+          order_id?: string | null
+          service_id?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -165,9 +195,43 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_issue_logs: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          resolved_at: string | null
+          service_id: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          resolved_at?: string | null
+          service_id: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          resolved_at?: string | null
+          service_id?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
+          credential_stock_id: string | null
           credentials: Json | null
           duration_months: number | null
           end_date: string
@@ -179,6 +243,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          credential_stock_id?: string | null
           credentials?: Json | null
           duration_months?: number | null
           end_date: string
@@ -190,6 +255,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          credential_stock_id?: string | null
           credentials?: Json | null
           duration_months?: number | null
           end_date?: string
@@ -199,6 +265,35 @@ export type Database = {
           status?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_credential_stock_id_fkey"
+            columns: ["credential_stock_id"]
+            isOneToOne: false
+            referencedRelation: "credential_stock"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
         Relationships: []
       }
     }
@@ -206,10 +301,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      assign_credential: {
+        Args: {
+          p_service_id: string
+          p_user_id: string
+          p_order_id: string
+        }
+        Returns: string
+      }
+      check_credential_stock: {
+        Args: {
+          service_id: string
+        }
+        Returns: number
+      }
+      has_role: {
+        Args: {
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "customer" | "wholesale"
     }
     CompositeTypes: {
       [_ in never]: never

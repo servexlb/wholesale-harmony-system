@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
@@ -26,6 +25,8 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminServices from "@/components/admin/AdminServices";
 import { AdminOrders } from "@/components/admin/AdminOrders";
 import AdminCustomization from "@/components/admin/AdminCustomization";
+// Import the StockIssueManager component
+import StockIssueManager from "@/components/admin/StockIssueManager";
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
@@ -127,6 +128,14 @@ const AdminPanel: React.FC = () => {
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 
+                    onClick={() => navigate("/admin/stock-issues")}
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Stock Issues
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
                     onClick={() => navigate("/admin/balance")}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
@@ -179,6 +188,7 @@ const AdminPanel: React.FC = () => {
               <Route path="/payments" element={<AdminPayments />} />
               <Route path="/chat-messages" element={<AdminChatMessages />} />
               <Route path="/inventory" element={<AdminDigitalInventory />} />
+              <Route path="/stock-issues" element={<StockIssueManager />} />
               <Route path="/balance" element={<AdminBalanceManagement />} />
               <Route path="/customization" element={<AdminCustomization />} />
               <Route path="/support" element={<AdminSupportTickets />} />
