@@ -150,7 +150,6 @@ const Wholesale = () => {
     return <WholesaleAuth onLoginSuccess={handleLoginSuccess} isLoggedOut={isLoggedOut} />;
   }
 
-  // Render main wholesale interface
   return (
     <>
       <WholesaleLayout
@@ -160,7 +159,7 @@ const Wholesale = () => {
         setActiveTab={setActiveTab}
         handleLogout={handleLogout}
       >
-        {/* Show the purchase dialog when needed */}
+        {/* Use the PurchaseDialog component with the proper props */}
         <PurchaseDialog
           customerName={customerName}
           customerEmail={customerEmail}
@@ -171,8 +170,18 @@ const Wholesale = () => {
           onPurchase={handlePurchaseSubmit}
           isSubmitting={isSubmitting}
           isMobile={false}
-          children={<Button style={{ display: 'none' }}>Open Purchase Dialog</Button>}
-        />
+          open={purchaseDialogOpen}
+          onOpenChange={setPurchaseDialogOpen}
+        >
+          {/* Make sure we have a visible Button that opens the dialog */}
+          <Button 
+            variant="primary" 
+            className="mb-4"
+            onClick={() => setPurchaseDialogOpen(true)}
+          >
+            Create New Purchase
+          </Button>
+        </PurchaseDialog>
         
         <WholesaleTabContent 
           activeTab={activeTab}
@@ -193,3 +202,4 @@ const Wholesale = () => {
 };
 
 export default React.memo(Wholesale);
+
