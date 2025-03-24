@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
@@ -11,20 +10,16 @@ export function useWholesaleAuth() {
   
   const handleLogout = useCallback(async () => {
     try {
-      // Get current wholesaler ID before clearing
       const wholesalerId = localStorage.getItem('wholesalerId');
       
-      // Clear authentication status
       setIsAuthenticated(false);
       localStorage.removeItem('wholesaleAuthenticated');
       localStorage.removeItem('wholesalerId');
       setCurrentWholesaler('');
       setIsLoggedOut(true);
       
-      // Sign out from Supabase
       await supabase.auth.signOut();
       
-      // Clear any wholesaler-specific data
       if (wholesalerId) {
         localStorage.removeItem(`userBalance_${wholesalerId}`);
         localStorage.removeItem(`userProfile_${wholesalerId}`);
@@ -42,37 +37,30 @@ export function useWholesaleAuth() {
     const checkAuthStatus = async () => {
       setIsLoading(true);
       try {
-        // First check localStorage for traditional auth
         const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
         const wholesalerId = localStorage.getItem('wholesalerId');
         
-        // Then check Supabase session
         const { data } = await supabase.auth.getSession();
         
         if (data.session) {
-          // If Supabase session exists, use that
           setIsAuthenticated(true);
           setCurrentWholesaler(data.session.user.id);
           
-          // Sync localStorage with Supabase for backward compatibility
           localStorage.setItem('wholesaleAuthenticated', 'true');
           localStorage.setItem('wholesalerId', data.session.user.id);
           
           setIsLoggedOut(false);
         } else if (wholesaleAuth === 'true' && wholesalerId) {
-          // Fallback to localStorage (legacy approach)
           setIsAuthenticated(true);
           setCurrentWholesaler(wholesalerId);
           setIsLoggedOut(false);
         } else {
-          // Not authenticated
           setIsAuthenticated(false);
           setCurrentWholesaler('');
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
         
-        // Fallback to localStorage in case of API error
         const wholesaleAuth = localStorage.getItem('wholesaleAuthenticated');
         const wholesalerId = localStorage.getItem('wholesalerId');
         
@@ -88,7 +76,6 @@ export function useWholesaleAuth() {
     
     checkAuthStatus();
     
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event);
@@ -109,7 +96,6 @@ export function useWholesaleAuth() {
       }
     );
     
-    // Listen for global logout events
     const handleGlobalLogout = () => {
       console.log('Global logout event received in wholesale auth');
       handleLogout();
@@ -125,16 +111,13 @@ export function useWholesaleAuth() {
 
   const handleLoginSuccess = useCallback(async (username: string) => {
     try {
-      // Authenticate with Supabase using username only
       const { data, error } = await supabase.auth.signInWithOtp({
         email: `${username}@wholesaler.com`,
       });
       
       if (error) {
-        // Try legacy auth if Supabase auth fails
         console.log('Supabase auth failed, using legacy auth:', error.message);
         
-        // Check wholesale users from localStorage for backward compatibility
         const savedUsers = localStorage.getItem('wholesaleUsers');
         if (savedUsers) {
           const users = JSON.parse(savedUsers);
@@ -154,15 +137,12 @@ export function useWholesaleAuth() {
         return false;
       }
       
-      // Supabase auth succeeded
       setIsAuthenticated(true);
       localStorage.setItem('wholesaleAuthenticated', 'true');
       
-      // Add proper null checks for data and data.user
       const userId = data?.user?.id || username;
       localStorage.setItem('wholesalerId', userId);
       
-      // Use the non-null userId value we've already created
       setCurrentWholesaler(userId);
       setIsLoggedOut(false);
       
