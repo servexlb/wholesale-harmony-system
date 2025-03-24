@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/lib/types';
 import { toast } from 'sonner';
@@ -23,8 +24,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
+        console.log('Auth state changed:', event, newSession);
         setSession(newSession);
         
         if (newSession?.user) {
@@ -36,6 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
+    // THEN check for existing session
     const checkSession = async () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       setSession(currentSession);
@@ -56,11 +60,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      console.log("Fetching profile for user:", supabaseUser.id);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user profile:', error);
@@ -68,13 +73,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log("Profile data:", profile);
       const userData: User = {
         id: supabaseUser.id,
-        name: profile.name || supabaseUser.user_metadata.name || '',
+        name: profile?.name || supabaseUser.user_metadata?.name || '',
         email: supabaseUser.email || '',
         role: 'customer',
-        balance: profile.balance || 0,
-        createdAt: profile.created_at || supabaseUser.created_at || new Date().toISOString()
+        balance: profile?.balance || 0,
+        createdAt: profile?.created_at || supabaseUser.created_at || new Date().toISOString()
       };
 
       setUser(userData);
@@ -98,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        console.error('Login error:', error);
         toast.error(error.message || 'Invalid email or password');
         return false;
       }
@@ -142,6 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (signUpError) {
         toast.error(signUpError.message || 'Failed to create account');
+        console.error('Registration error:', signUpError);
         return false;
       }
 

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Check, User, Mail, Phone, Lock, Info } from "lucide-react";
@@ -6,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import MainLayout from "@/components/MainLayout";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,9 +31,18 @@ const Register: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
+  // If user is already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+    // Clear error when user starts typing again
+    setError(null);
   };
 
   // Validate email format
@@ -51,11 +62,7 @@ const Register: React.FC = () => {
     }
     
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive"
-      });
+      setError("Passwords don't match");
       return;
     }
     
@@ -67,19 +74,37 @@ const Register: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await register(
-        formData.name,
-        formData.email,
-        formData.password
-      );
+      // Using Supabase directly for more detailed error handling
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            phone: formData.phone
+          }
+        }
+      });
       
-      if (success) {
-        // Navigate to dashboard or login page depending on whether email confirmation is required
+      if (signUpError) {
+        console.error("Registration error:", signUpError);
+        setError(signUpError.message || "Failed to register. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      toast.success("Account created successfully!");
+      
+      // Check if email confirmation is required
+      if (data?.user && !data.user.confirmed_at) {
+        toast.info("Please check your email to confirm your account");
+        navigate("/login");
+      } else {
         navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
-      setError("An unexpected error occurred during registration");
+      setError(error.message || "An unexpected error occurred during registration");
     } finally {
       setIsSubmitting(false);
     }
@@ -90,8 +115,6 @@ const Register: React.FC = () => {
     setOauthError(null);
     
     // Handle Google sign-up
-    // In a real implementation, this would use supabase.auth.signInWithOAuth({ provider: 'google' })
-    // For now, we'll show a message that this feature is coming soon
     toast({
       title: "Coming Soon",
       description: "Google sign-up will be available soon.",

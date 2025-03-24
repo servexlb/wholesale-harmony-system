@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import MainLayout from "@/components/MainLayout";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -34,12 +35,14 @@ const Login: React.FC = () => {
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
+  // Check if user is already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
+  // Check if user was logged out
   useEffect(() => {
     const logoutParam = new URLSearchParams(location.search).get('logout');
     if (logoutParam === 'true') {
@@ -50,6 +53,8 @@ const Login: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+    // Clear error when user starts typing
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,14 +63,24 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await login(formData.email, formData.password);
+      // Using Supabase directly for better error handling
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
       
-      if (success) {
-        navigate("/dashboard");
-      } else {
-        setError("Invalid email or password. Please try again.");
+      if (loginError) {
+        console.error("Login error:", loginError);
+        setError(loginError.message || "Invalid email or password. Please try again.");
+        setIsSubmitting(false);
+        return;
       }
-    } catch (error) {
+      
+      if (data?.user) {
+        toast.success("Logged in successfully!");
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
       console.error("Login error:", error);
       setError("An unexpected error occurred during login");
     } finally {
@@ -75,21 +90,13 @@ const Login: React.FC = () => {
 
   const handleResetPassword = async () => {
     if (!resetEmail) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address",
-        variant: "destructive"
-      });
+      toast.error("Please enter your email address");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(resetEmail)) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
-        variant: "destructive"
-      });
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -101,11 +108,8 @@ const Login: React.FC = () => {
       });
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
+        toast.error(error.message || "Failed to send reset link");
+        console.error('Error sending reset email:', error);
         setResetSubmitting(false);
         return;
       }
@@ -118,17 +122,10 @@ const Login: React.FC = () => {
         setResetEmail("");
       }, 3000);
       
-      toast({
-        title: "Reset link sent",
-        description: "Check your email for password reset instructions",
-      });
+      toast.success("Reset link sent to your email");
     } catch (error) {
       console.error("Reset password error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setResetSubmitting(false);
     }
@@ -238,6 +235,7 @@ const Login: React.FC = () => {
                       variant="link" 
                       className="text-xs p-0 h-auto" 
                       onClick={() => setShowResetDialog(true)}
+                      type="button"
                     >
                       Forgot password?
                     </Button>
