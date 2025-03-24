@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-// Import all the new components
+// Import all the components
 import Logo from './header/Logo';
 import SearchBar from './header/SearchBar';
 import NavigationLinks from './header/NavigationLinks';
 import MobileActions from './header/MobileActions';
 import MobileMenu from './header/MobileMenu';
 import DarkModeToggle from './header/DarkModeToggle';
+import UserBalance from './header/UserBalance';
 
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -63,6 +64,8 @@ const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center">
+          <UserBalance />
+          
           <div className="hidden md:block">
             <DarkModeToggle darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
           </div>

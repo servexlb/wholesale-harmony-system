@@ -57,7 +57,7 @@ const UserPaymentOptions = () => {
           // Update user object for consistency
           if (user.balance !== data.balance) {
             // Only update the user state if balance has changed
-            updateUser({ ...user, balance: data.balance });
+            user.updateUser && user.updateUser({ ...user, balance: data.balance });
           }
         }
       } catch (error) {
@@ -74,7 +74,7 @@ const UserPaymentOptions = () => {
     }, 60000); // 60 seconds
     
     return () => clearInterval(intervalId);
-  }, [user, isAuthenticated, navigate, updateUser]);
+  }, [user, isAuthenticated, navigate]);
   
   // If not authenticated, show login required component
   if (!isAuthenticated || !user) {
@@ -506,3 +506,4 @@ const UserPaymentOptions = () => {
 };
 
 export default UserPaymentOptions;
+
