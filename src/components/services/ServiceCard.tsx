@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useCart } from '@/hooks/useCart';
 import PurchaseDialog from '@/components/PurchaseDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { externalApi } from '@/lib/externalApi';
 
 interface ServiceCardProps {
   service: Service;
@@ -120,9 +121,28 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
   };
 
-  const showPurchaseConfirmation = () => {
+  const showPurchaseConfirmation = async () => {
     setQuantity(1);
     setDuration(1);
+    
+    if (service.type === 'topup' || service.type === 'recharge') {
+      try {
+        const stockResult = await externalApi.getCredentials(service.id);
+        
+        if (!stockResult.available) {
+          toast.error("Service Unavailable", {
+            description: "This service is currently unavailable. Please try again later."
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking service availability:', error);
+        toast.warning("Limited Availability", {
+          description: "This service may have limited availability. Proceed with caution."
+        });
+      }
+    }
+    
     setIsConfirmDialogOpen(true);
   };
 
@@ -283,3 +303,4 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 };
 
 export default ServiceCard;
+

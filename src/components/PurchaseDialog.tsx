@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import PurchaseSuccessDialog from '@/components/PurchaseSuccessDialog';
+import { externalApi } from '@/lib/externalApi';
 
 interface PurchaseDialogProps {
   service: Service;
@@ -44,6 +45,8 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [availableDurations, setAvailableDurations] = useState<string[]>(['1', '3', '6', '12']);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [credentials, setCredentials] = useState<{email?: string, password?: string, username?: string, notes?: string} | undefined>();
+  const [orderStatus, setOrderStatus] = useState<'pending' | 'processing' | 'completed'>('pending');
+  const [orderId, setOrderId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (open) {
@@ -376,6 +379,9 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         }}
         service={service}
         credentials={credentials}
+        stockAvailable={service.type !== 'topup' && service.type !== 'recharge'}
+        orderStatus={orderStatus}
+        orderId={orderId}
       />
     </>
   );

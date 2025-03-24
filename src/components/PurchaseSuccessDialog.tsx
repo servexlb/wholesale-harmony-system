@@ -26,6 +26,8 @@ interface PurchaseSuccessDialogProps {
     notes?: string;
   };
   stockAvailable?: boolean;
+  orderStatus?: 'completed' | 'processing' | 'pending';
+  orderId?: string;
 }
 
 export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
@@ -35,6 +37,8 @@ export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
   subscription,
   credentials,
   stockAvailable = true,
+  orderStatus = 'completed',
+  orderId,
 }) => {
   const navigate = useNavigate();
 
@@ -58,6 +62,12 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
     toast.success("Credentials copied to clipboard");
   };
 
+  const handleViewOrder = () => {
+    if (!orderId) return;
+    onOpenChange(false);
+    navigate(`/dashboard/orders/${orderId}`);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -67,7 +77,7 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
             Purchase Successful
           </DialogTitle>
           <DialogDescription>
-            Your order for {service.name} has been processed successfully
+            Your order for {service.name} has been processed {orderStatus === 'completed' ? 'successfully' : 'and is being processed'}
           </DialogDescription>
         </DialogHeader>
         
@@ -83,14 +93,31 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
                 </h3>
                 <div className="mt-2 text-sm text-green-700">
                   <p>
-                    Your payment has been processed and your service is now active.
+                    Your payment has been processed and your service is {orderStatus === 'completed' ? 'now active' : 'being activated'}.
+                    {orderId && (
+                      <span className="block mt-1">Order ID: {orderId}</span>
+                    )}
                   </p>
                 </div>
               </div>
             </div>
           </div>
           
-          {stockAvailable ? (
+          {orderStatus === 'processing' ? (
+            <div className="border border-amber-200 rounded-md p-4 space-y-2 bg-amber-50">
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 text-amber-500 mr-2" />
+                <h4 className="text-sm font-medium text-amber-800">Order Processing</h4>
+              </div>
+              <p className="text-sm text-amber-700">
+                Your order is currently being processed. This typically takes a few minutes. You can check the status in your dashboard.
+              </p>
+              <div className="flex items-center mt-2 text-xs text-amber-700">
+                <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                <span>You will be notified when your order is complete</span>
+              </div>
+            </div>
+          ) : stockAvailable ? (
             credentials && (
               <div className="border rounded-md p-4 space-y-2">
                 <div className="flex justify-between items-center">
@@ -157,6 +184,11 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
         </div>
         
         <DialogFooter>
+          {orderId && orderStatus !== 'completed' && (
+            <Button variant="outline" onClick={handleViewOrder} className="mr-2">
+              View Order Details
+            </Button>
+          )}
           <Button onClick={handleViewDashboard}>
             View My Dashboard
           </Button>
