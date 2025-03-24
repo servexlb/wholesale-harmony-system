@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers } from '@/lib/data';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
@@ -24,10 +25,6 @@ const Wholesale = () => {
   
   // For purchase dialog component
   const [customerName, setCustomerName] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
-  const [customerCompany, setCustomerCompany] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -89,11 +86,8 @@ const Wholesale = () => {
             setSelectedCustomerId('');
           }
           
-          // Set other customer details if provided
+          // Set customer name if provided
           setCustomerName(customEvent.detail.customerName || '');
-          setCustomerEmail(customEvent.detail.customerEmail || '');
-          setCustomerPhone(customEvent.detail.customerPhone || '');
-          setCustomerCompany(customEvent.detail.customerCompany || '');
           
           // Log for debugging
           console.log('Opening purchase dialog with customer details:', customEvent.detail);
@@ -119,9 +113,6 @@ const Wholesale = () => {
       const customer = wholesalerCustomers.find(c => c.id === customerId);
       if (customer) {
         setCustomerName(customer.name || '');
-        setCustomerEmail(customer.email || '');
-        setCustomerPhone(customer.phone || '');
-        setCustomerCompany(customer.company || '');
       }
       
       setSelectedCustomerId(customerId);
@@ -162,10 +153,6 @@ const Wholesale = () => {
         {/* Use the PurchaseDialog component with the proper props */}
         <PurchaseDialog
           customerName={customerName}
-          customerEmail={customerEmail}
-          customerPhone={customerPhone}
-          customerAddress={customerAddress}
-          customerCompany={customerCompany}
           customerNotes={customerNotes}
           onPurchase={handlePurchaseSubmit}
           isSubmitting={isSubmitting}
@@ -175,7 +162,7 @@ const Wholesale = () => {
         >
           {/* Make sure we have a visible Button that opens the dialog */}
           <Button 
-            variant="primary" 
+            variant="default" 
             className="mb-4"
             onClick={() => setPurchaseDialogOpen(true)}
           >
@@ -202,4 +189,3 @@ const Wholesale = () => {
 };
 
 export default React.memo(Wholesale);
-

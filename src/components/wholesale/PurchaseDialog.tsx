@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -20,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WholesaleOrder, Service } from '@/lib/types';
-import { Customer } from '@/lib/data';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,10 +41,6 @@ interface PurchaseDialogProps {
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   customerName: initialCustomerName = '',
-  customerEmail: initialCustomerEmail = '',
-  customerPhone: initialCustomerPhone = '',
-  customerAddress: initialCustomerAddress = '',
-  customerCompany: initialCustomerCompany = '',
   customerNotes: initialCustomerNotes = '',
   onPurchase,
   isSubmitting,
@@ -62,15 +58,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [totalPrice, setTotalPrice] = useState(0);
   
   const [customerName, setCustomerName] = useState(initialCustomerName);
-  const [customerEmail, setCustomerEmail] = useState(initialCustomerEmail);
-  const [customerPhone, setCustomerPhone] = useState(initialCustomerPhone);
-  const [customerAddress, setCustomerAddress] = useState(initialCustomerAddress);
-  const [customerCompany, setCustomerCompany] = useState(initialCustomerCompany);
   const [customerNotes, setCustomerNotes] = useState(initialCustomerNotes);
   
   const [availableDurations, setAvailableDurations] = useState<number[]>([1]);
   const [pricingData, setPricingData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [customerId, setCustomerId] = useState('');
 
   useEffect(() => {
@@ -134,14 +125,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         
         if (customEvent.detail?.customerName) {
           setCustomerName(customEvent.detail.customerName);
-        }
-        
-        if (customEvent.detail?.customerEmail) {
-          setCustomerEmail(customEvent.detail.customerEmail);
-        }
-        
-        if (customEvent.detail?.customerPhone) {
-          setCustomerPhone(customEvent.detail.customerPhone);
         }
         
         handleOpenChange(true);
@@ -274,10 +257,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       createdAt: new Date().toISOString(),
       durationMonths: duration,
       customerName: customerName,
-      customerEmail: customerEmail,
-      customerPhone: customerPhone,
-      customerAddress: customerAddress,
-      customerCompany: customerCompany,
       notes: customerNotes
     };
     
@@ -306,10 +285,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setDuration(1);
       setTotalPrice(0);
       setCustomerName('');
-      setCustomerEmail('');
-      setCustomerPhone('');
-      setCustomerAddress('');
-      setCustomerCompany('');
       setCustomerNotes('');
       
       setOpen(false);
@@ -326,7 +301,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className={isMobile ? "p-4 w-[95vw]" : "max-w-md"} hideCloseButton>
+      <DialogContent className="max-w-[90vw] w-full sm:max-w-[500px] p-4 sm:p-6" hideCloseButton>
         <DialogHeader>
           <DialogTitle>Purchase for Customer</DialogTitle>
           <DialogDescription>
@@ -344,51 +319,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               placeholder="Customer Name"
               className="mt-1"
               required
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="customerEmail">Email</Label>
-              <Input
-                id="customerEmail"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="Email"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="customerPhone">Phone</Label>
-              <Input
-                id="customerPhone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="Phone"
-                className="mt-1"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="customerAddress">Address</Label>
-            <Input
-              id="customerAddress"
-              value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
-              placeholder="Address"
-              className="mt-1"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="customerCompany">Company</Label>
-            <Input
-              id="customerCompany"
-              value={customerCompany}
-              onChange={(e) => setCustomerCompany(e.target.value)}
-              placeholder="Company"
-              className="mt-1"
             />
           </div>
           
@@ -474,7 +404,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="sm:justify-end">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
             Cancel
           </Button>
