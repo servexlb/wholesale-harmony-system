@@ -353,6 +353,8 @@ export function useWholesaleData(currentWholesaler: string) {
           }
         }
       }
+      
+      window.dispatchEvent(new CustomEvent('orderPlaced'));
     } catch (error) {
       console.error('Error in handleOrderPlaced:', error);
       toast.error('Error processing order');
@@ -404,6 +406,8 @@ export function useWholesaleData(currentWholesaler: string) {
         const customers = currentCustomers ? JSON.parse(currentCustomers) : [];
         localStorage.setItem('wholesaleCustomers', JSON.stringify([...customers, newCustomer]));
       }
+      
+      window.dispatchEvent(new CustomEvent('customerAdded'));
     } catch (error) {
       console.error('Error in handleAddCustomer:', error);
       toast.error('Error adding customer');

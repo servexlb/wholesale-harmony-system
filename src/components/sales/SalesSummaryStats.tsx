@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DollarSign, TrendingUp, ShoppingBag, Users } from 'lucide-react';
 import StatsCard from './StatsCard';
 
@@ -12,12 +12,44 @@ interface SalesSummaryStatsProps {
 }
 
 const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
-  totalSales,
-  totalCustomers,
-  totalProducts,
-  averageOrderValue,
-  totalServices
+  totalSales: initialTotalSales,
+  totalCustomers: initialTotalCustomers,
+  totalProducts: initialTotalProducts,
+  averageOrderValue: initialAverageOrderValue,
+  totalServices: initialTotalServices
 }) => {
+  const [totalSales, setTotalSales] = useState(initialTotalSales);
+  const [totalCustomers, setTotalCustomers] = useState(initialTotalCustomers);
+  const [totalProducts, setTotalProducts] = useState(initialTotalProducts);
+  const [averageOrderValue, setAverageOrderValue] = useState(initialAverageOrderValue);
+  const [totalServices, setTotalServices] = useState(initialTotalServices);
+
+  useEffect(() => {
+    setTotalSales(initialTotalSales);
+    setTotalCustomers(initialTotalCustomers);
+    setTotalProducts(initialTotalProducts);
+    setAverageOrderValue(initialAverageOrderValue);
+    setTotalServices(initialTotalServices);
+  }, [initialTotalSales, initialTotalCustomers, initialTotalProducts, initialAverageOrderValue, initialTotalServices]);
+  
+  useEffect(() => {
+    const handleOrderPlaced = () => {
+      setTotalSales(prev => prev + 1); // Simple increment for UI responsiveness
+    };
+    
+    const handleCustomerAdded = () => {
+      setTotalCustomers(prev => prev + 1);
+    };
+    
+    window.addEventListener('orderPlaced', handleOrderPlaced);
+    window.addEventListener('customerAdded', handleCustomerAdded);
+    
+    return () => {
+      window.removeEventListener('orderPlaced', handleOrderPlaced);
+      window.removeEventListener('customerAdded', handleCustomerAdded);
+    };
+  }, []);
+
   // Use totalServices if provided, otherwise fall back to totalProducts
   const displayTotal = totalServices !== undefined ? totalServices : totalProducts;
 

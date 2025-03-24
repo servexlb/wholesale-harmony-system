@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Users, ShoppingCart, DollarSign } from "lucide-react";
 import { sales, customers } from "@/lib/data";
+import { WholesaleOrder } from "@/lib/types";
 
 const AdminDashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
@@ -11,31 +12,107 @@ const AdminDashboard = () => {
   const [revenue, setRevenue] = useState(0);
 
   useEffect(() => {
-    // Check for real customers - only count if there are actual customers
-    if (customers && customers.length > 0) {
-      setTotalUsers(customers.length);
+    // Set up listeners for customer changes and order updates
+    const handleCustomerAdded = () => {
+      updateCustomerCount();
+    };
+    
+    const handleOrderPlaced = () => {
+      updateOrdersCount();
+      updateRevenue();
+    };
+    
+    // Initial data load
+    updateCustomerCount();
+    updateOrdersCount();
+    updateRevenue();
+    
+    // Add event listeners
+    window.addEventListener('customerAdded', handleCustomerAdded);
+    window.addEventListener('orderPlaced', handleOrderPlaced);
+    
+    return () => {
+      window.removeEventListener('customerAdded', handleCustomerAdded);
+      window.removeEventListener('orderPlaced', handleOrderPlaced);
+    };
+  }, []);
+  
+  const updateCustomerCount = () => {
+    // Check for real customers from data.ts
+    let customerCount = customers.length;
+    
+    // Also check wholesale customers
+    const wholesaleCustomers = localStorage.getItem('wholesaleCustomers');
+    if (wholesaleCustomers) {
+      try {
+        const parsedWholesaleCustomers = JSON.parse(wholesaleCustomers);
+        if (Array.isArray(parsedWholesaleCustomers)) {
+          customerCount += parsedWholesaleCustomers.length;
+        }
+      } catch (err) {
+        console.error("Error parsing wholesale customers:", err);
+      }
     }
     
-    // Check for real orders in localStorage - only count if there are actual orders
+    setTotalUsers(customerCount);
+  };
+  
+  const updateOrdersCount = () => {
+    let ordersCount = 0;
+    
+    // Check for customer orders in localStorage
     const customerOrdersStr = localStorage.getItem('customerOrders');
     if (customerOrdersStr) {
       try {
         const customerOrders = JSON.parse(customerOrdersStr);
-        if (Array.isArray(customerOrders) && customerOrders.length > 0) {
-          setActiveOrders(customerOrders.length);
+        if (Array.isArray(customerOrders)) {
+          ordersCount += customerOrders.length;
         }
       } catch (err) {
         console.error("Error parsing customer orders:", err);
       }
     }
     
-    // Calculate real revenue from paid sales in data.ts - only count if there are actual paid sales
+    // Check for wholesale orders
+    const wholesaleOrdersStr = localStorage.getItem('wholesaleOrders');
+    if (wholesaleOrdersStr) {
+      try {
+        const wholesaleOrders = JSON.parse(wholesaleOrdersStr);
+        if (Array.isArray(wholesaleOrders)) {
+          ordersCount += wholesaleOrders.length;
+        }
+      } catch (err) {
+        console.error("Error parsing wholesale orders:", err);
+      }
+    }
+    
+    setActiveOrders(ordersCount);
+  };
+  
+  const updateRevenue = () => {
+    let totalRevenue = 0;
+    
+    // Calculate revenue from paid sales in data.ts
     const paidSales = sales.filter(sale => sale.paid);
     if (paidSales.length > 0) {
-      const totalRevenue = paidSales.reduce((acc, sale) => acc + sale.total, 0);
-      setRevenue(totalRevenue);
+      totalRevenue += paidSales.reduce((acc, sale) => acc + sale.total, 0);
     }
-  }, []);
+    
+    // Add revenue from wholesale orders
+    const wholesaleOrdersStr = localStorage.getItem('wholesaleOrders');
+    if (wholesaleOrdersStr) {
+      try {
+        const wholesaleOrders = JSON.parse(wholesaleOrdersStr) as WholesaleOrder[];
+        if (Array.isArray(wholesaleOrders) && wholesaleOrders.length > 0) {
+          totalRevenue += wholesaleOrders.reduce((acc, order) => acc + (order.totalPrice || 0), 0);
+        }
+      } catch (err) {
+        console.error("Error calculating wholesale revenue:", err);
+      }
+    }
+    
+    setRevenue(totalRevenue);
+  };
   
   // Calculate percentage changes based on previous period only if we have real data
   const userPercentChange = totalUsers > 0 ? "+5.2%" : "0%";
