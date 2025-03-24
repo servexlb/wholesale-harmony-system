@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -29,11 +28,9 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
-  // Load orders from localStorage
   useEffect(() => {
     const loadOrders = () => {
       try {
-        // Try to load orders from localStorage
         const savedOrders = localStorage.getItem('orders');
         const savedWholesaleOrders = localStorage.getItem('wholesaleOrders');
         
@@ -49,7 +46,6 @@ const AdminOrders = () => {
           allOrders = [...allOrders, ...parsedWholesaleOrders];
         }
         
-        // Sort orders by date (newest first)
         allOrders.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
@@ -65,7 +61,6 @@ const AdminOrders = () => {
     
     loadOrders();
     
-    // Listen for order updates
     window.addEventListener('order-placed', loadOrders);
     
     return () => {
@@ -73,16 +68,13 @@ const AdminOrders = () => {
     };
   }, []);
 
-  // Filter orders based on search term and active tab
   useEffect(() => {
     let result = orders;
     
-    // Apply tab filter
     if (activeTab !== "all") {
       result = result.filter(order => order.status.toLowerCase() === activeTab);
     }
     
-    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(order => 
@@ -101,7 +93,6 @@ const AdminOrders = () => {
   };
 
   const exportToCSV = () => {
-    // Generate CSV from filteredOrders
     const headers = ["Order ID", "User ID", "Service", "Date", "Status", "Total"];
     
     const rows = filteredOrders.map(order => [
@@ -118,7 +109,6 @@ const AdminOrders = () => {
       ...rows.map(row => row.join(","))
     ].join("\n");
     
-    // Create a blob and download
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -161,7 +151,6 @@ const AdminOrders = () => {
         </div>
       </div>
 
-      {/* Order metrics cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -203,7 +192,6 @@ const AdminOrders = () => {
         </Card>
       </div>
 
-      {/* Order filtering and search */}
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="relative w-full md:w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
@@ -227,7 +215,6 @@ const AdminOrders = () => {
         </Tabs>
       </div>
 
-      {/* Orders table */}
       <Card>
         <CardHeader>
           <CardTitle>Orders</CardTitle>
@@ -284,7 +271,6 @@ const AdminOrders = () => {
         </CardContent>
       </Card>
 
-      {/* Order details dialog */}
       <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -357,7 +343,7 @@ const AdminOrders = () => {
                     <TableBody>
                       {selectedOrder.products.map((product, index) => (
                         <TableRow key={index}>
-                          <TableCell>{product.name}</TableCell>
+                          <TableCell>{typeof product === 'object' && 'productId' in product ? product.productId : product.toString()}</TableCell>
                           <TableCell>{product.quantity || 1}</TableCell>
                           <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
                         </TableRow>

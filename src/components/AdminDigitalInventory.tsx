@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,6 @@ const AdminDigitalInventory: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
   
-  // Load inventory when component mounts
   const loadInventory = useCallback(() => {
     const stock = getAllCredentialStock();
     setInventory(convertToDigitalItems(stock));
@@ -75,7 +73,6 @@ const AdminDigitalInventory: React.FC = () => {
   useEffect(() => {
     loadInventory();
     
-    // Add event listener for credential stock updates
     window.addEventListener('credential-stock-updated', loadInventory);
     
     return () => {
@@ -164,7 +161,12 @@ const AdminDigitalInventory: React.FC = () => {
         pinCode: newCredentials.pinCode || ""
       };
       
-      const newItem = addCredentialToStock(selectedService, credentials);
+      const newItem = addCredentialToStock(selectedService, {
+        email: credentials.email || '',
+        password: credentials.password || '',
+        username: credentials.username,
+        pinCode: credentials.pinCode
+      });
       const digitalItem: DigitalItem = {
         ...newItem,
         serviceName
@@ -207,7 +209,12 @@ const AdminDigitalInventory: React.FC = () => {
             pinCode: pinCode || ""
           };
           
-          const newItem = addCredentialToStock(selectedService, credentials);
+          const newItem = addCredentialToStock(selectedService, {
+            email: credentials.email || '',
+            password: credentials.password || '',
+            username: credentials.username,
+            pinCode: credentials.pinCode
+          });
           const digitalItem: DigitalItem = {
             ...newItem,
             serviceName
@@ -309,7 +316,6 @@ const AdminDigitalInventory: React.FC = () => {
   };
 
   const updateCredential = (itemId: string, field: keyof DigitalItem['credentials'], value: string) => {
-    // Find the credential in the local state
     const itemToUpdate = inventory.find(item => item.id === itemId);
     
     if (!itemToUpdate) {
@@ -317,13 +323,11 @@ const AdminDigitalInventory: React.FC = () => {
       return;
     }
     
-    // Create updated credentials object
     const updatedCredentials = {
       ...itemToUpdate.credentials,
       [field]: value
     };
     
-    // Ensure email and password are always included (required by the type)
     const validatedCredentials = {
       email: updatedCredentials.email || "",
       password: updatedCredentials.password || "",
@@ -331,13 +335,11 @@ const AdminDigitalInventory: React.FC = () => {
       pinCode: updatedCredentials.pinCode
     };
     
-    // Update the credential in localStorage
     const result = updateCredentialInStock(itemId, {
       credentials: validatedCredentials
     });
     
     if (result) {
-      // Update the local state with the new credential
       const updatedInventory = inventory.map(item => {
         if (item.id === itemId) {
           return {
@@ -349,8 +351,6 @@ const AdminDigitalInventory: React.FC = () => {
       });
       
       setInventory(updatedInventory);
-      
-      // No toast here to avoid excessive notifications while typing
     } else {
       toast.error("Update Failed", {
         description: `Could not update ${field} for item ${itemId.substring(0, 8)}...`,

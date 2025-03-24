@@ -4,7 +4,36 @@ import { motion } from 'framer-motion';
 import { Service, ServiceType, Order } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Eye, ImageIcon, Minus, Plus, User } from 'lucide-react';
+import { 
+  CreditCard, 
+  Eye, 
+  ImageIcon, 
+  Minus, 
+  Plus, 
+  User,
+  Clock,
+  Tag,
+  RotateCcw,
+  Zap,
+  Gift,
+  Calendar,
+  Loader,
+  Wallet
+} from 'lucide-react';
+import { 
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Dialog, 
   DialogContent, 
@@ -14,11 +43,12 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { toast } from '@/lib/toast';
+import { toast } from 'sonner';
 import { 
   fulfillOrderWithCredentials, 
   checkCredentialAvailability 
 } from '@/lib/credentialUtils';
+import PurchaseSuccessDialog from '@/components/PurchaseSuccessDialog';
 
 interface ServiceCardProps {
   service: Service;
@@ -178,7 +208,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
 
   const getServiceTypeIcon = () => {
     switch (service.type) {
-      case "subscription": return <RotateCw className="h-4 w-4 mr-1" />;
+      case "subscription": return <RotateCcw className="h-4 w-4 mr-1" />;
       case "topup": return <Zap className="h-4 w-4 mr-1" />;
       case "giftcard": return <Gift className="h-4 w-4 mr-1" />;
       default: return <Tag className="h-4 w-4 mr-1" />;
@@ -224,7 +254,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, category }) => {
           <div className="aspect-video relative">
             {!imageLoaded && !imageError && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <Loader2 className="h-10 w-10 text-gray-300 animate-spin" />
+                <Loader className="h-10 w-10 text-gray-300 animate-spin" />
               </div>
             )}
             

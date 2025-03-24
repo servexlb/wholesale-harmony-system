@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -66,25 +65,19 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       id: `order-${Date.now()}`,
       customerId: `customer-${Date.now()}`,
       status: "processing",
-      services: selectedServices.map(serviceId => {
+      serviceId: selectedServices[0], // Use first service ID if multiple
+      quantity: 1,
+      totalPrice: selectedServices.reduce((total, serviceId) => {
         const service = services.find(s => s.id === serviceId);
-        return {
-          serviceId,
-          quantity: 1,
-          price: service?.wholesalePrice || 0
-        };
-      }),
+        return total + (service?.wholesalePrice || 0);
+      }, 0),
       customerName: localCustomerName,
       customerEmail: localCustomerEmail,
       customerPhone: localCustomerPhone,
       customerAddress: localCustomerAddress,
       customerCompany: localCustomerCompany,
-      customerNotes: localCustomerNotes,
-      createdAt: new Date().toISOString(),
-      totalAmount: selectedServices.reduce((total, serviceId) => {
-        const service = services.find(s => s.id === serviceId);
-        return total + (service?.wholesalePrice || 0);
-      }, 0)
+      notes: localCustomerNotes,
+      createdAt: new Date().toISOString()
     };
 
     onPurchase(order);
