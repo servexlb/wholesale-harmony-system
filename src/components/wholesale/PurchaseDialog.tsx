@@ -56,6 +56,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [availableDurations, setAvailableDurations] = useState<number[]>([1]);
   const [pricingData, setPricingData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [customerId, setCustomerId] = useState(selectedCustomerId || '');
 
   // Initialize services
   useEffect(() => {
@@ -121,7 +122,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       try {
         const customEvent = event as CustomEvent;
         if (customEvent.detail?.customerId) {
-          setSelectedCustomerId(customEvent.detail.customerId);
+          setCustomerId(customEvent.detail.customerId);
         }
         
         if (customEvent.detail?.serviceId) {
@@ -254,7 +255,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     // Create order object
     const order: WholesaleOrder = {
       id: `order-${Date.now()}`,
-      customerId: selectedCustomerId,
+      customerId: customerId,
       serviceId: serviceId,
       quantity: quantity,
       totalPrice: totalPrice,
@@ -283,7 +284,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session) return;
       
-      // Save to Supabase orders table
+      // Save to Supabase orders table - use raw INSERT instead of from()
       const { error } = await supabase
         .from('wholesale_orders')
         .insert({

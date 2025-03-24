@@ -326,6 +326,60 @@ export type Database = {
         }
         Relationships: []
       }
+      wholesale_orders: {
+        Row: {
+          created_at: string
+          customer_address: string | null
+          customer_company: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          duration_months: number | null
+          id: string
+          notes: string | null
+          quantity: number | null
+          service_id: string
+          status: string
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address?: string | null
+          customer_company?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          duration_months?: number | null
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          service_id: string
+          status?: string
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string | null
+          customer_company?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          duration_months?: number | null
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          service_id?: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
