@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,14 +16,7 @@ interface WholesaleUser {
   showPassword: boolean;
 }
 
-// Define initial users as a constant, not referencing the type
-const initialUsersData = [
-  { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
-  { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
-];
-
 const WholesaleUserManagement = () => {
-  // Initialize state with a direct array, not referencing initialUsers
   const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>([
     { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
     { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
@@ -38,11 +30,9 @@ const WholesaleUserManagement = () => {
   
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Load saved wholesale users on component mount
   useEffect(() => {
     const fetchWholesaleUsers = async () => {
       try {
-        // First try to get users from Supabase
         const { data: profiles, error } = await supabase
           .from('profiles')
           .select('*')
@@ -55,17 +45,15 @@ const WholesaleUserManagement = () => {
         }
         
         if (profiles && profiles.length > 0) {
-          // Convert profiles to WholesaleUser format
           const formattedUsers = profiles.map(profile => ({
             id: profile.id,
             username: profile.email?.split('@')[0] || '',
-            password: '••••••••', // We don't store or display actual passwords
+            password: '••••••••',
             company: profile.company || '',
             showPassword: false
           }));
           setWholesaleUsers(formattedUsers);
         } else {
-          // Fallback to localStorage
           loadUsersFromLocalStorage();
         }
       } catch (error) {
@@ -79,7 +67,6 @@ const WholesaleUserManagement = () => {
       if (savedUsers) {
         try {
           const parsedUsers = JSON.parse(savedUsers);
-          // Add showPassword field if it doesn't exist
           const formattedUsers = parsedUsers.map((user: any) => ({
             ...user,
             showPassword: false
@@ -94,9 +81,7 @@ const WholesaleUserManagement = () => {
     fetchWholesaleUsers();
   }, []);
 
-  // Save wholesale users whenever they change
   useEffect(() => {
-    // Remove showPassword field before saving
     const usersToSave = wholesaleUsers.map(({ showPassword, ...user }) => user);
     localStorage.setItem('wholesaleUsers', JSON.stringify(usersToSave));
   }, [wholesaleUsers]);
@@ -105,7 +90,6 @@ const WholesaleUserManagement = () => {
     e.preventDefault();
     if (newWholesaleUser.username && newWholesaleUser.password) {
       try {
-        // Create user in Supabase Auth
         const { data, error } = await supabase.auth.signUp({
           email: `${newWholesaleUser.username}@wholesaler.com`,
           password: newWholesaleUser.password,
@@ -123,11 +107,9 @@ const WholesaleUserManagement = () => {
           return;
         }
         
-        // User created in Supabase
         const userId = data.user?.id;
         
         if (userId) {
-          // Update the profile with company info
           const { error: profileError } = await supabase
             .from('profiles')
             .update({
@@ -140,7 +122,6 @@ const WholesaleUserManagement = () => {
             console.error('Error updating user profile:', profileError);
           }
           
-          // Add user to local state
           setWholesaleUsers(prev => [...prev, {
             id: userId,
             ...newWholesaleUser,
@@ -153,7 +134,6 @@ const WholesaleUserManagement = () => {
         console.error('Error in handleAddWholesaleUser:', error);
         toast.error('Error adding user');
         
-        // Fallback to local storage
         setWholesaleUsers(prev => [...prev, {
           id: `w${prev.length + 1}`,
           ...newWholesaleUser,
@@ -161,7 +141,6 @@ const WholesaleUserManagement = () => {
         }]);
       }
       
-      // Reset form
       setNewWholesaleUser({
         username: '',
         password: '',
@@ -173,11 +152,6 @@ const WholesaleUserManagement = () => {
 
   const handleRemoveWholesaleUser = async (id: string) => {
     try {
-      // Delete user from Supabase - NOTE: This requires admin privileges
-      // In a real app, you might want to implement this as an admin function
-      // For now, we'll just remove from local state
-      
-      // For localStorage based users
       setWholesaleUsers(prev => prev.filter(user => user.id !== id));
       toast.success('Wholesale user removed successfully');
     } catch (error) {
@@ -192,7 +166,6 @@ const WholesaleUserManagement = () => {
     ));
   };
 
-  // Prepare data for export (without passwords)
   const exportData = wholesaleUsers.map(user => ({
     ID: user.id,
     Username: user.username,
