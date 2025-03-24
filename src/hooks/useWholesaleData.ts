@@ -1,8 +1,10 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
 import { loadServices } from '@/lib/productManager';
-import { addCredentialToStock, convertSubscriptionToStock } from '@/lib/credentialUtils';
+import { convertSubscriptionToStock } from '@/lib/credentialUtils';
+import { addCredentialToStock } from '@/lib/credentialService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 

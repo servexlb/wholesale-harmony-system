@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Credential } from '@/lib/types';
-import { addCredentialToStock } from '@/lib/credentialService';
+import { toast } from '@/lib/toast';
 
 // Function to convert subscription data format to credential stock format
 export const convertSubscriptionToStock = (subscriptionData: any): Credential => {
@@ -23,6 +23,36 @@ export const convertSubscriptionToStock = (subscriptionData: any): Credential =>
     pinCode: pinCode || '',
     notes: notes || ''
   };
+};
+
+// Function to add credential to stock
+export const addCredentialToStock = async (
+  serviceId: string, 
+  credentials: Credential,
+  status: 'available' | 'assigned' = 'available'
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('credential_stock')
+      .insert({
+        service_id: serviceId,
+        credentials,
+        status
+      });
+    
+    if (error) {
+      console.error('Error adding credential to stock:', error);
+      toast.error('Failed to add credential to stock');
+      return false;
+    }
+    
+    toast.success('Credential added to stock successfully');
+    return true;
+  } catch (error) {
+    console.error('Error in addCredentialToStock:', error);
+    toast.error('Failed to add credential to stock');
+    return false;
+  }
 };
 
 // Function to assign credentials to customer and send notification
@@ -96,29 +126,43 @@ const sendCredentialNotification = async (
   credentials: Credential
 ) => {
   try {
-    // Get service details
-    const { data: serviceData } = await supabase
-      .from('services')
-      .select('name')
-      .eq('id', serviceId)
-      .single();
-      
-    const serviceName = serviceData?.name || 'your service';
+    // Get service details from local storage as a fallback since the table might not exist
+    let serviceName = '';
+    try {
+      const storedServices = localStorage.getItem('services');
+      if (storedServices) {
+        const services = JSON.parse(storedServices);
+        const service = services.find((s: any) => s.id === serviceId);
+        if (service) {
+          serviceName = service.name;
+        }
+      }
+    } catch (storageError) {
+      console.error('Error getting service from localStorage:', storageError);
+    }
     
-    // Create a notification for the user
-    const { error: notificationError } = await supabase
-      .from('customer_notifications')
-      .insert({
-        user_id: userId,
-        type: 'credential',
-        message: `Your credentials for ${serviceName} are now available in your dashboard.`,
-        service_id: serviceId,
-        read: false,
-        created_at: new Date().toISOString()
-      });
-      
-    if (notificationError) {
-      console.error('Error creating notification:', notificationError);
+    if (!serviceName) {
+      serviceName = 'your service';
+    }
+    
+    // Create a notification for the user - check if the table exists first
+    try {
+      const { error: notificationError } = await supabase
+        .from('admin_notifications')
+        .insert({
+          user_id: userId,
+          type: 'credential',
+          message: `Your credentials for ${serviceName} are now available in your dashboard.`,
+          service_id: serviceId,
+          is_read: false,
+          created_at: new Date().toISOString()
+        });
+        
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+      }
+    } catch (notificationError) {
+      console.error('Error in creating notification:', notificationError);
     }
   } catch (error) {
     console.error('Error in sendCredentialNotification:', error);
@@ -134,7 +178,12 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       .eq('id', orderId)
       .single();
       
-    if (error || !data || !data.credentials) {
+    if (error || !data) {
+      console.error('Error fetching credentials:', error);
+      return null;
+    }
+    
+    if (!data.credentials) {
       return null;
     }
     

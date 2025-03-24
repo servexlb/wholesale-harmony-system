@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -116,37 +117,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             notes
           );
         
-        // Set order status to 'pending' when there's no stock
-        const { error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            id: orderId,
-            user_id: userId,
-            service_id: service.id,
-            service_name: service.name,
-            quantity: quantity,
-            total_price: totalPrice,
-            status: 'pending', // Important: mark as pending
-            credential_status: 'pending',
-            duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-            account_id: accountId || null,
-            notes: notes || null,
-            created_at: new Date().toISOString()
-          });
-          
-        if (orderError) {
-          console.error('Error saving order:', orderError);
-          return false;
-        }
-      } else {
-        // Stock is available, assign credential directly
-        const { assignCredentialsToCustomer } = await import('@/lib/credentialUtils');
-        const result = await assignCredentialsToCustomer(userId, service.id, orderId);
-        
-        if (result.success) {
-          setCredentials(result.credentials);
-          
-          // Create completed order
+          // Set order status to 'pending' when there's no stock
           const { error: orderError } = await supabase
             .from('orders')
             .insert({
@@ -156,32 +127,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               service_name: service.name,
               quantity: quantity,
               total_price: totalPrice,
-              status: 'completed',
-              credential_status: 'assigned',
-              credentials: result.credentials,
-              duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-              account_id: accountId || null,
-              notes: notes || null,
-              created_at: new Date().toISOString(),
-              completed_at: new Date().toISOString()
-            });
-            
-          if (orderError) {
-            console.error('Error saving order:', orderError);
-            return false;
-          }
-        } else {
-          // If credential assignment fails, create pending order
-          const { error: orderError } = await supabase
-            .from('orders')
-            .insert({
-              id: orderId,
-              user_id: userId,
-              service_id: service.id,
-              service_name: service.name,
-              quantity: quantity,
-              total_price: totalPrice,
-              status: 'pending',
+              status: 'pending', // Important: mark as pending
               credential_status: 'pending',
               duration_months: service.type === 'subscription' ? parseInt(duration) : null,
               account_id: accountId || null,
@@ -193,35 +139,87 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             console.error('Error saving order:', orderError);
             return false;
           }
+        } else {
+          // Stock is available, assign credential directly
+          const { assignCredentialsToCustomer } = await import('@/lib/credentialUtils');
+          const result = await assignCredentialsToCustomer(userId, service.id, orderId);
+          
+          if (result.success) {
+            setCredentials(result.credentials);
+            
+            // Create completed order
+            const { error: orderError } = await supabase
+              .from('orders')
+              .insert({
+                id: orderId,
+                user_id: userId,
+                service_id: service.id,
+                service_name: service.name,
+                quantity: quantity,
+                total_price: totalPrice,
+                status: 'completed',
+                credential_status: 'assigned',
+                credentials: result.credentials,
+                duration_months: service.type === 'subscription' ? parseInt(duration) : null,
+                account_id: accountId || null,
+                notes: notes || null,
+                created_at: new Date().toISOString(),
+                completed_at: new Date().toISOString()
+              });
+              
+            if (orderError) {
+              console.error('Error saving order:', orderError);
+              return false;
+            }
+          } else {
+            // If credential assignment fails, create pending order
+            const { error: orderError } = await supabase
+              .from('orders')
+              .insert({
+                id: orderId,
+                user_id: userId,
+                service_id: service.id,
+                service_name: service.name,
+                quantity: quantity,
+                total_price: totalPrice,
+                status: 'pending',
+                credential_status: 'pending',
+                duration_months: service.type === 'subscription' ? parseInt(duration) : null,
+                account_id: accountId || null,
+                notes: notes || null,
+                created_at: new Date().toISOString()
+              });
+              
+            if (orderError) {
+              console.error('Error saving order:', orderError);
+              return false;
+            }
+          }
+        }
+      } else {
+        // For non-subscription services, just create a regular order
+        const { error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            id: orderId,
+            user_id: userId,
+            service_id: service.id,
+            service_name: service.name,
+            quantity: quantity,
+            total_price: totalPrice,
+            status: 'completed',
+            duration_months: service.type === 'subscription' ? parseInt(duration) : null,
+            account_id: accountId || null,
+            notes: notes || null,
+            created_at: new Date().toISOString(),
+            completed_at: new Date().toISOString()
+          });
+          
+        if (orderError) {
+          console.error('Error saving order:', orderError);
+          return false;
         }
       }
-    } else {
-      // For non-subscription services, just create a regular order
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          id: orderId,
-          user_id: userId,
-          service_id: service.id,
-          service_name: service.name,
-          quantity: quantity,
-          total_price: totalPrice,
-          status: 'completed',
-          duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-          account_id: accountId || null,
-          notes: notes || null,
-          created_at: new Date().toISOString(),
-          completed_at: new Date().toISOString()
-        });
-        
-      if (orderError) {
-        console.error('Error saving order:', orderError);
-        return false;
-      }
-    }
-      
-      // Set credentials for the success dialog
-      
       
       // Create a payment record
       const { error: paymentError } = await supabase

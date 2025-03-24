@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,18 @@ import { Service } from '@/lib/types';
 interface ServiceCardProps {
   service: Service;
   isMobile: boolean;
+  isWholesale?: boolean;
+  onClick?: () => void;
+  onViewDetails?: (e: React.MouseEvent) => void;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ service, isMobile }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ 
+  service, 
+  isMobile, 
+  isWholesale = false,
+  onClick,
+  onViewDetails
+}) => {
   const [showDialog, setShowDialog] = useState(false);
   const [stockAvailable, setStockAvailable] = useState(true);
 
@@ -31,7 +41,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, isMobile }) => {
       }
     }
     
-    setShowDialog(true);
+    if (onClick) {
+      onClick();
+    } else {
+      setShowDialog(true);
+    }
   };
 
   return (
@@ -45,7 +59,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, isMobile }) => {
         <CardContent className="grid gap-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Price:</span>
-            <span>{formatCurrency(service.price)}</span>
+            <span>{formatCurrency(isWholesale ? service.wholesalePrice : service.price)}</span>
           </div>
           
           {service.deliveryTime && (
@@ -80,20 +94,29 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, isMobile }) => {
             </Badge>
           )}
           
-          <Button onClick={handlePurchase}>
-            Purchase
-          </Button>
+          <div className="flex gap-2">
+            {onViewDetails && (
+              <Button variant="outline" onClick={onViewDetails}>
+                Details
+              </Button>
+            )}
+            <Button onClick={handlePurchase}>
+              Purchase
+            </Button>
+          </div>
         </CardFooter>
       </Card>
       
-      <PurchaseDialog
-        service={service}
-        quantity={1}
-        duration={1}
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        onPurchase={() => setShowDialog(false)}
-      />
+      {!onClick && (
+        <PurchaseDialog
+          service={service}
+          quantity={1}
+          duration={1}
+          open={showDialog}
+          onOpenChange={setShowDialog}
+          onPurchase={() => setShowDialog(false)}
+        />
+      )}
     </>
   );
 };

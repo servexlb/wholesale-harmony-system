@@ -1,62 +1,61 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { CredentialStock, StockRequest, Credential } from '@/lib/types';
-import { toast } from 'sonner';
+import { Credential, StockRequest } from '@/lib/types';
+import { toast } from '@/lib/toast';
 
-// Function to add a credential to stock
-export const addCredentialToStock = async (serviceId: string, credentials: Credential): Promise<boolean> => {
+// Check if stock is available for a given service
+export const checkStockAvailability = async (serviceId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
       .from('credential_stock')
-      .insert({
-        service_id: serviceId,
-        credentials: credentials,
-        status: 'available',
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error adding credential to stock:', error);
-      return false;
-    }
-    
-    // Dispatch an event to notify UI components
-    const stockUpdatedEvent = new CustomEvent('credential-stock-updated');
-    window.dispatchEvent(stockUpdatedEvent);
-    
-    return true;
-  } catch (error) {
-    console.error('Error in addCredentialToStock:', error);
-    return false;
-  }
-};
-
-// Function to check if stock is available for a service
-export const checkStockAvailability = async (serviceId: string): Promise<boolean> => {
-  try {
-    // Check for available credentials in the stock
-    const { data, error, count } = await supabase
-      .from('credential_stock')
-      .select('id', { count: 'exact' })
+      .select('id')
       .eq('service_id', serviceId)
       .eq('status', 'available')
       .limit(1);
-      
+    
     if (error) {
       console.error('Error checking stock availability:', error);
       return false;
     }
     
-    return count !== null && count > 0;
+    return data && data.length > 0;
   } catch (error) {
     console.error('Error in checkStockAvailability:', error);
     return false;
   }
 };
 
-// Function to create a pending stock request
+// Add credentials to stock
+export const addCredentialToStock = async (
+  serviceId: string, 
+  credentials: Credential,
+  status: 'available' | 'assigned' = 'available'
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('credential_stock')
+      .insert({
+        service_id: serviceId,
+        credentials: credentials,
+        status: status
+      });
+    
+    if (error) {
+      console.error('Error adding credential to stock:', error);
+      toast.error('Failed to add credential to stock');
+      return false;
+    }
+    
+    toast.success('Credential added to stock successfully');
+    return true;
+  } catch (error) {
+    console.error('Error in addCredentialToStock:', error);
+    toast.error('Failed to add credential to stock');
+    return false;
+  }
+};
+
+// Create a stock request when no credentials are available
 export const createStockRequest = async (
   userId: string,
   serviceId: string,
@@ -66,27 +65,40 @@ export const createStockRequest = async (
   notes?: string
 ): Promise<boolean> => {
   try {
-    // Create a stock request record
-    const { data, error } = await supabase
+    // Create a stock request
+    const { error: requestError } = await supabase
       .from('stock_issue_logs')
       .insert({
         user_id: userId,
         service_id: serviceId,
         order_id: orderId,
-        notes: notes || `Pending request for ${serviceName}`,
-        status: 'pending'
+        status: 'pending',
+        notes: notes || 'Automatic request due to empty stock'
       });
-      
-    if (error) {
-      console.error('Error creating stock request:', error);
-      toast.error('Failed to create pending request');
+    
+    if (requestError) {
+      console.error('Error creating stock request:', requestError);
       return false;
     }
     
-    // Create admin notification for the new pending request
-    await createStockNotification(userId, serviceId, serviceName, customerName);
+    // Create admin notification
+    const { error: notificationError } = await supabase
+      .from('admin_notifications')
+      .insert({
+        type: 'stock',
+        title: 'Stock Replenishment Needed',
+        message: `A customer has requested ${serviceName} but stock is empty.`,
+        customer_id: userId,
+        customer_name: customerName,
+        service_id: serviceId,
+        service_name: serviceName,
+        is_read: false
+      });
     
-    toast.success('Stock request created. You will be notified when it\'s fulfilled.');
+    if (notificationError) {
+      console.error('Error creating admin notification:', notificationError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in createStockRequest:', error);
@@ -94,153 +106,94 @@ export const createStockRequest = async (
   }
 };
 
-// Function to get all pending stock requests
-export const getStockIssues = async (): Promise<any[]> => {
+// Get pending stock requests
+export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('stock_issue_logs')
-      .select(`
-        *,
-        profiles:user_id (
-          name,
-          email
-        )
-      `)
+      .select('*, profiles:user_id(name)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
-      
+    
     if (error) {
-      console.error('Error fetching stock issues:', error);
+      console.error('Error fetching pending stock requests:', error);
       return [];
     }
     
-    return data || [];
+    return data.map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      serviceId: item.service_id,
+      orderId: item.order_id,
+      status: item.status,
+      createdAt: item.created_at,
+      customerName: item.profiles?.name,
+      notes: item.notes
+    }));
   } catch (error) {
-    console.error('Error in getStockIssues:', error);
+    console.error('Error in getPendingStockRequests:', error);
     return [];
   }
 };
 
-// Function to get available credentials for a service
-export const getAvailableCredentials = async (serviceId: string): Promise<any[]> => {
+// Fulfill a stock request
+export const fulfillStockRequest = async (
+  requestId: string,
+  orderId: string,
+  userId: string,
+  serviceId: string,
+  credentials: Credential
+): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    // Add credential to stock
+    const { error: stockError } = await supabase
       .from('credential_stock')
-      .select('*')
-      .eq('service_id', serviceId)
-      .eq('status', 'available');
-      
-    if (error) {
-      console.error('Error fetching available credentials:', error);
-      return [];
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error('Error in getAvailableCredentials:', error);
-    return [];
-  }
-};
-
-// Function to resolve a stock issue by assigning a credential
-export const resolveStockIssue = async (issueId: string, credentialId: string): Promise<boolean> => {
-  try {
-    // Get the issue details first
-    const { data: issueData, error: issueError } = await supabase
-      .from('stock_issue_logs')
-      .select('*')
-      .eq('id', issueId)
-      .single();
-      
-    if (issueError || !issueData) {
-      console.error('Error fetching issue details:', issueError);
-      return false;
-    }
-    
-    // Update the credential stock status
-    const { error: updateError } = await supabase
-      .from('credential_stock')
-      .update({
+      .insert({
+        service_id: serviceId,
+        credentials: credentials,
         status: 'assigned',
-        user_id: issueData.user_id,
-        order_id: issueData.order_id
-      })
-      .eq('id', credentialId);
-      
-    if (updateError) {
-      console.error('Error updating credential:', updateError);
+        user_id: userId,
+        order_id: orderId
+      });
+    
+    if (stockError) {
+      console.error('Error adding credential to stock:', stockError);
       return false;
     }
     
-    // Update the issue to mark it as resolved
-    const { error: resolveError } = await supabase
+    // Update the order with the credential information
+    const { error: orderError } = await supabase
+      .from('orders')
+      .update({
+        credentials: credentials,
+        credential_status: 'assigned',
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+      
+    if (orderError) {
+      console.error('Error updating order with credentials:', orderError);
+      return false;
+    }
+    
+    // Mark the stock request as fulfilled
+    const { error: requestError } = await supabase
       .from('stock_issue_logs')
       .update({
-        status: 'resolved',
+        status: 'fulfilled',
         resolved_at: new Date().toISOString()
       })
-      .eq('id', issueId);
+      .eq('id', requestId);
       
-    if (resolveError) {
-      console.error('Error resolving stock issue:', resolveError);
+    if (requestError) {
+      console.error('Error updating stock request status:', requestError);
       return false;
     }
-    
-    // Create a customer notification
-    await createCustomerNotification(issueData.user_id, issueData.service_id);
-    
-    // Dispatch an event to notify UI components
-    const stockIssueResolvedEvent = new CustomEvent('stock-issue-resolved');
-    window.dispatchEvent(stockIssueResolvedEvent);
     
     return true;
   } catch (error) {
-    console.error('Error in resolveStockIssue:', error);
+    console.error('Error in fulfillStockRequest:', error);
     return false;
-  }
-};
-
-// Create admin notification for a stock issue
-const createStockNotification = async (
-  userId: string, 
-  serviceId: string, 
-  serviceName: string,
-  customerName?: string
-) => {
-  try {
-    const { error } = await supabase
-      .from('admin_notifications')
-      .insert({
-        type: 'stock',
-        user_id: userId,
-        service_id: serviceId,
-        service_name: serviceName,
-        customer_name: customerName || 'Customer',
-        title: 'Stock Request',
-        message: `${customerName || 'A customer'} has requested ${serviceName} but stock is depleted.`,
-        link_to: '/admin/stock-issues',
-        is_read: false,
-        created_at: new Date().toISOString()
-      });
-      
-    if (error) {
-      console.error('Error creating admin notification:', error);
-    }
-  } catch (error) {
-    console.error('Error in createStockNotification:', error);
-  }
-};
-
-// Create customer notification for a resolved stock issue
-const createCustomerNotification = async (userId: string, serviceId: string) => {
-  try {
-    // This would use your customer notification system
-    // For now, we'll just console log it
-    console.log(`Notification to user ${userId} for service ${serviceId} - Your request has been fulfilled`);
-    
-    // In a real system, you'd create a customer notification in the database
-    // and have a UI component to display it
-  } catch (error) {
-    console.error('Error in createCustomerNotification:', error);
   }
 };
