@@ -52,6 +52,21 @@ export interface CredentialStock {
   userId?: string;
 }
 
+// Add StockRequest type for pending requests
+export interface StockRequest {
+  id: string;
+  userId: string;
+  serviceId: string;
+  serviceName?: string;
+  orderId: string;
+  status: 'pending' | 'fulfilled' | 'cancelled';
+  createdAt: string;
+  fulfilledAt?: string;
+  customerName?: string;
+  priority?: 'high' | 'medium' | 'low';
+  notes?: string;
+}
+
 // Add the missing User and UserRole types
 export type UserRole = 'admin' | 'customer' | 'wholesale';
 
@@ -149,6 +164,7 @@ export interface Subscription {
     notes?: string;
     [key: string]: any;
   };
+  credentialStatus?: 'available' | 'pending' | 'assigned';
   credentialStockId?: string; // Added for Supabase credential_stock reference
 }
 

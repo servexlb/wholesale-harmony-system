@@ -47,6 +47,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [credentials, setCredentials] = useState<{email?: string, password?: string, username?: string, notes?: string} | undefined>();
   const [orderStatus, setOrderStatus] = useState<'pending' | 'processing' | 'completed'>('pending');
   const [orderId, setOrderId] = useState<string | undefined>(undefined);
+  const [stockAvailable, setStockAvailable] = useState<boolean>(true);
 
   useEffect(() => {
     if (open) {
@@ -54,6 +55,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setDuration(initialDuration.toString());
       setAccountId('');
       setNotes('');
+      setStockAvailable(true);
     }
   }, [open, initialQuantity, initialDuration]);
 
@@ -67,6 +69,24 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const totalPrice = calculateTotalPrice();
   
+  const checkStockAvailability = async (serviceId: string) => {
+    // For external API services, we don't need to check stock
+    if ((service.type === 'topup' || service.type === 'recharge') && service.useExternalApi) {
+      return true;
+    }
+    
+    // For other services, check stock in the database
+    try {
+      // Import from credentialService
+      const { checkStockAvailability } = await import('@/lib/credentialService');
+      return await checkStockAvailability(serviceId);
+    } catch (error) {
+      console.error('Error checking stock availability:', error);
+      // Default to true if there's an error checking
+      return true;
+    }
+  };
+
   const savePurchaseToDatabase = async () => {
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -77,14 +97,37 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       
       const userId = session.session.user.id;
       const orderId = `ord-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      setOrderId(orderId);
       
-      // Generate mock credentials for the purchased service
-      const mockCredentials = service.type === 'subscription' ? {
-        email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
-        password: `pass${Math.random().toString(36).substring(2, 10)}`,
-        username: `user${Math.floor(Math.random() * 10000)}`,
-        notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
-      } : undefined;
+      // Check stock availability for subscription services
+      if (service.type === 'subscription') {
+        const isStockAvailable = await checkStockAvailability(service.id);
+        setStockAvailable(isStockAvailable);
+        
+        if (!isStockAvailable) {
+          // Create a stock request
+          const { createStockRequest } = await import('@/lib/credentialService');
+          await createStockRequest(
+            userId,
+            service.id,
+            service.name,
+            orderId,
+            user?.name,
+            notes
+          );
+        }
+      }
+      
+      // Generate mock credentials for the purchased service if stock is available
+      let mockCredentials;
+      if (service.type === 'subscription' && stockAvailable) {
+        mockCredentials = {
+          email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
+          password: `pass${Math.random().toString(36).substring(2, 10)}`,
+          username: `user${Math.floor(Math.random() * 10000)}`,
+          notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
+        };
+      }
       
       // Save to orders table
       const { error: orderError } = await supabase
@@ -96,12 +139,12 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           service_name: service.name,
           quantity: quantity,
           total_price: totalPrice,
-          status: 'completed',
+          status: stockAvailable ? 'completed' : 'pending',
           duration_months: service.type === 'subscription' ? parseInt(duration) : null,
           account_id: accountId || null,
           notes: notes || null,
           created_at: new Date().toISOString(),
-          completed_at: new Date().toISOString()
+          completed_at: stockAvailable ? new Date().toISOString() : null
         });
         
       if (orderError) {
@@ -109,8 +152,8 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         return false;
       }
       
-      // If it's a subscription, also save to subscriptions table
-      if (service.type === 'subscription') {
+      // If it's a subscription and stock is available, also save to subscriptions table
+      if (service.type === 'subscription' && stockAvailable) {
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + parseInt(duration));
         
@@ -268,8 +311,13 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           localStorage.setItem('orders', JSON.stringify(orders));
         }
         
-        // Set order status to completed for regular products
-        setOrderStatus('completed');
+        // Set order status based on stock availability for subscriptions
+        if (service.type === 'subscription') {
+          setOrderStatus(stockAvailable ? 'completed' : 'processing');
+        } else {
+          // For non-subscription products, always set to completed
+          setOrderStatus('completed');
+        }
         
         // Notify parent component 
         onPurchase();
@@ -426,7 +474,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         }}
         service={service}
         credentials={credentials}
-        stockAvailable={service.type !== 'topup' && service.type !== 'recharge'}
+        stockAvailable={stockAvailable}
         orderStatus={orderStatus}
         orderId={orderId}
       />
