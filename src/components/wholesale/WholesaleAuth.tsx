@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +23,6 @@ const WholesaleAuth: React.FC<WholesaleAuthProps> = ({ onLoginSuccess, isLoggedO
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Load saved username from localStorage if available
   useEffect(() => {
     const savedUsername = localStorage.getItem('rememberedWholesaleUsername');
     if (savedUsername) {
@@ -47,14 +45,12 @@ const WholesaleAuth: React.FC<WholesaleAuthProps> = ({ onLoginSuccess, isLoggedO
       const success = await onLoginSuccess(username, password);
       
       if (success) {
-        // Save username to localStorage if rememberMe is checked
         if (rememberMe) {
           localStorage.setItem('rememberedWholesaleUsername', username);
         } else {
           localStorage.removeItem('rememberedWholesaleUsername');
         }
         
-        // Redirect to wholesale dashboard
         navigate('/wholesale');
       }
     } catch (error) {

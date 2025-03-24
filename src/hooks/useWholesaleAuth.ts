@@ -7,7 +7,7 @@ import { toast } from '@/lib/toast';
 export const useWholesaleAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentWholesaler, setCurrentWholesaler] = useState('');
+  const [currentWholesaler, setCurrentWholesaler] = useState<string>('');
   const [isLoggedOut, setIsLoggedOut] = useState(false);
 
   // On mount, check if the user is already authenticated
@@ -72,6 +72,7 @@ export const useWholesaleAuth = () => {
     setIsAuthenticated(true);
     setCurrentWholesaler(wholesalerId);
     localStorage.setItem('wholesalerId', wholesalerId);
+    return Promise.resolve(true); // Return a promise resolving to true for compatibility
   };
 
   const handleLogout = async () => {

@@ -12,6 +12,7 @@ interface SalesSummaryStatsProps {
   averageOrderValue: number;
   totalServices?: number;
   wholesalerId?: string;
+  isLoading?: boolean;
 }
 
 const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
@@ -20,51 +21,15 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
   totalProducts: initialTotalProducts,
   averageOrderValue: initialAverageOrderValue,
   totalServices: initialTotalServices,
-  wholesalerId
+  wholesalerId,
+  isLoading: initialIsLoading = false
 }) => {
   const [totalSales, setTotalSales] = useState(initialTotalSales);
   const [totalCustomers, setTotalCustomers] = useState(initialTotalCustomers);
   const [totalProducts, setTotalProducts] = useState(initialTotalProducts);
   const [averageOrderValue, setAverageOrderValue] = useState(initialAverageOrderValue);
   const [totalServices, setTotalServices] = useState(initialTotalServices);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Fetch metrics from Supabase on component mount if wholesalerId is available
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      if (!wholesalerId) return;
-      
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('wholesale_metrics')
-          .select('*')
-          .eq('wholesaler_id', wholesalerId)
-          .single();
-          
-        if (error) {
-          console.error('Error fetching metrics:', error);
-          // Don't show toast for not found error as it might be first time user
-          if (error.code !== 'PGRST116') {
-            toast.error('Error loading metrics');
-          }
-        } else if (data) {
-          console.log('Metrics loaded from Supabase:', data);
-          setTotalSales(data.total_sales);
-          setTotalCustomers(data.total_customers);
-          setTotalProducts(data.total_services);
-          setTotalServices(data.total_services);
-          setAverageOrderValue(data.average_order_value);
-        }
-      } catch (error) {
-        console.error('Error in fetchMetrics:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchMetrics();
-  }, [wholesalerId]);
+  const [isLoading, setIsLoading] = useState(initialIsLoading);
 
   // Update the component state with props
   useEffect(() => {
@@ -73,11 +38,15 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
     setTotalProducts(initialTotalProducts);
     setAverageOrderValue(initialAverageOrderValue);
     setTotalServices(initialTotalServices);
-  }, [initialTotalSales, initialTotalCustomers, initialTotalProducts, initialAverageOrderValue, initialTotalServices]);
+    setIsLoading(initialIsLoading);
+  }, [initialTotalSales, initialTotalCustomers, initialTotalProducts, initialAverageOrderValue, initialTotalServices, initialIsLoading]);
   
   // Listen for order and customer events to update metrics in real-time
   useEffect(() => {
+    console.log('Setting up event listeners for metrics updates');
+    
     const handleOrderPlaced = async () => {
+      console.log('Order placed event detected');
       if (wholesalerId) {
         try {
           const { data, error } = await supabase
@@ -103,6 +72,7 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
     };
     
     const handleCustomerAdded = async () => {
+      console.log('Customer added event detected in SalesSummaryStats');
       if (wholesalerId) {
         try {
           const { data, error } = await supabase
@@ -113,11 +83,19 @@ const SalesSummaryStats: React.FC<SalesSummaryStatsProps> = ({
             
           if (error) {
             console.error('Error fetching updated metrics after customer added:', error);
+            // Fallback to local update
+            setTotalCustomers(prev => prev + 1);
           } else if (data) {
+            console.log('Customer count updated from database:', data.total_customers);
             setTotalCustomers(data.total_customers);
+          } else {
+            // If no data returned, increment locally
+            setTotalCustomers(prev => prev + 1);
           }
         } catch (error) {
           console.error('Error updating metrics after customer added:', error);
+          // Fallback to local update
+          setTotalCustomers(prev => prev + 1);
         }
       } else {
         setTotalCustomers(prev => prev + 1);
