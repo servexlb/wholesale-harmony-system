@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserCog, CreditCard, KeyRound } from 'lucide-react';
@@ -8,6 +9,7 @@ import {
   getProductById,
   getSubscriptionById
 } from '@/lib/data';
+import { IssueType } from '@/lib/types';
 
 interface SubscriptionActionsProps {
   subscriptionId: string;

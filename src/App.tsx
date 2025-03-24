@@ -34,7 +34,7 @@ const queryClient = new QueryClient();
 
 // PayPal configuration
 const paypalOptions = {
-  "client-id": "test", // Replace with your PayPal client ID in production
+  clientId: "test", // Corrected from "client-id" to "clientId"
   currency: "USD",
   intent: "capture",
   components: "buttons"

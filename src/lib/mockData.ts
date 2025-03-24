@@ -30,7 +30,7 @@ export const users: User[] = [
     id: 'user-4',
     name: 'Wholesale Client',
     email: 'wholesale@example.com',
-    role: 'wholesaler',
+    role: 'wholesale',
     balance: 5000,
     createdAt: '2023-03-10T14:45:00Z',
   },
@@ -75,6 +75,9 @@ export const categories: ServiceCategory[] = [
     icon: 'lock',
   },
 ];
+
+// Export categories as serviceCategories for backward compatibility
+export const serviceCategories = categories;
 
 // Mock services
 export const services: Service[] = [
@@ -398,7 +401,7 @@ export const supportTickets: SupportTicket[] = [
     userId: 'user-2',
     subject: 'Wrong gift card code',
     description: 'The Amazon gift card code I received seems to be invalid or already used.',
-    status: 'in_progress',
+    status: 'in-progress',
     priority: 'medium',
     createdAt: '2023-04-11T14:20:00Z',
     updatedAt: '2023-04-11T15:45:00Z',
@@ -425,6 +428,8 @@ export const ticketResponses: TicketResponse[] = [
     message: 'I apologize for the inconvenience. Please provide the email address used for the Netflix account so I can check the status.',
     createdAt: '2023-04-10T10:15:00Z',
     sentBy: 'admin',
+    userId: 'user-3',
+    isStaff: true
   },
   {
     id: 'response-2',
@@ -432,6 +437,8 @@ export const ticketResponses: TicketResponse[] = [
     message: 'My email is john@example.com. The account credentials I received were username: netflix_user101 and password: pass123',
     createdAt: '2023-04-10T10:30:00Z',
     sentBy: 'user',
+    userId: 'user-1',
+    isStaff: false
   },
   {
     id: 'response-3',
@@ -439,6 +446,8 @@ export const ticketResponses: TicketResponse[] = [
     message: 'I\'ve checked the gift card code and it appears it hasn\'t been activated properly. I\'ll issue a new one for you right away.',
     createdAt: '2023-04-11T15:45:00Z',
     sentBy: 'admin',
+    userId: 'user-3',
+    isStaff: true
   },
 ];
 

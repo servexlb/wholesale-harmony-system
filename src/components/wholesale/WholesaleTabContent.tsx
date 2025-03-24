@@ -2,8 +2,8 @@
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
-import { Customer } from '@/lib/data';
-import { Subscription, WholesaleOrder, Service, ServiceType } from '@/lib/types';
+import { Customer as DataCustomer } from '@/lib/data';
+import { Subscription, WholesaleOrder, Service, ServiceType, Customer } from '@/lib/types';
 import ProductsTab from './ProductsTab';
 import SalesTab from './SalesTab';
 import SettingsTab from './SettingsTab';
@@ -13,15 +13,15 @@ import CustomersAndStockTab from './CustomersAndStockTab';
 
 interface WholesaleTabContentProps {
   activeTab: string;
-  products: Service[]; // Changed from any[] to Service[]
-  customers: Customer[];
-  wholesalerCustomers: Customer[];
+  products: Service[];
+  customers: DataCustomer[];
+  wholesalerCustomers: DataCustomer[];
   orders: WholesaleOrder[];
   subscriptions: Subscription[];
   currentWholesaler: string;
   handleOrderPlaced: (order: WholesaleOrder) => void;
-  onAddCustomer: (customer: Customer) => void;
-  onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<Customer>) => void;
+  onAddCustomer: (customer: DataCustomer) => void;
+  onUpdateCustomer?: (customerId: string, updatedCustomer: Partial<DataCustomer>) => void;
   onPurchaseForCustomer?: (customerId: string) => void;
 }
 

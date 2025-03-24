@@ -14,7 +14,7 @@ export interface Order {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   createdAt: string;
   serviceId?: string;
-  serviceName?: string; // Add this line
+  serviceName?: string;
   quantity?: number;
   totalPrice?: number;
   completedAt?: string;
@@ -31,6 +31,7 @@ export interface Order {
   credentialStatus?: 'available' | 'pending' | 'assigned';
   paymentMethod?: string;
   notes?: string;
+  orderId?: string; // Add this to fix error in AdminPayments
 }
 
 // Add Credential and CredentialStock types
@@ -88,6 +89,7 @@ export interface Service {
   monthlyPricing?: MonthlyPricing[];
   features?: string[];
   availableForCustomers?: boolean;
+  status?: string; // Add status to fix error in mockData
 }
 
 export interface Product {
@@ -147,7 +149,116 @@ export interface Subscription {
   };
 }
 
-// Add SubscriptionIssue type (missing in original code)
+// Update SupportTicket type to include priority and proper status
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  subject: string;
+  description: string;
+  status: 'open' | 'in-progress' | 'resolved' | 'closed';
+  priority?: 'high' | 'medium' | 'low';
+  createdAt: string;
+  updatedAt: string;
+  serviceId?: string;
+  imageUrl?: string;
+}
+
+// Update TicketResponse type to fix missing properties
+export interface TicketResponse {
+  id: string;
+  ticketId: string;
+  userId?: string;
+  message: string;
+  createdAt: string;
+  isStaff?: boolean;
+  sentBy?: string;
+}
+
+// Update SimpleCustomer type to include additional properties
+export interface SimpleCustomer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  totalSpent?: number;
+  activeSubscriptions?: number;
+  lastPurchase?: string;
+}
+
+// Add Customer type (missing in original code)
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  wholesalerId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  address?: string;
+  notes?: string;
+  balance?: number;
+}
+
+// Update AdminNotification type to support more notification types
+export interface AdminNotification {
+  id: string;
+  type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system';
+  customerName?: string;
+  serviceName?: string;
+  amount?: number;
+  paymentMethod?: string;
+  read?: boolean;
+  isRead?: boolean;
+  createdAt: string;
+  customerId?: string;
+  serviceId?: string;
+  subscriptionId?: string;
+  userId?: string;
+  title?: string;
+  message?: string;
+  linkTo?: string;
+}
+
+// Add CustomerNotification type
+export interface CustomerNotification {
+  id: string;
+  type: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  serviceId?: string;
+  subscriptionId?: string;
+  userId?: string;
+  paymentId?: string;
+  amount?: number;
+  serviceName?: string;
+}
+
+// Update Payment and PaymentStatus types
+export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'refunded' | 'completed' | 'failed';
+
+export interface Payment {
+  id: string;
+  userId: string;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: string;
+  method: string;
+  description?: string;
+  notes?: string;
+  userName?: string;
+  userEmail?: string;
+  transactionId?: string;
+  receiptUrl?: string;
+  reviewedAt?: string;
+  orderId?: string;
+}
+
+// Update SubscriptionIssue types
+export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue';
+export type IssueStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
+
 export interface SubscriptionIssue {
   id: string;
   userId: string;
@@ -199,103 +310,3 @@ export interface WholesaleOrder {
   notes?: string;
   services?: string[];
 }
-
-// Add SupportTicket type
-export interface SupportTicket {
-  id: string;
-  userId: string;
-  subject: string;
-  description: string;
-  status: 'open' | 'in-progress' | 'resolved' | 'closed';
-  createdAt: string;
-  updatedAt: string;
-  serviceId?: string;
-  imageUrl?: string;
-}
-
-// Add TicketResponse type
-export interface TicketResponse {
-  id: string;
-  ticketId: string;
-  userId: string;
-  message: string;
-  createdAt: string;
-  isStaff: boolean;
-  sentBy?: string;
-}
-
-// Add SimpleCustomer type
-export interface SimpleCustomer {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-}
-
-// Add Customer type (missing in original code)
-export interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  wholesalerId?: string;
-  createdAt: string;
-  updatedAt?: string;
-  address?: string;
-  notes?: string;
-}
-
-// Add AdminNotification type
-export interface AdminNotification {
-  id: string;
-  type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request';
-  customerName?: string;
-  serviceName?: string;
-  amount?: number;
-  paymentMethod?: string;
-  read: boolean;
-  createdAt: string;
-  customerId?: string;
-  serviceId?: string;
-  subscriptionId?: string;
-  userId?: string;
-}
-
-// Add CustomerNotification type
-export interface CustomerNotification {
-  id: string;
-  type: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
-  serviceId?: string;
-  subscriptionId?: string;
-  userId?: string;
-  paymentId?: string;
-  amount?: number;
-  serviceName?: string;
-}
-
-// Add Payment and PaymentStatus types (missing in original code)
-export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'refunded';
-
-export interface Payment {
-  id: string;
-  userId: string;
-  amount: number;
-  status: PaymentStatus;
-  createdAt: string;
-  method: string;
-  description?: string;
-  notes?: string;
-  userName?: string;
-  userEmail?: string;
-  transactionId?: string;
-  receiptUrl?: string;
-  reviewedAt?: string;
-}
-
-// Add SubscriptionIssue types
-export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue';
-export type IssueStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
