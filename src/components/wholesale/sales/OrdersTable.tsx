@@ -3,7 +3,7 @@ import React, { memo, useMemo, useEffect } from 'react';
 import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { createServiceMap } from './utils/productMapUtils';
+import { getAllServices } from './utils/productMapUtils';
 import DesktopOrdersTable from './DesktopOrdersTable';
 import MobileOrdersList from './MobileOrdersList';
 import { PRODUCT_EVENTS } from '@/lib/productManager';
@@ -19,7 +19,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ filteredOrders, customers }) 
   // Create a memoized product lookup map
   const productMap = useMemo(() => {
     console.log('Creating product map');
-    const map = createServiceMap();
+    const map = new Map();
+    try {
+      const services = getAllServices();
+      services.forEach(service => {
+        map.set(service.id, {
+          id: service.id,
+          name: service.name,
+          type: service.type,
+          price: service.price
+        });
+      });
+    } catch (error) {
+      console.error('Error creating product map:', error);
+    }
     console.log('Product map size:', map.size);
     return map;
   }, []);

@@ -485,7 +485,8 @@ export const services: Service[] = [
     price: 89.99,
     wholesalePrice: 49.99,
     image: "https://images.unsplash.com/photo-1602748828300-57c35baaef48?q=80&w=1000&auto=format&fit=crop",
-    category: "Home Decor"
+    category: "Home Decor",
+    type: "service"
   },
   {
     id: "s2",
@@ -494,7 +495,8 @@ export const services: Service[] = [
     price: 34.99,
     wholesalePrice: 19.99,
     image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop",
-    category: "Kitchenware"
+    category: "Kitchenware",
+    type: "service"
   },
   {
     id: "s3",
@@ -503,7 +505,8 @@ export const services: Service[] = [
     price: 59.99,
     wholesalePrice: 32.99,
     image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop",
-    category: "Home Decor"
+    category: "Home Decor",
+    type: "service"
   },
   {
     id: "s4",
@@ -512,7 +515,8 @@ export const services: Service[] = [
     price: 49.99,
     wholesalePrice: 28.99,
     image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop",
-    category: "Textiles"
+    category: "Textiles",
+    type: "service"
   },
   {
     id: "s5",
@@ -521,7 +525,8 @@ export const services: Service[] = [
     price: 79.99,
     wholesalePrice: 42.99,
     image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop",
-    category: "Storage"
+    category: "Storage",
+    type: "service"
   },
   {
     id: "s6",
@@ -530,7 +535,8 @@ export const services: Service[] = [
     price: 69.99,
     wholesalePrice: 38.99,
     image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop",
-    category: "Plants"
+    category: "Plants",
+    type: "service"
   },
 ];
 
@@ -539,31 +545,31 @@ export const categories: ServiceCategory[] = [
     id: "c1",
     name: "Home Decor",
     description: "Products for decorating your home.",
-    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop"
+    icon: "HomeIcon"
   },
   {
     id: "c2",
     name: "Kitchenware",
     description: "Utensils and cookware for your kitchen.",
-    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop"
+    icon: "UtensilsIcon"
   },
   {
     id: "c3",
     name: "Textiles",
     description: "Bedding and home textiles.",
-    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop"
+    icon: "ScrollIcon"
   },
   {
     id: "c4",
     name: "Storage",
     description: "Containers and storage solutions.",
-    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop"
+    icon: "PackageIcon"
   },
   {
     id: "c5",
     name: "Plants",
     description: "Living plants and succulents.",
-    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop"
+    icon: "LeafIcon"
   }
 ];
 
@@ -572,18 +578,22 @@ export const users: User[] = [
     id: "u1",
     name: "John Doe",
     email: "john@example.com",
-    role: "admin"
+    role: "admin",
+    balance: 0,
+    createdAt: new Date().toISOString()
   },
   {
     id: "u2",
     name: "Jane Smith",
     email: "jane@example.com",
-    role: "customer"
+    role: "customer",
+    balance: 0,
+    createdAt: new Date().toISOString()
   },
   {
     id: "u3",
     name: "Emily Johnson",
     email: "emily@example.com",
-    role: "wholesaler"
-  }
-];
+    role: "wholesale",
+
+

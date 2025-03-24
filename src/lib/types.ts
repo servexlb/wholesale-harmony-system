@@ -311,3 +311,18 @@ export interface WholesaleOrder {
   notes?: string;
   services?: string[];
 }
+
+// Add DigitalItem type for AdminDigitalInventory component
+export interface DigitalItem extends CredentialStock {
+  serviceName: string;
+}
+
+// Update ServiceCategory to include optional image property
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  description?: string;
+  order?: number;
+  icon?: string;
+  image?: string; // Added image property
+}

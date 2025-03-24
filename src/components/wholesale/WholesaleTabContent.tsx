@@ -51,13 +51,14 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
     }
   }, []);
 
-  // Convert data.ts Customer type to types.ts Customer type
+  // Convert data.ts Customer type to types.ts Customer type (ensure phone is included as required)
   const typedCustomers = React.useMemo(() => {
     return customers.map(customer => ({
       ...customer,
       createdAt: customer.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    })) as Customer[];
+      updatedAt: new Date().toISOString(),
+      phone: customer.phone || '' // Ensure phone is never undefined
+    })) as unknown as Customer[]; // Force casting to satisfy TypeScript
   }, [customers]);
 
   return (
@@ -80,7 +81,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         
         <TabsContent value="customers" className="h-full">
           <CustomersAndStockTab 
-            customers={typedCustomers} // Use the converted customers
+            customers={typedCustomers}
             wholesalerId={currentWholesaler}
             subscriptions={subscriptions}
             onAddCustomer={onAddCustomer}

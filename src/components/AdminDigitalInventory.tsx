@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Product, Service, ServiceType, CredentialStock, Credential } from "@/lib/types";
-import { products as dataProducts } from "@/lib/data";
+import { Product, Service, ServiceType, CredentialStock, Credential, DigitalItem } from "@/lib/types";
+import { products as dataProducts, services } from "@/lib/data";
 import { 
   getAllCredentialStock, 
   addCredentialToStock, 

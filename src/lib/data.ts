@@ -125,6 +125,70 @@ export const products: Product[] = [
   },
 ];
 
+// Add services array export
+export const services: Product[] = [
+  {
+    id: "p1",
+    name: "Premium Ceramic Vase",
+    description: "Handcrafted ceramic vase with a modern, minimalist design.",
+    price: 89.99,
+    wholesalePrice: 49.99,
+    image: "https://images.unsplash.com/photo-1602748828300-57c35baaef48?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor",
+    type: "service"
+  },
+  {
+    id: "p2",
+    name: "Artisanal Coffee Mug",
+    description: "Handmade ceramic mug with a unique glazed finish.",
+    price: 34.99,
+    wholesalePrice: 19.99,
+    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop",
+    category: "Kitchenware",
+    type: "service"
+  },
+  {
+    id: "p3",
+    name: "Minimalist Wall Clock",
+    description: "Simple yet elegant wall clock with a silent quartz movement.",
+    price: 59.99,
+    wholesalePrice: 32.99,
+    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor",
+    type: "service"
+  },
+  {
+    id: "p4",
+    name: "Natural Linen Throw Pillow",
+    description: "Soft, natural linen pillow cover with a feather insert.",
+    price: 49.99,
+    wholesalePrice: 28.99,
+    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop",
+    category: "Textiles",
+    type: "service"
+  },
+  {
+    id: "p5",
+    name: "Handwoven Basket",
+    description: "Traditional handwoven basket made from sustainable materials.",
+    price: 79.99,
+    wholesalePrice: 42.99,
+    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop",
+    category: "Storage",
+    type: "service"
+  },
+  {
+    id: "p6",
+    name: "Glass Terrarium",
+    description: "Geometric glass terrarium for displaying small plants and succulents.",
+    price: 69.99,
+    wholesalePrice: 38.99,
+    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop",
+    category: "Plants",
+    type: "service"
+  },
+];
+
 export const customers: Customer[] = [
   {
     id: "c1",
