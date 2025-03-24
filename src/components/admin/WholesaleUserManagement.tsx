@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import ExportData from "@/components/wholesale/ExportData";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,15 +12,13 @@ import { supabase } from "@/integrations/supabase/client";
 interface WholesaleUser {
   id: string;
   username: string;
-  password: string;
   company: string;
-  showPassword: boolean;
 }
 
 // Define initial wholesale users as a constant to avoid recursive type definition
 const initialUsers = [
-  { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
-  { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
+  { id: 'w1', username: 'wholesaler1', company: 'ABC Trading' },
+  { id: 'w2', username: 'admin', company: 'XYZ Distributors' }
 ];
 
 const WholesaleUserManagement = () => {
@@ -29,7 +27,6 @@ const WholesaleUserManagement = () => {
   
   const [newWholesaleUser, setNewWholesaleUser] = useState({
     username: '',
-    password: '',
     company: ''
   });
   
@@ -53,9 +50,7 @@ const WholesaleUserManagement = () => {
           const formattedUsers = profiles.map(profile => ({
             id: profile.id,
             username: profile.email?.split('@')[0] || '',
-            password: '••••••••',
-            company: profile.company || '',
-            showPassword: false
+            company: profile.company || ''
           }));
           setWholesaleUsers(formattedUsers);
         } else {
@@ -73,8 +68,9 @@ const WholesaleUserManagement = () => {
         try {
           const parsedUsers = JSON.parse(savedUsers);
           const formattedUsers = parsedUsers.map((user: any) => ({
-            ...user,
-            showPassword: false
+            id: user.id,
+            username: user.username,
+            company: user.company || ''
           }));
           setWholesaleUsers(formattedUsers);
         } catch (error) {
@@ -87,22 +83,20 @@ const WholesaleUserManagement = () => {
   }, []);
 
   useEffect(() => {
-    const usersToSave = wholesaleUsers.map(({ showPassword, ...user }) => user);
+    const usersToSave = wholesaleUsers;
     localStorage.setItem('wholesaleUsers', JSON.stringify(usersToSave));
   }, [wholesaleUsers]);
 
   const handleAddWholesaleUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newWholesaleUser.username && newWholesaleUser.password) {
+    if (newWholesaleUser.username) {
       try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.admin.createUser({
           email: `${newWholesaleUser.username}@wholesaler.com`,
-          password: newWholesaleUser.password,
-          options: {
-            data: {
-              company: newWholesaleUser.company,
-              role: 'wholesaler'
-            }
+          email_confirm: true,
+          user_metadata: {
+            company: newWholesaleUser.company,
+            role: 'wholesaler'
           }
         });
         
@@ -129,8 +123,8 @@ const WholesaleUserManagement = () => {
           
           setWholesaleUsers(prev => [...prev, {
             id: userId,
-            ...newWholesaleUser,
-            showPassword: false
+            username: newWholesaleUser.username,
+            company: newWholesaleUser.company
           }]);
           
           toast.success('Wholesale user added successfully');
@@ -139,16 +133,16 @@ const WholesaleUserManagement = () => {
         console.error('Error in handleAddWholesaleUser:', error);
         toast.error('Error adding user');
         
+        // Fallback to local storage if Supabase fails
         setWholesaleUsers(prev => [...prev, {
           id: `w${prev.length + 1}`,
-          ...newWholesaleUser,
-          showPassword: false
+          username: newWholesaleUser.username,
+          company: newWholesaleUser.company
         }]);
       }
       
       setNewWholesaleUser({
         username: '',
-        password: '',
         company: ''
       });
       setShowAddForm(false);
@@ -163,12 +157,6 @@ const WholesaleUserManagement = () => {
       console.error('Error removing user:', error);
       toast.error('Error removing user');
     }
-  };
-
-  const togglePasswordVisibility = (id: string) => {
-    setWholesaleUsers(prev => prev.map(user => 
-      user.id === id ? { ...user, showPassword: !user.showPassword } : user
-    ));
   };
 
   const exportData = wholesaleUsers.map(user => ({
@@ -198,23 +186,13 @@ const WholesaleUserManagement = () => {
         <Card className="mb-6">
           <CardContent className="p-6">
             <form onSubmit={handleAddWholesaleUser}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <Label htmlFor="username">Username</Label>
                   <Input 
                     id="username" 
                     value={newWholesaleUser.username}
                     onChange={(e) => setNewWholesaleUser(prev => ({ ...prev, username: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password" 
-                    type="password"
-                    value={newWholesaleUser.password}
-                    onChange={(e) => setNewWholesaleUser(prev => ({ ...prev, password: e.target.value }))}
                     required
                   />
                 </div>
@@ -246,7 +224,6 @@ const WholesaleUserManagement = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -256,19 +233,6 @@ const WholesaleUserManagement = () => {
                 <tr key={user.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {user.username}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center space-x-2">
-                      <span>{user.showPassword ? user.password : '•••••••••••'}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7"
-                        onClick={() => togglePasswordVisibility(user.id)}
-                      >
-                        {user.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {user.company || '-'}

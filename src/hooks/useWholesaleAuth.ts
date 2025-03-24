@@ -123,12 +123,11 @@ export function useWholesaleAuth() {
     };
   }, [handleLogout]);
 
-  const handleLoginSuccess = useCallback(async (username: string, password: string) => {
+  const handleLoginSuccess = useCallback(async (username: string) => {
     try {
-      // Authenticate with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Authenticate with Supabase using username only
+      const { data, error } = await supabase.auth.signInWithOtp({
         email: `${username}@wholesaler.com`,
-        password: password
       });
       
       if (error) {
@@ -139,7 +138,7 @@ export function useWholesaleAuth() {
         const savedUsers = localStorage.getItem('wholesaleUsers');
         if (savedUsers) {
           const users = JSON.parse(savedUsers);
-          const user = users.find((u: any) => u.username === username && u.password === password);
+          const user = users.find((u: any) => u.username === username);
           
           if (user) {
             setIsAuthenticated(true);
@@ -151,7 +150,7 @@ export function useWholesaleAuth() {
           }
         }
         
-        toast.error('Invalid username or password');
+        toast.error('Invalid username');
         return false;
       }
       

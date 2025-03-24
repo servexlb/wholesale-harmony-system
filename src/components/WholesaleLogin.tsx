@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, User, MessageCircle } from 'lucide-react';
+import { User, MessageCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,7 +15,6 @@ interface WholesaleLoginProps {
 
 const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut = false }) => {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -38,8 +37,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut 
     // and also check against any wholesale users added via admin
     setTimeout(() => {
       // Check for default credentials
-      if ((username === 'admin' && password === 'admin123') || 
-          (username === 'wholesaler1' && password === 'password123')) {
+      if (username === 'admin' || username === 'wholesaler1') {
         toast({
           title: "Login successful!",
           description: "Welcome to the wholesale portal."
@@ -52,7 +50,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut 
       const savedWholesaleUsers = localStorage.getItem('wholesaleUsers');
       if (savedWholesaleUsers) {
         const users = JSON.parse(savedWholesaleUsers);
-        const user = users.find((u: any) => u.username === username && u.password === password);
+        const user = users.find((u: any) => u.username === username);
         
         if (user) {
           toast({
@@ -64,7 +62,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut 
         }
       }
 
-      setError('Invalid username or password');
+      setError('Invalid username');
       setIsLoading(false);
     }, 1000);
   };
@@ -76,7 +74,7 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut 
         <CardDescription className="text-center">
           {isLoggedOut 
             ? "You've been signed out. Please login again to access the wholesale portal."
-            : "Enter your credentials to access the wholesale portal"}
+            : "Enter your username to access the wholesale portal"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -97,22 +95,6 @@ const WholesaleLogin: React.FC<WholesaleLoginProps> = ({ onSuccess, isLoggedOut 
                 placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input 
-                id="password" 
-                type="password" 
-                className="pl-10" 
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
