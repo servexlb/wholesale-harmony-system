@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
@@ -51,14 +50,10 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
     }
   }, []);
 
-  // Convert data.ts Customer type to types.ts Customer type (ensure phone is included as required)
+  // Convert data.ts Customer type to data.ts Customer type (keeping the same type)
+  // Removed the conversion to types.ts Customer since it causes type issues
   const typedCustomers = React.useMemo(() => {
-    return customers.map(customer => ({
-      ...customer,
-      createdAt: customer.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      phone: customer.phone || '' // Ensure phone is never undefined
-    })) as unknown as Customer[]; // Force casting to satisfy TypeScript
+    return customers;
   }, [customers]);
 
   return (

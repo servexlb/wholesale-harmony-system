@@ -467,6 +467,41 @@ export const markAllNotificationsAsRead = (): void => {
   });
 };
 
+export const categories: ServiceCategory[] = [
+  {
+    id: "c1",
+    name: "Home Decor",
+    description: "Products for decorating your home.",
+    icon: "HomeIcon"
+  },
+  {
+    id: "c2",
+    name: "Kitchenware",
+    description: "Utensils and cookware for your kitchen.",
+    icon: "UtensilsIcon"
+  },
+  {
+    id: "c3",
+    name: "Textiles",
+    description: "Bedding and home textiles.",
+    icon: "ScrollIcon"
+  },
+  {
+    id: "c4",
+    name: "Storage",
+    description: "Containers and storage solutions.",
+    icon: "PackageIcon"
+  },
+  {
+    id: "c5",
+    name: "Plants",
+    description: "Living plants and succulents.",
+    icon: "LeafIcon"
+  }
+];
+
+export const serviceCategories = categories;
+
 export const getServiceById = (id: string): Service | undefined => {
   return services.find(service => service.id === id);
 };
@@ -474,8 +509,6 @@ export const getServiceById = (id: string): Service | undefined => {
 export const getCategoryById = (id: string): ServiceCategory | undefined => {
   return categories.find(category => category.id === id);
 };
-
-export const serviceCategories = categories;
 
 export const services: Service[] = [
   {
@@ -538,39 +571,6 @@ export const services: Service[] = [
     category: "Plants",
     type: "service"
   },
-];
-
-export const categories: ServiceCategory[] = [
-  {
-    id: "c1",
-    name: "Home Decor",
-    description: "Products for decorating your home.",
-    icon: "HomeIcon"
-  },
-  {
-    id: "c2",
-    name: "Kitchenware",
-    description: "Utensils and cookware for your kitchen.",
-    icon: "UtensilsIcon"
-  },
-  {
-    id: "c3",
-    name: "Textiles",
-    description: "Bedding and home textiles.",
-    icon: "ScrollIcon"
-  },
-  {
-    id: "c4",
-    name: "Storage",
-    description: "Containers and storage solutions.",
-    icon: "PackageIcon"
-  },
-  {
-    id: "c5",
-    name: "Plants",
-    description: "Living plants and succulents.",
-    icon: "LeafIcon"
-  }
 ];
 
 export const users: User[] = [

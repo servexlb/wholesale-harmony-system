@@ -360,6 +360,8 @@ export const addSubscription = (subscription: Subscription): void => {
   subscriptions.push(subscription);
 };
 
+export type IssueType = 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system' | 'login_problem' | 'account_locked' | 'service_unavailable' | 'other';
+
 export const createSubscriptionIssue = (issueData: {
   subscriptionId: string;
   userId: string;

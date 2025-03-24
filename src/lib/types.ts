@@ -121,6 +121,7 @@ export interface ServiceCategory {
   description?: string;
   order?: number;
   icon?: string;
+  image?: string; // Added image property
 }
 
 // Add MonthlyPricing type
@@ -205,7 +206,7 @@ export type IssueType = 'profile_fix' | 'payment_issue' | 'password_reset' | 'ne
 
 export interface AdminNotification {
   id: string;
-  type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system';
+  type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system' | 'login_problem' | 'account_locked' | 'service_unavailable' | 'other';
   customerName?: string;
   serviceName?: string;
   amount?: number;
