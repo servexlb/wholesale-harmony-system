@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +14,7 @@ const customerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(6, "Phone number must be at least 6 characters"),
   company: z.string().optional().or(z.literal('')),
+  address: z.string().optional().or(z.literal('')),
 });
 
 export type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -35,6 +37,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       name: '',
       phone: '',
       company: '',
+      address: '',
     },
   });
 
@@ -47,6 +50,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       phone: data.phone,
       email: '', // Set email to empty string by default
       company: data.company || '',
+      address: data.address || '',
       wholesalerId: wholesalerId,
       balance: 0,
       createdAt: new Date().toISOString() // Add required createdAt field
@@ -100,6 +104,20 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               <FormLabel>Company (Optional)</FormLabel>
               <FormControl>
                 <Input placeholder="ABC Corp" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="123 Main St, City" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

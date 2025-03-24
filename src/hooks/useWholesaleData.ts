@@ -94,7 +94,13 @@ export function useWholesaleData(currentWholesaler: string) {
             endDate: sub.end_date,
             status: sub.status as 'active' | 'expired' | 'cancelled',
             durationMonths: sub.duration_months,
-            credentials: sub.credentials
+            credentials: sub.credentials ? {
+              ...(typeof sub.credentials === 'object' ? sub.credentials : {}),
+              username: typeof sub.credentials === 'object' ? sub.credentials.username : '',
+              password: typeof sub.credentials === 'object' ? sub.credentials.password : '',
+              email: typeof sub.credentials === 'object' ? sub.credentials.email : '',
+              notes: typeof sub.credentials === 'object' ? sub.credentials.notes : ''
+            } : undefined
           }));
           setSubscriptions(formattedSubs);
         }

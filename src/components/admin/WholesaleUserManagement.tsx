@@ -17,11 +17,14 @@ interface WholesaleUser {
   showPassword: boolean;
 }
 
+// Define initial users without recursion
+const initialUsers: WholesaleUser[] = [
+  { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
+  { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
+];
+
 const WholesaleUserManagement = () => {
-  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>([
-    { id: 'w1', username: 'wholesaler1', password: 'password123', company: 'ABC Trading', showPassword: false },
-    { id: 'w2', username: 'admin', password: 'admin123', company: 'XYZ Distributors', showPassword: false }
-  ]);
+  const [wholesaleUsers, setWholesaleUsers] = useState<WholesaleUser[]>(initialUsers);
   
   const [newWholesaleUser, setNewWholesaleUser] = useState({
     username: '',
