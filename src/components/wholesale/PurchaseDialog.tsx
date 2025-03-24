@@ -338,7 +338,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className={isMobile ? "p-4 w-[95vw]" : "max-w-md"}>
+      <DialogContent className={isMobile ? "p-4 w-[95vw]" : "max-w-md"} hideCloseButton>
         <DialogHeader>
           <DialogTitle>Purchase for Customer</DialogTitle>
           <DialogDescription>
@@ -500,3 +500,4 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 };
 
 export default PurchaseDialog;
+
