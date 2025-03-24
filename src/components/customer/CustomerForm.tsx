@@ -48,7 +48,8 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
       email: '', // Set email to empty string by default
       company: data.company || '',
       wholesalerId: wholesalerId,
-      balance: 0
+      balance: 0,
+      createdAt: new Date().toISOString() // Add required createdAt field
     };
     
     // Pass the new customer to the parent component

@@ -1,3 +1,15 @@
+import { 
+  AdminNotification, 
+  SubscriptionIssue, 
+  IssueType, 
+  IssueStatus,
+  CustomerNotification,
+  Service,
+  ServiceCategory,
+  User,
+  UserRole
+} from '@/lib/types';
+
 export interface Product {
   id: string;
   name: string;
@@ -58,14 +70,6 @@ export interface Subscription {
     [key: string]: any;
   };
 }
-
-import { 
-  AdminNotification, 
-  SubscriptionIssue, 
-  IssueType, 
-  IssueStatus,
-  CustomerNotification 
-} from '@/lib/types';
 
 export const products: Product[] = [
   {
@@ -462,3 +466,124 @@ export const markAllNotificationsAsRead = (): void => {
     notification.read = true;
   });
 };
+
+export const getServiceById = (id: string): Service | undefined => {
+  return services.find(service => service.id === id);
+};
+
+export const getCategoryById = (id: string): ServiceCategory | undefined => {
+  return categories.find(category => category.id === id);
+};
+
+export const serviceCategories = categories;
+
+export const services: Service[] = [
+  {
+    id: "s1",
+    name: "Premium Ceramic Vase",
+    description: "Handcrafted ceramic vase with a modern, minimalist design.",
+    price: 89.99,
+    wholesalePrice: 49.99,
+    image: "https://images.unsplash.com/photo-1602748828300-57c35baaef48?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor"
+  },
+  {
+    id: "s2",
+    name: "Artisanal Coffee Mug",
+    description: "Handmade ceramic mug with a unique glazed finish.",
+    price: 34.99,
+    wholesalePrice: 19.99,
+    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop",
+    category: "Kitchenware"
+  },
+  {
+    id: "s3",
+    name: "Minimalist Wall Clock",
+    description: "Simple yet elegant wall clock with a silent quartz movement.",
+    price: 59.99,
+    wholesalePrice: 32.99,
+    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop",
+    category: "Home Decor"
+  },
+  {
+    id: "s4",
+    name: "Natural Linen Throw Pillow",
+    description: "Soft, natural linen pillow cover with a feather insert.",
+    price: 49.99,
+    wholesalePrice: 28.99,
+    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop",
+    category: "Textiles"
+  },
+  {
+    id: "s5",
+    name: "Handwoven Basket",
+    description: "Traditional handwoven basket made from sustainable materials.",
+    price: 79.99,
+    wholesalePrice: 42.99,
+    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop",
+    category: "Storage"
+  },
+  {
+    id: "s6",
+    name: "Glass Terrarium",
+    description: "Geometric glass terrarium for displaying small plants and succulents.",
+    price: 69.99,
+    wholesalePrice: 38.99,
+    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop",
+    category: "Plants"
+  },
+];
+
+export const categories: ServiceCategory[] = [
+  {
+    id: "c1",
+    name: "Home Decor",
+    description: "Products for decorating your home.",
+    image: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?q=80&w=1000&auto=format&fit=crop"
+  },
+  {
+    id: "c2",
+    name: "Kitchenware",
+    description: "Utensils and cookware for your kitchen.",
+    image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?q=80&w=1000&auto=format&fit=crop"
+  },
+  {
+    id: "c3",
+    name: "Textiles",
+    description: "Bedding and home textiles.",
+    image: "https://images.unsplash.com/photo-1592789705501-f9ae4287c4a9?q=80&w=1000&auto=format&fit=crop"
+  },
+  {
+    id: "c4",
+    name: "Storage",
+    description: "Containers and storage solutions.",
+    image: "https://images.unsplash.com/photo-1605001011156-cbf0b0f67a51?q=80&w=1000&auto=format&fit=crop"
+  },
+  {
+    id: "c5",
+    name: "Plants",
+    description: "Living plants and succulents.",
+    image: "https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=1000&auto=format&fit=crop"
+  }
+];
+
+export const users: User[] = [
+  {
+    id: "u1",
+    name: "John Doe",
+    email: "john@example.com",
+    role: "admin"
+  },
+  {
+    id: "u2",
+    name: "Jane Smith",
+    email: "jane@example.com",
+    role: "customer"
+  },
+  {
+    id: "u3",
+    name: "Emily Johnson",
+    email: "emily@example.com",
+    role: "wholesaler"
+  }
+];

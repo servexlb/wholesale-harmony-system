@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { X, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -11,10 +10,15 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Subscription } from '@/lib/types';
+import { Subscription, Service } from '@/lib/types';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { getServiceById } from '@/lib/mockData';
+
+// Create local service lookup function
+const getServiceById = (id: string): Service | null => {
+  const services = JSON.parse(localStorage.getItem('services') || '[]');
+  return services.find((service: Service) => service.id === id) || null;
+};
 
 interface SubscriptionAlertProps {
   subscription: Subscription;

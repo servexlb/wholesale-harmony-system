@@ -26,7 +26,6 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import MainLayout from "@/components/MainLayout";
-import { serviceCategories } from "@/lib/mockData";
 import { toast } from "@/lib/toast";
 
 // Featured services data
@@ -97,7 +96,7 @@ const testimonials = [
   }
 ];
 
-const Home: React.FC = () => {
+const Home = () => {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -117,6 +116,15 @@ const Home: React.FC = () => {
         return <Zap className="h-6 w-6 text-primary" />;
     }
   };
+
+  // Load categories from localStorage
+  const getServiceCategories = () => {
+    const storedCategories = localStorage.getItem('categories');
+    return storedCategories ? JSON.parse(storedCategories) : [];
+  };
+
+  // Use the function in your component
+  const serviceCategories = getServiceCategories();
 
   // Show purchase confirmation dialog
   const showPurchaseConfirmation = (service) => {

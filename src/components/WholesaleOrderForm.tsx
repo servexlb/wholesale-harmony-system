@@ -145,6 +145,7 @@ const WholesaleOrderForm: React.FC<WholesaleOrderFormProps> = ({
       company: data.company || '',
       wholesalerId: wholesalerId,
       balance: 0,
+      createdAt: new Date().toISOString()
     };
 
     setCustomersList(prev => [...prev, newCustomer]);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Tag, Check, CreditCard, Zap, RotateCw, Minus, Plus } from 'lucide-react';
@@ -5,15 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import { Service, ServiceCategory, ServiceType } from '@/lib/types';
-import { getServiceById, getCategoryById } from '@/lib/mockData';
 import { toast } from '@/lib/toast';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -23,6 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+
+// Create local service and category lookup functions
+const getServiceById = (id: string): Service | null => {
+  const services = JSON.parse(localStorage.getItem('services') || '[]');
+  return services.find((service: Service) => service.id === id) || null;
+};
+
+const getCategoryById = (id: string): ServiceCategory | null => {
+  const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+  return categories.find((category: ServiceCategory) => category.id === id) || null;
+};
 
 const ServiceDetail = () => {
   const { id } = useParams<{ id: string }>();

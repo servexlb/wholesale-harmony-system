@@ -26,7 +26,7 @@ export interface Customer {
   notes?: string;
   wholesalerId?: string;
   balance: number;
-  createdAt: string; // Add required field from types.ts
+  createdAt: string;
 }
 
 export interface Sale {
@@ -37,7 +37,7 @@ export interface Sale {
     productId: string;
     quantity: number;
     priceAtSale: number;
-    name?: string; // Add name property to fix error in AdminOrders
+    name?: string;
   }[];
   total: number;
   paid: boolean;
@@ -135,7 +135,7 @@ export const customers: Customer[] = [
     notes: "Prefers delivery on Tuesdays",
     wholesalerId: "wholesaler1",
     balance: 0,
-    createdAt: "2023-01-01T00:00:00Z" // Add required field
+    createdAt: "2023-01-01T00:00:00Z"
   },
   {
     id: "c2",
@@ -146,7 +146,7 @@ export const customers: Customer[] = [
     notes: "",
     wholesalerId: "admin",
     balance: 0,
-    createdAt: "2023-01-02T00:00:00Z" // Add required field
+    createdAt: "2023-01-02T00:00:00Z"
   },
   {
     id: "c3",
@@ -157,7 +157,7 @@ export const customers: Customer[] = [
     notes: "New customer as of Jan 2023",
     wholesalerId: "wholesaler1",
     balance: 0,
-    createdAt: "2023-01-03T00:00:00Z" // Add required field
+    createdAt: "2023-01-03T00:00:00Z"
   },
 ];
 
@@ -319,7 +319,7 @@ export const createSubscriptionIssue = (issueData: {
     type: issueData.type,
     status: "pending" as IssueStatus,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(), // Add the required updatedAt field
+    updatedAt: new Date().toISOString(),
     credentials: issueData.credentials
   };
   

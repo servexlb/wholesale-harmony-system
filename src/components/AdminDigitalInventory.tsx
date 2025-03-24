@@ -19,18 +19,19 @@ import {
 } from "@/components/ui/sheet";
 import { Product, Service, ServiceType, CredentialStock, Credential } from "@/lib/types";
 import { products as dataProducts } from "@/lib/data";
-import { services } from "@/lib/mockData";
 import { 
   getAllCredentialStock, 
   addCredentialToStock, 
   deleteCredentialFromStock,
   updateCredentialInStock,
-  saveCredentialStock
-} from "@/lib/credentialUtils";
+  saveCredentialStock,
+  generateRandomPassword
+} from '@/lib/credentialUtils';
 
-interface DigitalItem extends CredentialStock {
-  serviceName: string;
-}
+const getServices = (): Service[] => {
+  const storedServices = localStorage.getItem('services');
+  return storedServices ? JSON.parse(storedServices) : [];
+};
 
 const mockServices = [
   { id: "s1", name: "Premium Email Service" },

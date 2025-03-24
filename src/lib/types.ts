@@ -201,6 +201,8 @@ export interface Customer {
 }
 
 // Update AdminNotification type to support more notification types
+export type IssueType = 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system' | 'login_problem' | 'account_locked' | 'service_unavailable' | 'other';
+
 export interface AdminNotification {
   id: string;
   type: 'profile_fix' | 'payment_issue' | 'password_reset' | 'new_order' | 'payment_request' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system';
@@ -256,7 +258,6 @@ export interface Payment {
 }
 
 // Update SubscriptionIssue types
-export type IssueType = 'login_problem' | 'password_reset' | 'account_locked' | 'service_unavailable' | 'other' | 'profile_fix' | 'payment_issue' | 'ticket' | 'stock' | 'payment' | 'subscription' | 'order' | 'system';
 export type IssueStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
 
 export interface SubscriptionIssue {

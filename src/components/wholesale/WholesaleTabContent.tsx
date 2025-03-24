@@ -57,7 +57,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
       ...customer,
       createdAt: customer.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    }));
+    })) as Customer[];
   }, [customers]);
 
   return (

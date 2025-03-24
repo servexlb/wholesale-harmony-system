@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers } from '@/lib/data';
-import { services } from '@/lib/mockData';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
 import WholesaleTabContent from '@/components/wholesale/WholesaleTabContent';
 import WholesaleLayout from '@/components/wholesale/WholesaleLayout';
@@ -10,8 +9,13 @@ import { useWholesaleData } from '@/hooks/useWholesaleData';
 import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
 import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
 import { Service, WholesaleOrder } from '@/lib/types';
-import { loadServices } from '@/lib/productManager';
 import { Button } from '@/components/ui/button';
+
+// Use a local function to load services
+const loadServices = (): Service[] => {
+  const storedServices = localStorage.getItem('services');
+  return storedServices ? JSON.parse(storedServices) : [];
+};
 
 const Wholesale = () => {
   // State for purchase dialog

@@ -36,7 +36,7 @@ const Checkout: React.FC = () => {
   const { toast } = useToast();
 
   const [
-    { isPending, isResolved, isRejected, cart },
+    { isPending, isResolved, isRejected },
     dispatch,
   ] = usePayPalScriptReducer();
 
@@ -172,6 +172,20 @@ const Checkout: React.FC = () => {
     };
 
     mutation.mutate(orderData);
+  };
+
+  const initialPayPalOptions = {
+    "clientId": process.env.PAYPAL_CLIENT_ID || "test",
+    "currency": "USD",
+    "intent": "capture",
+    "components": "buttons"
+  };
+
+  const handlePaypalApprove = (data: any, actions: any) => {
+    return actions.order.capture().then(async (details: any) => {
+      if (details.status === 'COMPLETED') {
+      }
+    });
   };
 
   return (
