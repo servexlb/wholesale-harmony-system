@@ -1,4 +1,3 @@
-
 import { Service, User, ServiceCategory, Subscription, Order, SupportTicket, TicketResponse, SimpleCustomer, AdminNotification } from './types';
 
 // Mock users
@@ -437,7 +436,7 @@ export const ticketResponses: TicketResponse[] = [
   {
     id: 'response-3',
     ticketId: 'ticket-2',
-    message: 'I've checked the gift card code and it appears it hasn't been activated properly. I'll issue a new one for you right away.',
+    message: 'I\'ve checked the gift card code and it appears it hasn\'t been activated properly. I\'ll issue a new one for you right away.',
     createdAt: '2023-04-11T15:45:00Z',
     sentBy: 'admin',
   },
