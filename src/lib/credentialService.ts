@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Credential, StockRequest } from '@/lib/types';
 import { toast } from '@/lib/toast';
@@ -71,7 +72,7 @@ export const createStockRequest = async (
       .eq('id', userId)
       .single();
     
-    const customerName = userData?.name || 'Unknown Customer';
+    const customerDisplayName = customerName || (userData ? userData.name : 'Unknown Customer');
     
     // Create a stock request
     const { error: requestError } = await supabase
@@ -97,7 +98,7 @@ export const createStockRequest = async (
         title: 'Stock Replenishment Needed',
         message: `A customer has requested ${serviceName} but stock is empty.`,
         customer_id: userId,
-        customer_name: customerName,
+        customer_name: customerDisplayName,
         service_id: serviceId,
         service_name: serviceName,
         is_read: false
@@ -140,7 +141,7 @@ export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('stock_issue_logs')
-      .select('*, profiles:user_id(name)')
+      .select('*, profiles:user_id(*)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
     
@@ -149,16 +150,19 @@ export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
       return [];
     }
     
-    return data.map(item => ({
-      id: item.id,
-      userId: item.user_id,
-      serviceId: item.service_id,
-      orderId: item.order_id,
-      status: item.status as "pending" | "fulfilled" | "cancelled",
-      createdAt: item.created_at,
-      customerName: item.profiles?.name || 'Unknown',
-      notes: item.notes || ''
-    }));
+    return data.map(item => {
+      const profile = item.profiles as any;
+      return {
+        id: item.id,
+        userId: item.user_id,
+        serviceId: item.service_id,
+        orderId: item.order_id,
+        status: item.status as "pending" | "fulfilled" | "cancelled",
+        createdAt: item.created_at,
+        customerName: profile ? profile.name || 'Unknown' : 'Unknown',
+        notes: item.notes || ''
+      };
+    });
   } catch (error) {
     console.error('Error in getPendingStockRequests:', error);
     return [];
@@ -170,7 +174,7 @@ export const getStockIssues = async () => {
   try {
     const { data, error } = await supabase
       .from('stock_issue_logs')
-      .select('*, profiles:user_id(name)')
+      .select('*, profiles:user_id(*)')
       .order('created_at', { ascending: false });
       
     if (error) {
@@ -178,17 +182,20 @@ export const getStockIssues = async () => {
       return [];
     }
     
-    return data.map(item => ({
-      id: item.id,
-      userId: item.user_id,
-      serviceId: item.service_id,
-      orderId: item.order_id,
-      status: item.status as "pending" | "fulfilled" | "cancelled",
-      createdAt: item.created_at,
-      resolvedAt: item.resolved_at,
-      customerName: item.profiles?.name || 'Unknown',
-      notes: item.notes || ''
-    }));
+    return data.map(item => {
+      const profile = item.profiles as any;
+      return {
+        id: item.id,
+        userId: item.user_id,
+        serviceId: item.service_id,
+        orderId: item.order_id,
+        status: item.status as "pending" | "fulfilled" | "cancelled",
+        createdAt: item.created_at,
+        resolvedAt: item.resolved_at,
+        customerName: profile ? profile.name || 'Unknown' : 'Unknown',
+        notes: item.notes || ''
+      };
+    });
   } catch (error) {
     console.error('Error in getStockIssues:', error);
     return [];

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Credential } from '@/lib/types';
 import { toast } from '@/lib/toast';
@@ -152,8 +153,9 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       return null;
     }
     
-    // Safely handle the credentials property which might not exist
+    // Check if credentials exist in the order
     if (!data.credentials) {
+      console.log('No credentials found for order:', orderId);
       return null;
     }
     
@@ -161,13 +163,13 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
     let credentials: Credential;
     if (typeof data.credentials === 'string') {
       try {
-        credentials = JSON.parse(data.credentials);
+        credentials = JSON.parse(data.credentials) as Credential;
       } catch (e) {
         console.error('Error parsing credentials string:', e);
         return null;
       }
     } else {
-      credentials = data.credentials as Credential;
+      credentials = data.credentials as unknown as Credential;
     }
     
     return credentials;

@@ -1,17 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, UploadCloud, RefreshCw, Trash2, Plus } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle
+} from "@/components/ui/card";
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger
+} from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -19,294 +19,328 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast } from "sonner";
-import { Credential, Service } from '@/lib/types';
-import { addCredentialToStock, getAvailableCredentials } from '@/lib/credentialService';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, FileText, ArrowUp } from "lucide-react";
+import AdminCredentialsList from "./AdminCredentialsList";
+import { Service } from '@/lib/types';
+import { addCredentialToStock } from '@/lib/credentialService';
+import AdminStockIssues from './AdminStockIssues';
+import CsvUploader from './CsvUploader';
+import { toast } from '@/lib/toast';
+import { useServiceManager } from '@/hooks/useServiceManager';
 
-interface CredentialManagerProps {
-  services: Service[];
-}
-
-const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [showAddDialog, setShowAddDialog] = useState(false);
+const CredentialManager = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [pinCode, setPinCode] = useState('');
+  const [notes, setNotes] = useState('');
   const [selectedService, setSelectedService] = useState<string>("");
-  const [newCredential, setNewCredential] = useState<Credential>({
-    email: '',
-    password: '',
-    username: '',
-    notes: ''
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [services, setServices] = useState<Service[]>([]);
+  const [activeTab, setActiveTab] = useState('add-single');
+  const { loadServices } = useServiceManager();
   
   useEffect(() => {
-    loadInventoryData();
-    
-    window.addEventListener('credential-stock-updated', loadInventoryData);
-    return () => {
-      window.removeEventListener('credential-stock-updated', loadInventoryData);
-    };
-  }, []);
-  
-  const loadInventoryData = async () => {
-    setIsLoading(true);
-    
-    try {
-      const inventoryItems: any[] = [];
-      
-      for (const service of services) {
-        try {
-          const credentials = await getAvailableCredentials(service.id);
-          
-          const items = credentials.map(cred => ({
-            ...cred,
-            serviceName: service.name
-          }));
-          
-          inventoryItems.push(...items);
-        } catch (error) {
-          console.error(`Error fetching credentials for ${service.name}:`, error);
-        }
+    const storedServices = localStorage.getItem('services');
+    if (storedServices) {
+      try {
+        const parsedServices = JSON.parse(storedServices) as Service[];
+        setServices(parsedServices);
+      } catch (error) {
+        console.error('Error parsing services from localStorage', error);
       }
-      
-      setInventory(inventoryItems);
-    } catch (error) {
-      console.error('Error loading inventory:', error);
-      toast.error('Failed to load inventory data');
-    } finally {
-      setIsLoading(false);
+    } else {
+      // If no services in localStorage, try to load them
+      const fetchedServices = loadServices();
+      setServices(fetchedServices);
     }
-  };
-  
-  const handleAddCredential = async () => {
+    
+    // Listen for service updates
+    const handleServiceUpdate = () => {
+      const fetchedServices = loadServices();
+      setServices(fetchedServices);
+    };
+    
+    window.addEventListener('service-updated', handleServiceUpdate);
+    window.addEventListener('service-added', handleServiceUpdate);
+    window.addEventListener('service-deleted', handleServiceUpdate);
+    
+    return () => {
+      window.removeEventListener('service-updated', handleServiceUpdate);
+      window.removeEventListener('service-added', handleServiceUpdate);
+      window.removeEventListener('service-deleted', handleServiceUpdate);
+    };
+  }, [loadServices]);
+
+  const handleAddSingleCredential = async () => {
     if (!selectedService) {
       toast.error('Please select a service');
       return;
     }
     
-    if (!newCredential.email && !newCredential.username) {
-      toast.error('Email or username is required');
+    if (!email && !username) {
+      toast.error('Please provide either email or username');
       return;
     }
     
-    if (!newCredential.password) {
-      toast.error('Password is required');
+    if (!password) {
+      toast.error('Please provide a password');
       return;
     }
     
-    setIsLoading(true);
+    setIsSubmitting(true);
     
     try {
-      const success = await addCredentialToStock(selectedService, newCredential);
+      const credential = {
+        email,
+        password,
+        username,
+        pinCode,
+        notes
+      };
       
-      if (success) {
-        setNewCredential({
-          email: '',
-          password: '',
-          username: '',
-          notes: ''
-        });
-        setSelectedService("");
-        setShowAddDialog(false);
-        await loadInventoryData();
-        
-        window.dispatchEvent(new CustomEvent('credential-stock-updated'));
-        
-        toast.success('Credential added successfully');
-      }
+      await addCredentialToStock(selectedService, credential);
+      
+      // Reset form
+      setEmail('');
+      setPassword('');
+      setUsername('');
+      setPinCode('');
+      setNotes('');
+      
+      window.dispatchEvent(new CustomEvent('credential-added'));
+      
     } catch (error) {
       console.error('Error adding credential:', error);
-      toast.error('Failed to add credential');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
-  const groupedInventory = inventory.reduce((groups, item) => {
-    const serviceName = item.serviceName || "Unknown Service";
-    if (!groups[serviceName]) {
-      groups[serviceName] = [];
+
+  const handleCsvUpload = async (data: any[]) => {
+    if (!selectedService) {
+      toast.error('Please select a service');
+      return;
     }
-    groups[serviceName].push(item);
-    return groups;
-  }, {} as Record<string, any[]>);
-  
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      toast.error('Invalid or empty CSV data');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+      for (const row of data) {
+        try {
+          const credential = {
+            email: row.email || '',
+            password: row.password || '',
+            username: row.username || '',
+            pinCode: row.pinCode || row.pin_code || '',
+            notes: row.notes || ''
+          };
+          
+          // Make sure at least email or username is provided
+          if (!credential.email && !credential.username) {
+            console.error('Missing email and username for row:', row);
+            errorCount++;
+            continue;
+          }
+          
+          // Make sure password is provided
+          if (!credential.password) {
+            console.error('Missing password for row:', row);
+            errorCount++;
+            continue;
+          }
+          
+          await addCredentialToStock(selectedService, credential);
+          successCount++;
+        } catch (rowError) {
+          console.error('Error processing row:', row, rowError);
+          errorCount++;
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`Successfully added ${successCount} credentials`);
+        window.dispatchEvent(new CustomEvent('credential-added'));
+      }
+      
+      if (errorCount > 0) {
+        toast.error(`Failed to add ${errorCount} credentials`);
+      }
+    } catch (error) {
+      console.error('Error processing CSV:', error);
+      toast.error('Error processing CSV file');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Credential Inventory</h3>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={loadInventoryData}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setShowAddDialog(true)}
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Credential
-          </Button>
-        </div>
-      </div>
-      
-      {Object.keys(groupedInventory).length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-6">
-              <p className="text-muted-foreground mb-4">No credentials in inventory</p>
-              <Button onClick={() => setShowAddDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Credential
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedInventory).map(([serviceName, items]) => (
-            <Card key={serviceName}>
-              <CardHeader className="py-4">
-                <CardTitle className="text-lg">{serviceName}</CardTitle>
-                <CardDescription>
-                  {items.length} available credential{items.length !== 1 ? 's' : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email/Username</TableHead>
-                      <TableHead>Password</TableHead>
-                      <TableHead>Added</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => {
-                      const credentials = typeof item.credentials === 'object' ? item.credentials : {};
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">
-                            {credentials.email || credentials.username || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            ••••••••
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(item.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Credential</DialogTitle>
-            <DialogDescription>
-              Add a credential to your inventory
-            </DialogDescription>
-          </DialogHeader>
+    <Card>
+      <CardHeader>
+        <CardTitle>Credential Management</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="add-single" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="add-single">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Single Credential
+            </TabsTrigger>
+            <TabsTrigger value="bulk-upload">
+              <ArrowUp className="h-4 w-4 mr-2" />
+              Bulk Upload
+            </TabsTrigger>
+            <TabsTrigger value="credentials-list">
+              <FileText className="h-4 w-4 mr-2" />
+              Credentials List
+            </TabsTrigger>
+            <TabsTrigger value="stock-issues">
+              Stock Issues
+            </TabsTrigger>
+          </TabsList>
           
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label htmlFor="service">Service</Label>
-              <Select
-                value={selectedService}
-                onValueChange={setSelectedService}
-              >
-                <SelectTrigger id="service">
-                  <SelectValue placeholder="Select service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <TabsContent value="add-single">
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label htmlFor="service">Service</Label>
+                  <Select value={selectedService} onValueChange={setSelectedService}>
+                    <SelectTrigger id="service">
+                      <SelectValue placeholder="Select a service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      placeholder="user@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      placeholder="username123"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pinCode">PIN Code (optional)</Label>
+                    <Input
+                      id="pinCode"
+                      placeholder="1234"
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Additional information about this credential"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+                
+                <Button 
+                  onClick={handleAddSingleCredential} 
+                  disabled={isSubmitting || !selectedService || (!email && !username) || !password}
+                >
+                  {isSubmitting ? 'Adding...' : 'Add Credential'}
+                </Button>
+              </div>
             </div>
-            
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={newCredential.email}
-                onChange={(e) => setNewCredential(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="user@example.com"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="username">Username (Optional)</Label>
-              <Input
-                id="username"
-                value={newCredential.username}
-                onChange={(e) => setNewCredential(prev => ({ ...prev, username: e.target.value }))}
-                placeholder="username"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={newCredential.password}
-                onChange={(e) => setNewCredential(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="••••••••"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Input
-                id="notes"
-                value={newCredential.notes || ''}
-                onChange={(e) => setNewCredential(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Additional information"
-              />
-            </div>
-          </div>
+          </TabsContent>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddCredential} disabled={isLoading}>
-              {isLoading ? 'Adding...' : 'Add Credential'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <TabsContent value="bulk-upload">
+            <div className="space-y-4 mt-2">
+              <div>
+                <Label htmlFor="bulk-service">Service</Label>
+                <Select value={selectedService} onValueChange={setSelectedService}>
+                  <SelectTrigger id="bulk-service">
+                    <SelectValue placeholder="Select a service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <CsvUploader 
+                onDataLoaded={handleCsvUpload}
+                isLoading={isSubmitting}
+                expectedColumns={['email', 'password', 'username', 'pin_code', 'notes']}
+              />
+              
+              <div className="p-4 bg-muted rounded-md mt-2">
+                <h3 className="font-medium mb-2">CSV Format Instructions</h3>
+                <p className="text-sm">Your CSV file should have these columns:</p>
+                <ul className="list-disc list-inside text-sm mt-1 space-y-1">
+                  <li>email - The account email</li>
+                  <li>password - The account password (required)</li>
+                  <li>username - The account username</li>
+                  <li>pin_code - Optional PIN code</li>
+                  <li>notes - Optional additional information</li>
+                </ul>
+                <p className="text-sm mt-2">At least email or username must be provided for each row.</p>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="credentials-list">
+            <AdminCredentialsList services={services} />
+          </TabsContent>
+          
+          <TabsContent value="stock-issues">
+            <AdminStockIssues services={services} />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 

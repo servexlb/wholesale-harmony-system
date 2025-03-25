@@ -1,608 +1,321 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { differenceInDays, parseISO, format } from 'date-fns';
-import { Clock, AlertTriangle, AlertCircle, CalendarClock, ArrowUpDown, RefreshCw, ArrowUp } from 'lucide-react';
-import { Subscription } from '@/lib/types';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { products } from '@/lib/data';
-import { motion } from 'framer-motion';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
+import { Clock, Calendar, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import NoDataMessage from '../ui/NoDataMessage';
+import { formatDistanceToNow, parseISO, format, differenceInDays, addMonths } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { getCredentialsByOrderId } from '@/lib/credentialUtils';
+import { Subscription, CredentialStock, Service } from '@/lib/types';
+import { Link } from 'react-router-dom';
+import TicketCreateDialog from '../support/TicketCreateDialog';
+import Loader from '../ui/Loader';
+import { useAuth } from '@/hooks/useAuth';
+import CredentialDisplay from './CredentialDisplay';
 
-const SubscriptionTracker: React.FC = () => {
+interface SubscriptionTrackerProps {
+  services: Service[];
+}
+
+const SubscriptionTracker: React.FC<SubscriptionTrackerProps> = ({ services }) => {
+  const { user } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [sortOption, setSortOption] = useState('expiring-soon');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [showTicketDialog, setShowTicketDialog] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   useEffect(() => {
-    const getUserId = async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session) {
-        setUserId(session.session.user.id);
-      }
-    };
-    
-    getUserId();
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-    
-    const fetchSubscriptions = async () => {
-      try {
-        setIsLoading(true);
-        
-        const { data: subscriptionsData, error } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', userId);
-          
-        if (error) {
-          console.error('Error fetching subscriptions:', error);
-          fallbackToLocalStorage();
-          return;
-        }
-        
-        if (subscriptionsData) {
-          const mappedSubscriptions = subscriptionsData.map(sub => {
-            let formattedCredentials = null;
-            
-            if (sub.credentials) {
-              if (typeof sub.credentials === 'string') {
-                try {
-                  formattedCredentials = JSON.parse(sub.credentials);
-                } catch (e) {
-                  formattedCredentials = { notes: sub.credentials };
-                }
-              } else if (typeof sub.credentials === 'object') {
-                formattedCredentials = sub.credentials;
-              } else {
-                formattedCredentials = { notes: String(sub.credentials) };
-              }
-            } else {
-              formattedCredentials = {};
-            }
-            
-            return {
-              ...sub,
-              credentials: formattedCredentials
-            } as Subscription;
-          });
-          
-          setSubscriptions(mappedSubscriptions);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error in fetchSubscriptions:', error);
-        fallbackToLocalStorage();
-      }
-    };
-
-    const fallbackToLocalStorage = () => {
-      try {
-        const savedSubscriptions = localStorage.getItem('subscriptions');
-        if (savedSubscriptions) {
-          const allSubs = JSON.parse(savedSubscriptions);
-          const userSubs = allSubs.filter((sub: Subscription) => sub.userId === userId);
-          setSubscriptions(userSubs);
-        } else {
-          setSubscriptions([]);
-        }
-      } catch (error) {
-        console.error('Error loading from localStorage:', error);
-        setSubscriptions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchSubscriptions();
     
-    const subscriptionsChannel = supabase
-      .channel('subscriptions_tracker')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'subscriptions',
-        filter: `user_id=eq.${userId}`
-      }, (payload) => {
-        fetchSubscriptions();
-      })
-      .subscribe();
+    // Set up listeners for subscription-related events
+    window.addEventListener('subscription-added', fetchSubscriptions);
+    window.addEventListener('subscription-updated', fetchSubscriptions);
+    window.addEventListener('subscription-deleted', fetchSubscriptions);
     
     return () => {
-      supabase.removeChannel(subscriptionsChannel);
+      window.removeEventListener('subscription-added', fetchSubscriptions);
+      window.removeEventListener('subscription-updated', fetchSubscriptions);
+      window.removeEventListener('subscription-deleted', fetchSubscriptions);
     };
-  }, [userId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  const getServiceName = (serviceId: string): string => {
-    const product = products.find(p => p.id === serviceId);
-    return product ? product.name : 'Unknown Service';
-  };
+  const fetchSubscriptions = async () => {
+    try {
+      setLoading(true);
+      if (!user) {
+        console.log('No user found, loading from localStorage');
+        const savedData = localStorage.getItem('subscriptions');
+        if (savedData) {
+          setSubscriptions(JSON.parse(savedData));
+        }
+        setLoading(false);
+        return;
+      }
 
-  const getSubscriptionStatus = (endDate: string) => {
-    const today = new Date();
-    const end = parseISO(endDate);
-    const daysLeft = differenceInDays(end, today);
-    
-    if (daysLeft < 0) {
-      return { 
-        status: "Expired", 
-        color: "destructive",
-        daysText: "Expired", 
-        bgColor: "bg-red-50", 
-        textColor: "text-red-800",
-        borderColor: "border-red-200",
-        icon: <AlertCircle className="h-4 w-4" />
-      };
+      // First try to get active subscriptions from database
+      const { data: subscriptionData, error } = await supabase
+        .from('subscriptions')
+        .select('*, credential_stock:credential_stock_id(*)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('end_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching subscriptions:', error);
+        toast.error('Failed to load subscriptions');
+        setLoading(false);
+        return;
+      }
+
+      // Now format the data
+      const formattedSubscriptions: Subscription[] = subscriptionData.map(subscription => ({
+        id: subscription.id,
+        userId: subscription.user_id,
+        serviceId: subscription.service_id,
+        startDate: subscription.start_date,
+        endDate: subscription.end_date,
+        status: subscription.status as 'active' | 'expired' | 'cancelled',
+        durationMonths: subscription.duration_months || undefined,
+        credentials: subscription.credentials as any,
+        credentialStatus: subscription.credential_stock?.status || 'pending',
+        credentialStockId: subscription.credential_stock_id || undefined
+      }));
+
+      setSubscriptions(formattedSubscriptions);
+      
+      // Save to localStorage as backup
+      localStorage.setItem('subscriptions', JSON.stringify(formattedSubscriptions));
+    } catch (error) {
+      console.error('Error in fetchSubscriptions:', error);
+      toast.error('Failed to load subscriptions');
+    } finally {
+      setLoading(false);
     }
-    
-    if (daysLeft <= 30) {
-      return { 
-        status: "Expiring Soon", 
-        color: "orange", 
-        daysText: `${daysLeft} days left`,
-        bgColor: "bg-amber-50",
-        textColor: "text-amber-800",
-        borderColor: "border-amber-200",
-        icon: <AlertTriangle className="h-4 w-4" />
-      };
-    }
-    
-    return { 
-      status: "Active", 
-      color: "green", 
-      daysText: `${daysLeft} days left`,
-      bgColor: "bg-green-50",
-      textColor: "text-green-800", 
-      borderColor: "border-green-200",
-      icon: <Clock className="h-4 w-4" />
-    };
   };
 
-  const calculateProgressPercentage = (startDate: string, endDate: string) => {
-    const start = parseISO(startDate);
-    const end = parseISO(endDate);
-    const today = new Date();
-    
-    if (today > end) return 100;
-    
-    const totalDuration = differenceInDays(end, start);
-    const elapsed = differenceInDays(today, start);
-    
-    const percentage = (elapsed / totalDuration) * 100;
-    
-    return Math.min(Math.max(percentage, 0), 100);
-  };
+  // Check if we're in the loading state
+  if (loading) {
+    return <Loader text="Loading subscriptions..." />;
+  }
 
-  const sortedSubscriptions = [...subscriptions].sort((a, b) => {
-    switch (sortOption) {
-      case 'expiring-soon':
-        return parseISO(a.endDate).getTime() - parseISO(b.endDate).getTime();
-      case 'recently-added':
-        return parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime();
-      case 'alphabetical':
-        return getServiceName(a.serviceId).localeCompare(getServiceName(b.serviceId));
-      default:
-        return 0;
-    }
-  });
-
-  const activeSubscriptions = sortedSubscriptions.filter(
-    sub => sub.status === 'active' || 
-    (sub.status !== 'cancelled' && differenceInDays(parseISO(sub.endDate), new Date()) >= 0)
-  );
-  
-  const expiredSubscriptions = sortedSubscriptions.filter(
-    sub => sub.status === 'expired' || 
-    (sub.status !== 'cancelled' && differenceInDays(parseISO(sub.endDate), new Date()) < 0)
-  );
-  
-  const expiringCount = activeSubscriptions.filter(
-    sub => differenceInDays(parseISO(sub.endDate), new Date()) <= 30
-  ).length;
-
-  const handleRenew = (subscription: Subscription) => {
-    navigate(`/services/${subscription.serviceId}`);
-    toast.info("Redirecting to renewal page", {
-      description: "You'll be able to renew your subscription there."
-    });
-  };
-
-  const handleUpgrade = (subscription: Subscription) => {
-    navigate('/services');
-    toast.info("Check out our available services", {
-      description: "You can upgrade to a different service or package."
-    });
-  };
-
-  if (isLoading) {
+  // Check if we have any subscriptions
+  if (subscriptions.length === 0) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Your Subscriptions</CardTitle>
-          <CardDescription>Track and manage all your subscriptions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
-            <div className="h-32 bg-gray-200 rounded w-full"></div>
-            <div className="h-32 bg-gray-200 rounded w-full"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <NoDataMessage 
+        title="No active subscriptions" 
+        description="You don't have any active subscriptions yet."
+        actionText="Browse Services"
+        actionLink="/services"
+      />
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card className="w-full">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <div>
-              <CardTitle>Your Subscriptions</CardTitle>
-              <CardDescription>Track and manage all your subscriptions</CardDescription>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Select value={sortOption} onValueChange={setSortOption}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expiring-soon">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>Expiring Soon</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="recently-added">
-                    <div className="flex items-center gap-2">
-                      <ArrowUp className="h-4 w-4" />
-                      <span>Recently Added</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="alphabetical">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpDown className="h-4 w-4" />
-                      <span>Alphabetical</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => navigate('/services')}>
-                <RefreshCw className="h-4 w-4" />
-                <span>Browse Services</span>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+    <div className="space-y-6">
+      <Tabs defaultValue="active">
+        <TabsList className="mb-4">
+          <TabsTrigger value="active">Active Subscriptions</TabsTrigger>
+          <TabsTrigger value="expiring-soon">Expiring Soon</TabsTrigger>
+          <TabsTrigger value="credentials">My Credentials</TabsTrigger>
+        </TabsList>
         
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="bg-green-50 border border-green-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-green-600" />
-                  <h3 className="font-medium">Active Subscriptions</h3>
-                </div>
-                <p className="text-2xl font-bold mt-2">{activeSubscriptions.length}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-amber-50 border border-amber-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                  <h3 className="font-medium">Expiring Soon</h3>
-                </div>
-                <p className="text-2xl font-bold mt-2">{expiringCount}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-red-50 border border-red-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                  <h3 className="font-medium">Expired</h3>
-                </div>
-                <p className="text-2xl font-bold mt-2">{expiredSubscriptions.length}</p>
-              </CardContent>
-            </Card>
+        <TabsContent value="active">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {subscriptions.map(subscription => {
+              const service = services.find(s => s.id === subscription.serviceId);
+              const endDate = parseISO(subscription.endDate);
+              const daysRemaining = differenceInDays(endDate, new Date());
+              const progress = Math.max(0, Math.min(100, (daysRemaining / 30) * 100));
+              
+              return (
+                <Card key={subscription.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg">{service?.name || 'Unknown Service'}</CardTitle>
+                      <Badge 
+                        variant={
+                          daysRemaining <= 3 ? "destructive" : 
+                          daysRemaining <= 7 ? "warning" : 
+                          "default"
+                        }
+                      >
+                        {daysRemaining <= 0 ? 'Expired Today' : `${daysRemaining} days left`}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="pb-2">
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground flex items-center">
+                            <Calendar className="h-3.5 w-3.5 mr-1" />
+                            Expires
+                          </span>
+                          <span className="font-medium">
+                            {format(endDate, 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground flex items-center">
+                            <Clock className="h-3.5 w-3.5 mr-1" />
+                            Status
+                          </span>
+                          <span className="font-medium flex items-center">
+                            {subscription.status === 'active' ? (
+                              <>
+                                <CheckCircle2 className="text-green-500 h-3.5 w-3.5 mr-1" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle className="text-yellow-500 h-3.5 w-3.5 mr-1" />
+                                {subscription.status === 'cancelled' ? 'Cancelled' : 'Expired'}
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Time Remaining</span>
+                          <span>{Math.max(0, daysRemaining)} days</span>
+                        </div>
+                        <Progress 
+                          value={progress} 
+                          className="h-2" 
+                          indicatorClassName={
+                            daysRemaining <= 3 ? "bg-red-500" : 
+                            daysRemaining <= 7 ? "bg-yellow-500" : 
+                            "bg-green-500"
+                          } 
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="flex justify-between pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedSubscription(subscription);
+                        setShowTicketDialog(true);
+                      }}
+                    >
+                      <Info className="h-4 w-4 mr-1" />
+                      Support
+                    </Button>
+                    
+                    <Link to={`/subscription/${subscription.id}`}>
+                      <Button size="sm">View Details</Button>
+                    </Link>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
-          
-          <Tabs defaultValue="active" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="active" className="relative">
-                Active
-                {activeSubscriptions.length > 0 && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium rounded-full px-2 py-0.5">
-                    {activeSubscriptions.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="expired" className="relative">
-                Expired
-                {expiredSubscriptions.length > 0 && (
-                  <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium rounded-full px-2 py-0.5">
-                    {expiredSubscriptions.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="all">All Subscriptions</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="active">
-              <div className="space-y-4">
-                {activeSubscriptions.length === 0 ? (
-                  <div className="text-center p-8 bg-muted rounded-md">
-                    <p className="text-muted-foreground">You don't have any active subscriptions.</p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => navigate('/services')}
-                    >
-                      Browse Services
-                    </Button>
-                  </div>
-                ) : (
-                  activeSubscriptions.map(subscription => {
-                    const serviceName = getServiceName(subscription.serviceId);
-                    const statusInfo = getSubscriptionStatus(subscription.endDate);
-                    const progressPercent = calculateProgressPercentage(subscription.startDate, subscription.endDate);
+        </TabsContent>
+        
+        <TabsContent value="expiring-soon">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {subscriptions
+              .filter(sub => {
+                const daysRemaining = differenceInDays(parseISO(sub.endDate), new Date());
+                return daysRemaining <= 7 && daysRemaining > 0;
+              })
+              .map(subscription => {
+                const service = services.find(s => s.id === subscription.serviceId);
+                const endDate = parseISO(subscription.endDate);
+                const daysRemaining = differenceInDays(endDate, new Date());
+                
+                // Calculate renewal price (placeholder logic - replace with actual pricing)
+                const renewalPrice = service?.price || 0;
+                
+                return (
+                  <Card key={subscription.id} className="overflow-hidden">
+                    <CardHeader className="pb-2 bg-amber-50 dark:bg-amber-900/20">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{service?.name || 'Unknown Service'}</CardTitle>
+                        <Badge variant="warning">
+                          {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
+                        </Badge>
+                      </div>
+                    </CardHeader>
                     
-                    return (
-                      <Card 
-                        key={subscription.id} 
-                        className={`border ${statusInfo.borderColor} overflow-hidden`}
-                      >
-                        <div className={`${statusInfo.bgColor} px-4 py-2 flex items-center justify-between`}>
-                          <div className="flex items-center gap-2">
-                            {statusInfo.icon}
-                            <span className={`font-medium ${statusInfo.textColor}`}>
-                              {statusInfo.status}
+                    <CardContent className="pt-4">
+                      <div className="flex flex-col space-y-4">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                          <p className="text-sm flex items-start">
+                            <AlertTriangle className="h-4 w-4 mr-2 text-amber-600 shrink-0 mt-0.5" />
+                            <span>
+                              Your subscription will expire soon. Renew now to avoid service interruption.
                             </span>
-                          </div>
-                          <Badge 
-                            variant={
-                              statusInfo.color === "green" ? "default" : 
-                              statusInfo.color === "orange" ? "outline" : 
-                              "destructive"
-                            }
-                            className={
-                              statusInfo.color === "orange" 
-                                ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
-                                : ""
-                            }
-                          >
-                            {statusInfo.daysText}
-                          </Badge>
+                          </p>
                         </div>
                         
-                        <CardContent className="pt-4">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="space-y-1">
-                              <h3 className="text-lg font-medium">{serviceName}</h3>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <CalendarClock className="h-4 w-4" />
-                                  <span>Started: {format(parseISO(subscription.startDate), 'MMM d, yyyy')}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>Ends: {format(parseISO(subscription.endDate), 'MMM d, yyyy')}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2">
-                              <Button size="sm" onClick={() => handleRenew(subscription)}>
-                                Renew
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => handleUpgrade(subscription)}>
-                                Upgrade
-                              </Button>
-                            </div>
+                        <div className="flex flex-col space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Current period ends</span>
+                            <span className="font-medium">{format(endDate, 'MMM d, yyyy')}</span>
                           </div>
-                          
-                          <div className="mt-4">
-                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                              <span>Progress</span>
-                              <span>{Math.round(progressPercent)}%</span>
-                            </div>
-                            <Progress
-                              value={progressPercent}
-                              className="h-2 w-full"
-                              indicatorClassname="bg-primary"
-                            />
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Renewal price</span>
+                            <span className="font-medium">${renewalPrice.toFixed(2)}</span>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="expired">
-              <div className="space-y-4">
-                {expiredSubscriptions.length === 0 ? (
-                  <div className="text-center p-8 bg-muted rounded-md">
-                    <p className="text-muted-foreground">You don't have any expired subscriptions.</p>
-                  </div>
-                ) : (
-                  expiredSubscriptions.map(subscription => {
-                    const serviceName = getServiceName(subscription.serviceId);
-                    const statusInfo = getSubscriptionStatus(subscription.endDate);
+                        </div>
+                      </div>
+                    </CardContent>
                     
-                    return (
-                      <Card 
-                        key={subscription.id} 
-                        className="border border-red-200 overflow-hidden"
-                      >
-                        <div className="bg-red-50 px-4 py-2 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-600" />
-                            <span className="font-medium text-red-800">Expired</span>
-                          </div>
-                          <Badge variant="destructive">
-                            {statusInfo.daysText}
-                          </Badge>
-                        </div>
-                        
-                        <CardContent className="pt-4">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="space-y-1">
-                              <h3 className="text-lg font-medium">{serviceName}</h3>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <CalendarClock className="h-4 w-4" />
-                                  <span>Started: {format(parseISO(subscription.startDate), 'MMM d, yyyy')}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>Ended: {format(parseISO(subscription.endDate), 'MMM d, yyyy')}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2">
-                              <Button size="sm" onClick={() => handleRenew(subscription)}>
-                                Reactivate
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-4">
-                            <Progress value={100} className="h-2 bg-red-100" indicatorClassName="bg-red-400" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            </TabsContent>
+                    <CardFooter className="flex justify-end pt-2">
+                      <Link to={`/renew/${subscription.id}`}>
+                        <Button>Renew Subscription</Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
             
-            <TabsContent value="all">
-              <div className="space-y-4">
-                {sortedSubscriptions.length === 0 ? (
-                  <div className="text-center p-8 bg-muted rounded-md">
-                    <p className="text-muted-foreground">You don't have any subscriptions yet.</p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => navigate('/services')}
-                    >
-                      Browse Services
-                    </Button>
-                  </div>
-                ) : (
-                  sortedSubscriptions.map(subscription => {
-                    const serviceName = getServiceName(subscription.serviceId);
-                    const statusInfo = getSubscriptionStatus(subscription.endDate);
-                    const progressPercent = calculateProgressPercentage(subscription.startDate, subscription.endDate);
-                    
-                    return (
-                      <Card 
-                        key={subscription.id} 
-                        className={`border ${statusInfo.borderColor} overflow-hidden`}
-                      >
-                        <div className={`${statusInfo.bgColor} px-4 py-2 flex items-center justify-between`}>
-                          <div className="flex items-center gap-2">
-                            {statusInfo.icon}
-                            <span className={`font-medium ${statusInfo.textColor}`}>
-                              {statusInfo.status}
-                            </span>
-                          </div>
-                          <Badge 
-                            variant={
-                              statusInfo.color === "green" ? "default" : 
-                              statusInfo.color === "orange" ? "outline" : 
-                              "destructive"
-                            }
-                            className={
-                              statusInfo.color === "orange" 
-                                ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
-                                : ""
-                            }
-                          >
-                            {statusInfo.daysText}
-                          </Badge>
-                        </div>
-                        
-                        <CardContent className="pt-4">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="space-y-1">
-                              <h3 className="text-lg font-medium">{serviceName}</h3>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <CalendarClock className="h-4 w-4" />
-                                  <span>Started: {format(parseISO(subscription.startDate), 'MMM d, yyyy')}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>Ends: {format(parseISO(subscription.endDate), 'MMM d, yyyy')}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2">
-                              {statusInfo.color !== "destructive" ? (
-                                <>
-                                  <Button size="sm" onClick={() => handleRenew(subscription)}>
-                                    Renew
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleUpgrade(subscription)}>
-                                    Upgrade
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button size="sm" onClick={() => handleRenew(subscription)}>
-                                  Reactivate
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="mt-4">
-                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                              <span>Progress</span>
-                              <span>{Math.round(progressPercent)}%</span>
-                            </div>
-                            <Progress 
-                              value={progressPercent} 
-                              className="h-2" 
-                              indicatorClassName={statusInfo.color === "destructive" ? "bg-red-400" : undefined}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
+            {subscriptions.filter(sub => {
+              const daysRemaining = differenceInDays(parseISO(sub.endDate), new Date());
+              return daysRemaining <= 7 && daysRemaining > 0;
+            }).length === 0 && (
+              <div className="col-span-2">
+                <NoDataMessage 
+                  title="No subscriptions expiring soon" 
+                  description="You don't have any subscriptions that are expiring in the next 7 days."
+                  icon={<CheckCircle2 className="h-12 w-12 text-green-500" />}
+                />
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </motion.div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="credentials">
+          <CredentialDisplay 
+            subscriptions={subscriptions} 
+            services={services} 
+          />
+        </TabsContent>
+      </Tabs>
+      
+      {selectedSubscription && (
+        <TicketCreateDialog
+          open={showTicketDialog}
+          onOpenChange={setShowTicketDialog}
+          serviceName={services.find(s => s.id === selectedSubscription.serviceId)?.name || ''}
+          serviceId={selectedSubscription.serviceId}
+        />
+      )}
+    </div>
   );
 };
 
 export default SubscriptionTracker;
-
-

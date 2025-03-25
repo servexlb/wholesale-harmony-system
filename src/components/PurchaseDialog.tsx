@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -12,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Clock } from "lucide-react";
-import { Service } from '@/lib/types';
+import { Service, ServiceType } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -143,7 +144,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           const { assignCredentialsToCustomer } = await import('@/lib/credentialUtils');
           const result = await assignCredentialsToCustomer(userId, service.id, orderId);
           
-          if (result.success) {
+          if (result.success && result.credentials) {
             setCredentials(result.credentials);
             
             // Create completed order
@@ -379,7 +380,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   };
 
-  const isSubscription = service.type === 'subscription' as ServiceType;
+  const isSubscription = service.type === 'subscription';
 
   return (
     <>

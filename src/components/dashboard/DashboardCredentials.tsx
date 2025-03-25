@@ -1,321 +1,361 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Subscription, Order, Credential } from '@/lib/types';
-import CredentialDisplay from '../CredentialDisplay';
-import { AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from 'sonner';
+import { Key, Copy, CheckCircle, User, Mail, KeyRound, AlertCircle } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { getCredentialsByOrderId } from '@/lib/credentialUtils';
+import { useAuth } from '@/hooks/useAuth';
+import NoDataMessage from '../ui/NoDataMessage';
+import Loader from '../ui/Loader';
 
 const DashboardCredentials: React.FC = () => {
-  const [activeSubscriptions, setActiveSubscriptions] = useState<Subscription[]>([]);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  
-  // Get current user ID
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('services');
+  const [copiedField, setCopiedField] = useState('');
+
   useEffect(() => {
-    const getUserId = async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session) {
-        setUserId(session.session.user.id);
-      }
-    };
-    
-    getUserId();
-  }, []);
-  
-  // Load subscriptions and orders from Supabase
-  useEffect(() => {
-    if (!userId) return;
-    
-    const fetchData = async () => {
-      try {
-        // Fetch subscriptions
-        const { data: subscriptionsData, error: subError } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('status', 'active');
-          
-        if (subError) {
-          console.error('Error fetching subscriptions:', subError);
-        } else if (subscriptionsData) {
-          // Map database fields to our application types
-          const formattedSubscriptions: Subscription[] = subscriptionsData.map(sub => {
-            // Process credentials from JSON to proper object
-            let parsedCredentials: Credential | undefined = undefined;
-            if (sub.credentials) {
-              try {
-                // Handle both string and object formats
-                const credsData = typeof sub.credentials === 'string' 
-                  ? JSON.parse(sub.credentials) 
-                  : sub.credentials;
-                
-                parsedCredentials = {
-                  email: credsData.email || '',
-                  password: credsData.password || '',
-                  username: credsData.username,
-                  pinCode: credsData.pinCode,
-                  ...(credsData || {})
-                };
-              } catch (e) {
-                console.error('Error parsing credentials:', e);
-              }
-            }
-            
-            return {
-              id: sub.id,
-              userId: sub.user_id,
-              serviceId: sub.service_id,
-              startDate: sub.start_date,
-              endDate: sub.end_date,
-              status: sub.status as "active" | "expired" | "cancelled",
-              credentials: parsedCredentials
-            };
-          });
-          
-          setActiveSubscriptions(formattedSubscriptions);
+    fetchOrders();
+  }, [user]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      if (!user) {
+        console.log('No user, loading from localStorage');
+        const savedOrders = localStorage.getItem('orders');
+        if (savedOrders) {
+          setOrders(JSON.parse(savedOrders));
         }
-        
-        // Fetch recent orders
-        const { data: ordersData, error: orderError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(5);
-          
-        if (orderError) {
-          console.error('Error fetching orders:', orderError);
-        } else if (ordersData) {
-          // Map database fields to our application types
-          const formattedOrders: Order[] = ordersData.map(order => {
-            // Process credentials from any source format
-            let orderCredentials = undefined;
-            
-            // Try to parse credentials if they exist
-            if (order.credentials) {
-              try {
-                // Handle both string and object formats
-                const credsData = typeof order.credentials === 'string' 
-                  ? JSON.parse(order.credentials) 
-                  : order.credentials;
-                
-                orderCredentials = {
-                  email: credsData.email || '',
-                  password: credsData.password || '',
-                  username: credsData.username,
-                  pinCode: credsData.pinCode,
-                  ...(credsData || {})
-                };
-              } catch (e) {
-                console.error('Error parsing order credentials:', e);
-              }
-            }
-            
-            return {
-              id: order.id,
-              userId: order.user_id,
-              products: [
-                {
-                  productId: order.service_id,
-                  quantity: order.quantity,
-                  price: order.total_price / order.quantity,
-                  name: order.service_name
-                }
-              ],
-              total: order.total_price,
-              status: (order.status as "pending" | "processing" | "completed" | "cancelled"),
-              createdAt: order.created_at,
-              paymentMethod: 'default',
-              serviceName: order.service_name,
-              notes: order.notes,
-              credentials: orderCredentials
-            };
-          });
-          
-          setRecentOrders(formattedOrders);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setIsLoading(false);
+        setLoading(false);
+        return;
       }
-    };
-    
-    fetchData();
-    
-    // Set up real-time subscription for subscriptions and orders
-    const subscriptionsChannel = supabase
-      .channel('public:subscriptions')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'subscriptions',
-        filter: `user_id=eq.${userId}`
-      }, (payload) => {
-        // Refresh subscriptions when data changes
-        fetchData();
-      })
-      .subscribe();
-      
-    const ordersChannel = supabase
-      .channel('public:orders')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'orders',
-        filter: `user_id=eq.${userId}`
-      }, (payload) => {
-        // Refresh orders when data changes
-        fetchData();
-      })
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(subscriptionsChannel);
-      supabase.removeChannel(ordersChannel);
-    };
-  }, [userId]);
-  
-  // If the Supabase fetch fails, try to load from localStorage as fallback
-  useEffect(() => {
-    if (!userId || activeSubscriptions.length > 0 || recentOrders.length > 0) return;
-    
-    // Load from localStorage as fallback
-    const loadFromLocalStorage = () => {
-      // Load subscriptions
-      const subscriptionsKey = `userSubscriptions_${userId}`;
-      const subscriptionsData = JSON.parse(localStorage.getItem(subscriptionsKey) || '[]');
-      const activeSubsLocal = subscriptionsData.filter(
-        (sub: Subscription) => sub.status === 'active' && sub.credentials
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('status', ['completed', 'pending'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+        toast.error('Failed to load credentials');
+        setLoading(false);
+        return;
+      }
+
+      // Process orders and fetch credentials if necessary
+      const processedOrders = await Promise.all(
+        data.map(async (order) => {
+          // Check if credentials are already in the order
+          if (!order.credentials) {
+            // Try to fetch credentials by order ID
+            const credentials = await getCredentialsByOrderId(order.id);
+            
+            if (credentials) {
+              return {
+                ...order,
+                credentials
+              };
+            }
+          }
+          
+          return order;
+        })
       );
-      if (activeSubsLocal.length > 0) {
-        setActiveSubscriptions(activeSubsLocal);
-      }
-      
-      // Load orders
-      const ordersKey = `customerOrders_${userId}`;
-      const ordersData = JSON.parse(localStorage.getItem(ordersKey) || '[]');
-      // Sort by date, newest first
-      const sortedOrders = ordersData
-        .sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5); // Get last 5 orders
-      
-      if (sortedOrders.length > 0) {
-        setRecentOrders(sortedOrders);
-      }
-    };
+
+      setOrders(processedOrders);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load credentials');
+      setLoading(false);
+    }
+  };
+
+  const handleCopyToClipboard = (text: string, field: string) => {
+    if (!text) return;
     
-    loadFromLocalStorage();
-    setIsLoading(false);
-  }, [userId, activeSubscriptions.length, recentOrders.length]);
-  
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Access Credentials</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
-            <div className="h-32 bg-gray-200 rounded w-full"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(''), 2000);
+        toast.success('Copied to clipboard');
+      })
+      .catch(err => {
+        console.error('Failed to copy:', err);
+        toast.error('Failed to copy');
+      });
+  };
+
+  if (loading) {
+    return <Loader text="Loading your credentials..." />;
   }
-  
-  if (activeSubscriptions.length === 0 && recentOrders.length === 0) {
+
+  // Filter orders with credentials
+  const ordersWithCredentials = orders.filter(order => {
+    if (!order) return false;
+    return order.credentials && 
+      (order.credentials.email || order.credentials.username || order.credentials.password);
+  });
+
+  if (ordersWithCredentials.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Access Credentials</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="bg-amber-50 p-4 rounded-lg w-full text-amber-800 flex items-start">
-              <AlertCircle className="h-5 w-5 mr-3 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">No credentials available</p>
-                <p className="text-sm">
-                  You don't have any active subscriptions with credentials yet. 
-                  After purchasing a service, your access details will appear here.
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <NoDataMessage
+        title="No Credentials Found"
+        description="You don't have any credentials available yet. Complete a purchase to get service credentials."
+        actionText="Browse Services"
+        actionLink="/services"
+      />
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Access Credentials</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="subscriptions">
-            <TabsList className="mb-4">
-              <TabsTrigger value="subscriptions">
-                Active Subscriptions
-              </TabsTrigger>
-              <TabsTrigger value="recent-orders">
-                Recent Orders
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="subscriptions" className="space-y-4">
-              {activeSubscriptions.length > 0 ? (
-                activeSubscriptions.map(subscription => (
-                  <CredentialDisplay
-                    key={subscription.id}
-                    orderId={subscription.id}
-                    serviceId={subscription.serviceId}
-                    serviceName={subscription.serviceId}
-                    credentials={subscription.credentials}
-                    purchaseDate={subscription.startDate}
-                  />
-                ))
-              ) : (
-                <div className="bg-muted p-4 rounded-md text-center">
-                  <p>You don't have any active subscriptions with credentials.</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="recent-orders" className="space-y-4">
-              {recentOrders.length > 0 ? (
-                recentOrders.map(order => (
-                  <CredentialDisplay
-                    key={order.id}
-                    orderId={order.id}
-                    serviceId={order.products[0]?.productId || ''}
-                    serviceName={order.serviceName || 'Order'}
-                    credentials={order.credentials}
-                    isPending={order.status === 'pending'}
-                    purchaseDate={order.createdAt}
-                  />
-                ))
-              ) : (
-                <div className="bg-muted p-4 rounded-md text-center">
-                  <p>You don't have any recent orders with credentials.</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Credentials</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="services">By Service</TabsTrigger>
+            <TabsTrigger value="all">All Credentials</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="services">
+            <div className="space-y-4">
+              {ordersWithCredentials.map((order) => {
+                if (!order?.credentials) return null;
+                
+                const credentials = order.credentials;
+                
+                return (
+                  <Card key={order.id} className="overflow-hidden">
+                    <CardHeader className="pb-2 bg-slate-50 dark:bg-slate-900">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">{order.service_name}</CardTitle>
+                        <Badge>{order.status}</Badge>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="p-4">
+                      <div className="grid gap-3">
+                        {credentials.username && (
+                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-slate-500" />
+                              <span className="text-sm font-medium">Username:</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono">{credentials.username}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.username, `username-${order.id}`)}
+                                className="h-6 w-6"
+                              >
+                                {copiedField === `username-${order.id}` ? 
+                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                                  <Copy className="h-4 w-4" />
+                                }
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {credentials.email && (
+                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-slate-500" />
+                              <span className="text-sm font-medium">Email:</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono">{credentials.email}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.email, `email-${order.id}`)}
+                                className="h-6 w-6"
+                              >
+                                {copiedField === `email-${order.id}` ? 
+                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                                  <Copy className="h-4 w-4" />
+                                }
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {credentials.password && (
+                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
+                            <div className="flex items-center gap-2">
+                              <KeyRound className="h-4 w-4 text-slate-500" />
+                              <span className="text-sm font-medium">Password:</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono">{credentials.password}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.password, `password-${order.id}`)}
+                                className="h-6 w-6"
+                              >
+                                {copiedField === `password-${order.id}` ? 
+                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                                  <Copy className="h-4 w-4" />
+                                }
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {credentials.pinCode && (
+                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
+                            <div className="flex items-center gap-2">
+                              <Key className="h-4 w-4 text-slate-500" />
+                              <span className="text-sm font-medium">PIN Code:</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono">{credentials.pinCode}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.pinCode, `pin-${order.id}`)}
+                                className="h-6 w-6"
+                              >
+                                {copiedField === `pin-${order.id}` ? 
+                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                                  <Copy className="h-4 w-4" />
+                                }
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {credentials.notes && (
+                          <div className="p-2 mt-2 bg-blue-50 dark:bg-blue-950 rounded text-sm">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5" />
+                              <span>{credentials.notes}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="all">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 dark:bg-slate-800">
+                    <th className="px-4 py-2 text-left">Service</th>
+                    <th className="px-4 py-2 text-left">Username</th>
+                    <th className="px-4 py-2 text-left">Email</th>
+                    <th className="px-4 py-2 text-left">Password</th>
+                    <th className="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ordersWithCredentials.map((order) => {
+                    if (!order?.credentials) return null;
+                    
+                    const credentials = order.credentials;
+                    
+                    return (
+                      <tr key={order.id} className="border-b border-slate-200 dark:border-slate-700">
+                        <td className="px-4 py-3">{order.service_name}</td>
+                        <td className="px-4 py-3">
+                          {credentials.username ? (
+                            <div className="flex items-center">
+                              <span className="font-mono">{credentials.username}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.username, `username-table-${order.id}`)}
+                                className="ml-2 h-7 w-7"
+                              >
+                                {copiedField === `username-table-${order.id}` ? 
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : 
+                                  <Copy className="h-3.5 w-3.5" />
+                                }
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {credentials.email ? (
+                            <div className="flex items-center">
+                              <span className="font-mono">{credentials.email}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.email, `email-table-${order.id}`)}
+                                className="ml-2 h-7 w-7"
+                              >
+                                {copiedField === `email-table-${order.id}` ? 
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : 
+                                  <Copy className="h-3.5 w-3.5" />
+                                }
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {credentials.password ? (
+                            <div className="flex items-center">
+                              <span className="font-mono">{credentials.password}</span>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                onClick={() => handleCopyToClipboard(credentials.password, `password-table-${order.id}`)}
+                                className="ml-2 h-7 w-7"
+                              >
+                                {copiedField === `password-table-${order.id}` ? 
+                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : 
+                                  <Copy className="h-3.5 w-3.5" />
+                                }
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => navigate(`/order/${order.id}`)}
+                          >
+                            View Details
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 
