@@ -10,7 +10,10 @@ import NotificationPreferences from "@/components/account/NotificationPreference
 import SecuritySettings from "@/components/account/SecuritySettings";
 import ProfileEditForm from "@/components/account/ProfileEditForm";
 import { toast } from "@/lib/toast";
-import {
+import { differenceInDays, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { Subscription, Service } from "@/lib/types";
+import { 
   User,
   Package,
   CreditCard,
@@ -18,7 +21,9 @@ import {
   Bell,
   LogOut,
   Shield,
-  History
+  History,
+  Calendar,
+  Clock,
 } from "lucide-react";
 
 const getUserId = () => {
@@ -40,6 +45,9 @@ const Account: React.FC = () => {
     phone: ""
   });
   const [userBalance, setUserBalance] = useState(0);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const savedProfile = localStorage.getItem(`userProfile_${userId}`);
@@ -57,6 +65,55 @@ const Account: React.FC = () => {
       const balance = parseFloat(savedBalance);
       setUserBalance(balance);
     }
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // First try to get services
+        const savedServices = localStorage.getItem('services');
+        if (savedServices) {
+          setServices(JSON.parse(savedServices));
+        }
+
+        // Then try to get user's subscriptions from Supabase
+        const { data: subscriptionData, error } = await supabase
+          .from('subscriptions')
+          .select('*, credential_stock:credential_stock_id(*)')
+          .eq('user_id', userId)
+          .order('end_date', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching subscriptions:', error);
+          // Try fallback to localStorage
+          const savedSubscriptions = localStorage.getItem('subscriptions');
+          if (savedSubscriptions) {
+            const parsedSubs = JSON.parse(savedSubscriptions);
+            // Filter to get only this user's subscriptions
+            const userSubs = parsedSubs.filter((sub: Subscription) => sub.userId === userId);
+            setSubscriptions(userSubs);
+          }
+        } else if (subscriptionData) {
+          // Format subscriptions from Supabase
+          const formattedSubscriptions = subscriptionData.map(subscription => ({
+            id: subscription.id,
+            userId: subscription.user_id,
+            serviceId: subscription.service_id,
+            startDate: subscription.start_date,
+            endDate: subscription.end_date,
+            status: subscription.status as 'active' | 'expired' | 'cancelled',
+            durationMonths: subscription.duration_months || undefined,
+            credentials: subscription.credentials || subscription.credential_stock?.credentials || undefined
+          }));
+          setSubscriptions(formattedSubscriptions);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, [userId]);
 
   const handleLogout = () => {
@@ -73,6 +130,23 @@ const Account: React.FC = () => {
     toast.success("Logged out successfully");
     
     navigate('/');
+  };
+
+  // Helper function to get service name
+  const getServiceName = (serviceId: string): string => {
+    const service = services.find(s => s.id === serviceId);
+    return service?.name || "Unknown Service";
+  };
+
+  // Helper function to calculate days remaining
+  const getDaysRemaining = (endDate: string): number => {
+    try {
+      const end = parseISO(endDate);
+      return Math.max(0, differenceInDays(end, new Date()));
+    } catch (error) {
+      console.error("Error calculating days remaining:", error);
+      return 0;
+    }
   };
 
   return (
@@ -163,35 +237,39 @@ const Account: React.FC = () => {
                 <CardTitle>Recent Orders</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4">
-                    <div>
-                      <h3 className="font-medium">Order #12345</h3>
-                      <p className="text-sm text-muted-foreground">May 15, 2023</p>
-                      <div className="inline-block bg-green-500/10 text-green-600 text-xs px-2 py-1 rounded-full mt-1">
-                        Completed
+                {isLoading ? (
+                  <div className="text-center py-4">Loading orders...</div>
+                ) : (
+                  <div className="space-y-4">
+                    {subscriptions.length > 0 ? (
+                      subscriptions.slice(0, 2).map(subscription => (
+                        <div key={subscription.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4">
+                          <div>
+                            <h3 className="font-medium">{getServiceName(subscription.serviceId)}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(subscription.startDate).toLocaleDateString()}
+                            </p>
+                            <div className="inline-block bg-green-500/10 text-green-600 text-xs px-2 py-1 rounded-full mt-1">
+                              {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                            </div>
+                          </div>
+                          <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
+                            <span className="text-sm font-medium">
+                              {subscription.durationMonths ? `${subscription.durationMonths} month${subscription.durationMonths > 1 ? 's' : ''}` : 'Subscription'}
+                            </span>
+                            <Button size="sm" variant="ghost" asChild className="mt-2">
+                              <Link to={`/subscription/${subscription.id}`}>View Details</Link>
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground">No orders found</p>
                       </div>
-                    </div>
-                    <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
-                      <span className="text-sm font-medium">$29.99</span>
-                      <Button size="sm" variant="ghost" className="mt-2">View Details</Button>
-                    </div>
+                    )}
                   </div>
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4">
-                    <div>
-                      <h3 className="font-medium">Order #12344</h3>
-                      <p className="text-sm text-muted-foreground">May 10, 2023</p>
-                      <div className="inline-block bg-green-500/10 text-green-600 text-xs px-2 py-1 rounded-full mt-1">
-                        Completed
-                      </div>
-                    </div>
-                    <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
-                      <span className="text-sm font-medium">$19.99</span>
-                      <Button size="sm" variant="ghost" className="mt-2">View Details</Button>
-                    </div>
-                  </div>
-                </div>
+                )}
                 <div className="flex justify-center mt-6">
                   <Button asChild>
                     <Link to="/dashboard/transaction-history">
@@ -208,39 +286,53 @@ const Account: React.FC = () => {
                 <CardTitle>Active Subscriptions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-md">
-                        <Package className="h-6 w-6 text-primary" />
+                {isLoading ? (
+                  <div className="text-center py-4">Loading subscriptions...</div>
+                ) : (
+                  <div className="space-y-4">
+                    {subscriptions.filter(sub => sub.status === 'active').length > 0 ? (
+                      subscriptions
+                        .filter(sub => sub.status === 'active')
+                        .map(subscription => {
+                          const daysRemaining = getDaysRemaining(subscription.endDate);
+                          
+                          return (
+                            <div key={subscription.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/10 p-2 rounded-md">
+                                  <Package className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium">{getServiceName(subscription.serviceId)}</h3>
+                                  <div className="flex items-center text-sm text-muted-foreground">
+                                    <Calendar className="h-3.5 w-3.5 mr-1" />
+                                    <span>Expires in {daysRemaining} days</span>
+                                  </div>
+                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                    <Clock className="h-3.5 w-3.5 mr-1" />
+                                    <span>
+                                      {subscription.durationMonths 
+                                        ? `${subscription.durationMonths} month subscription` 
+                                        : 'Ongoing subscription'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
+                                <Button size="sm" variant="outline" asChild className="mt-2">
+                                  <Link to={`/subscription/${subscription.id}`}>Manage</Link>
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground">No active subscriptions</p>
                       </div>
-                      <div>
-                        <h3 className="font-medium">Netflix Premium</h3>
-                        <p className="text-sm text-muted-foreground">Expires in 24 days</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
-                      <span className="text-sm font-medium">$15.99/month</span>
-                      <Button size="sm" variant="outline" className="mt-2">Manage</Button>
-                    </div>
+                    )}
                   </div>
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-md">
-                        <Package className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Spotify Family Plan</h3>
-                        <p className="text-sm text-muted-foreground">Expires in 17 days</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
-                      <span className="text-sm font-medium">$14.99/month</span>
-                      <Button size="sm" variant="outline" className="mt-2">Manage</Button>
-                    </div>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
