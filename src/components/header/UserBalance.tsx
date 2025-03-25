@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from 'framer-motion';
+import { toast } from '@/lib/toast';
 
 const UserBalance = () => {
   const { user, isAuthenticated } = useAuth();
@@ -37,10 +38,20 @@ const UserBalance = () => {
       
       if (data) {
         console.log('User balance data:', data);
+        // Make sure balance is never negative
+        const safeBalance = Math.max(0, data.balance || 0);
+        
         // Check if balance has changed
-        if (userBalance !== 0 && data.balance !== userBalance) {
+        if (userBalance !== 0 && safeBalance !== userBalance) {
           setPrevBalance(userBalance);
           setShowBalanceUpdated(true);
+          
+          // Check if balance is low
+          if (safeBalance < 10) {
+            toast.warning('Your balance is low', {
+              description: 'Please add funds to continue making purchases.'
+            });
+          }
           
           // Hide the notification after 3 seconds
           setTimeout(() => {
@@ -48,7 +59,7 @@ const UserBalance = () => {
           }, 3000);
         }
         
-        setUserBalance(data.balance || 0);
+        setUserBalance(safeBalance);
       }
       setIsLoading(false);
     } catch (error) {
@@ -72,12 +83,20 @@ const UserBalance = () => {
         }, (payload) => {
           console.log('Profile updated:', payload);
           if (payload.new && typeof payload.new.balance === 'number') {
-            const newBalance = payload.new.balance;
+            // Ensure balance is never negative
+            const newBalance = Math.max(0, payload.new.balance);
             
             // Show notification if balance has changed
             if (userBalance !== 0 && newBalance !== userBalance) {
               setPrevBalance(userBalance);
               setShowBalanceUpdated(true);
+              
+              // Check if balance is low after update
+              if (newBalance < 10) {
+                toast.warning('Your balance is low', {
+                  description: 'Please add funds to continue making purchases.'
+                });
+              }
               
               // Hide the notification after 3 seconds
               setTimeout(() => {
@@ -101,15 +120,26 @@ const UserBalance = () => {
         fetchUserBalance();
       };
       
+      // Listen for insufficient funds event
+      const handleInsufficientFundsEvent = () => {
+        console.log('Insufficient funds event detected, redirecting to payment page');
+        toast.error('Insufficient balance', {
+          description: 'Please add funds to your account'
+        });
+        navigate('/payment');
+      };
+      
       window.addEventListener('purchase-completed', handlePurchaseEvent);
+      window.addEventListener('insufficient-funds', handleInsufficientFundsEvent);
       
       return () => {
         clearInterval(intervalId);
         supabase.removeChannel(profilesChannel);
         window.removeEventListener('purchase-completed', handlePurchaseEvent);
+        window.removeEventListener('insufficient-funds', handleInsufficientFundsEvent);
       };
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, navigate, userBalance]);
 
   const handleClick = () => {
     navigate('/payment');
