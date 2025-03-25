@@ -70,6 +70,8 @@ const StockIssueManagerComponent = () => {
         const service = services.find(s => s.id === issue.service_id);
         const associatedOrder = ordersData?.find(order => order.id === issue.order_id) || null;
         
+        const productName = associatedOrder?.service_name || service?.name || "Unknown Service";
+        
         let customerEmail = '';
         if (associatedOrder?.credentials && typeof associatedOrder.credentials === 'object') {
           const credentials = associatedOrder.credentials as any;
@@ -77,10 +79,9 @@ const StockIssueManagerComponent = () => {
         }
         
         return {
-          id: issue.id,
-          userId: issue.user_id,
-          serviceId: issue.service_id,
-          serviceName: issue.service_name || (service ? service.name : "Unknown Service"),
+          ...issue,
+          productName,
+          serviceName: productName,
           orderId: issue.order_id,
           status: issue.status as 'pending' | 'fulfilled' | 'cancelled',
           createdAt: issue.created_at,
@@ -264,7 +265,7 @@ const StockIssueManagerComponent = () => {
                   <div>
                     <h3 className="text-lg font-medium mb-1 flex items-center">
                       <Package className="h-5 w-5 text-primary mr-2" />
-                      {issue.serviceName || "Unknown Service"}
+                      {issue.productName}
                     </h3>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
