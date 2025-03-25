@@ -1,16 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, AlertCircle, RefreshCw, Package } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Package, User, Clock, CreditCard, FileText } from 'lucide-react';
 import { toast } from "@/lib/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { StockRequest, Credential } from '@/lib/types';
 import { useServiceManager } from '@/hooks/useServiceManager';
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const StockIssueManagerComponent = () => {
   const [issues, setIssues] = useState<StockRequest[]>([]);
@@ -48,19 +48,33 @@ const StockIssueManagerComponent = () => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase
+      // Load both the stock issues and related order details
+      const { data: issuesData, error: issuesError } = await supabase
         .from('stock_issue_logs')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
         
-      if (error) {
-        throw error;
+      if (issuesError) {
+        throw issuesError;
       }
       
-      // Get service names for better display
-      const enhancedIssues = data.map(issue => {
+      // Fetch the associated orders to get additional customer details and options
+      const orderIds = issuesData.map(issue => issue.order_id).filter(Boolean);
+      
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .in('id', orderIds);
+        
+      if (ordersError) {
+        console.error('Error fetching associated orders:', ordersError);
+      }
+      
+      // Match orders with their issues and combine the data
+      const enhancedIssues = issuesData.map(issue => {
         const service = services.find(s => s.id === issue.service_id);
+        const associatedOrder = ordersData?.find(order => order.id === issue.order_id) || null;
         
         return {
           id: issue.id,
@@ -71,9 +85,18 @@ const StockIssueManagerComponent = () => {
           status: issue.status as 'pending' | 'fulfilled' | 'cancelled',
           createdAt: issue.created_at,
           fulfilledAt: issue.fulfilled_at,
-          customerName: issue.customer_name || "Unknown Customer",
+          customerName: issue.customer_name || (associatedOrder?.customerName || "Unknown Customer"),
           priority: (issue.priority as 'high' | 'medium' | 'low') || 'medium',
-          notes: issue.notes || ''
+          notes: issue.notes || '',
+          // Additional order details
+          orderDetails: associatedOrder ? {
+            quantity: associatedOrder.quantity,
+            totalPrice: associatedOrder.total_price,
+            durationMonths: associatedOrder.duration_months,
+            notes: associatedOrder.notes,
+            accountId: associatedOrder.account_id,
+            customerEmail: associatedOrder.credentials?.email
+          } : null
         };
       });
       
@@ -204,6 +227,11 @@ const StockIssueManagerComponent = () => {
     }
   };
   
+  // Format date for better display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+  
   return (
     <Card>
       <CardHeader>
@@ -235,20 +263,15 @@ const StockIssueManagerComponent = () => {
           <div className="space-y-4">
             {issues.map(issue => (
               <div key={issue.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Package className="h-5 w-5 text-primary" />
-                      <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
-                        {issue.serviceName || issue.serviceId}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Requested by {issue.customerName} on {new Date(issue.createdAt).toLocaleDateString()}
-                    </p>
-                    {issue.notes && (
-                      <p className="text-sm mt-2 bg-muted p-2 rounded">"{issue.notes}"</p>
-                    )}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-primary" />
+                    <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
+                      {issue.serviceName || issue.serviceId}
+                    </Badge>
+                    <Badge variant={issue.priority === 'high' ? 'destructive' : 'outline'}>
+                      {issue.priority} priority
+                    </Badge>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -269,6 +292,102 @@ const StockIssueManagerComponent = () => {
                     </Button>
                   </div>
                 </div>
+                
+                <Accordion type="single" collapsible className="w-full border-t pt-2">
+                  <AccordionItem value="details">
+                    <AccordionTrigger className="text-sm py-2">
+                      View Request Details
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div className="space-y-3">
+                          <div className="flex items-start space-x-2">
+                            <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                            <div>
+                              <h4 className="text-sm font-medium">Customer</h4>
+                              <p className="text-sm">{issue.customerName}</p>
+                              {issue.orderDetails?.customerEmail && (
+                                <p className="text-xs text-muted-foreground">{issue.orderDetails.customerEmail}</p>
+                              )}
+                            </div>
+                          </div>
+                        
+                          <div className="flex items-start space-x-2">
+                            <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                            <div>
+                              <h4 className="text-sm font-medium">Requested On</h4>
+                              <p className="text-sm">{formatDate(issue.createdAt)}</p>
+                            </div>
+                          </div>
+                          
+                          {issue.orderId && (
+                            <div className="flex items-start space-x-2">
+                              <FileText className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                              <div>
+                                <h4 className="text-sm font-medium">Order ID</h4>
+                                <p className="text-sm font-mono">{issue.orderId}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {issue.orderDetails?.quantity && (
+                            <div className="flex items-start space-x-2">
+                              <Package className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                              <div>
+                                <h4 className="text-sm font-medium">Quantity</h4>
+                                <p className="text-sm">{issue.orderDetails.quantity}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {issue.orderDetails?.totalPrice && (
+                            <div className="flex items-start space-x-2">
+                              <CreditCard className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                              <div>
+                                <h4 className="text-sm font-medium">Order Total</h4>
+                                <p className="text-sm">${issue.orderDetails.totalPrice}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {issue.orderDetails?.durationMonths && (
+                            <div className="flex items-start space-x-2">
+                              <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                              <div>
+                                <h4 className="text-sm font-medium">Duration</h4>
+                                <p className="text-sm">{issue.orderDetails.durationMonths} month{issue.orderDetails.durationMonths > 1 ? 's' : ''}</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {issue.orderDetails?.accountId && (
+                            <div className="flex items-start space-x-2">
+                              <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                              <div>
+                                <h4 className="text-sm font-medium">Account ID</h4>
+                                <p className="text-sm">{issue.orderDetails.accountId}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {(issue.notes || issue.orderDetails?.notes) && (
+                        <div className="mt-4 border-t pt-3">
+                          <h4 className="text-sm font-medium mb-1">Notes</h4>
+                          {issue.notes && (
+                            <p className="text-sm bg-muted p-2 rounded mb-2">{issue.notes}</p>
+                          )}
+                          {issue.orderDetails?.notes && issue.orderDetails.notes !== issue.notes && (
+                            <p className="text-sm bg-muted/50 p-2 rounded">Order note: {issue.orderDetails.notes}</p>
+                          )}
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             ))}
           </div>
@@ -295,6 +414,11 @@ const StockIssueManagerComponent = () => {
                 <p className="text-sm text-muted-foreground">
                   Customer: {selectedIssue?.customerName}
                 </p>
+                {selectedIssue?.orderDetails?.accountId && (
+                  <p className="text-sm mt-1">
+                    <span className="font-medium">Account ID:</span> {selectedIssue.orderDetails.accountId}
+                  </p>
+                )}
                 {selectedIssue?.notes && (
                   <p className="text-sm mt-2 italic">
                     Note: "{selectedIssue.notes}"
