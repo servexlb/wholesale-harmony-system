@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers } from '@/lib/data';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
@@ -9,6 +10,8 @@ import { useWholesaleSidebar } from '@/hooks/useWholesaleSidebar';
 import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
 import { Service, WholesaleOrder } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const loadServices = (): Service[] => {
   try {
@@ -26,6 +29,7 @@ const Wholesale = () => {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
+  const [userBalance, setUserBalance] = useState(0);
   
   const [customerName, setCustomerName] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
@@ -78,6 +82,43 @@ const Wholesale = () => {
     };
   }, []);
 
+  // Fetch user balance
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserBalance();
+    }
+  }, [isAuthenticated]);
+
+  const fetchUserBalance = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        console.error('No authenticated user found');
+        return;
+      }
+      
+      const userId = session.session.user.id;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user balance:', error);
+        return;
+      }
+      
+      if (data) {
+        setUserBalance(data.balance || 0);
+        console.log('User balance:', data.balance);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserBalance:', error);
+    }
+  };
+
   useEffect(() => {
     const handleOpenPurchaseDialog = (event: Event) => {
       try {
@@ -128,6 +169,14 @@ const Wholesale = () => {
 
   const handlePurchaseForCustomer = (customerId: string) => {
     try {
+      // Check if user has sufficient balance before opening dialog
+      if (userBalance <= 0) {
+        toast.error("Insufficient funds", {
+          description: "Your account has no funds. Please add funds before making a purchase."
+        });
+        return;
+      }
+      
       const customer = wholesalerCustomers.find(c => c.id === customerId);
       if (customer) {
         setCustomerName(customer.name || '');
@@ -150,7 +199,9 @@ const Wholesale = () => {
     handleOrderPlaced(order);
     console.log('Order placed successfully:', order);
     
+    // Refresh balance after purchase
     setTimeout(() => {
+      fetchUserBalance();
       setIsSubmitting(false);
       setPurchaseDialogOpen(false);
     }, 1000);
@@ -184,7 +235,15 @@ const Wholesale = () => {
           <Button 
             variant="default" 
             className="mb-4"
-            onClick={() => setPurchaseDialogOpen(true)}
+            onClick={() => {
+              if (userBalance <= 0) {
+                toast.error("Insufficient funds", {
+                  description: "Your account has no funds. Please add funds before making a purchase."
+                });
+                return;
+              }
+              setPurchaseDialogOpen(true);
+            }}
           >
             Create New Purchase
           </Button>

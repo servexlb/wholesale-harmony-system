@@ -12,6 +12,8 @@ import TotalPriceDisplay from './TotalPriceDisplay';
 import ProductSearch from './ProductSearch';
 import { v4 as uuidv4 } from 'uuid';
 import { loadServices } from '@/lib/productManager';
+import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -54,6 +56,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [selectedServiceId, setSelectedServiceId] = useState(serviceId);
   const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<Service | undefined>(service);
+  const [userBalance, setUserBalance] = useState(0);
+  const [isInsufficientFunds, setIsInsufficientFunds] = useState(false);
 
   // Load available services
   useEffect(() => {
@@ -62,12 +66,20 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     setServices(availableServices);
   }, []);
 
+  // Fetch user balance when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchUserBalance();
+    }
+  }, [open]);
+
   // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setNotes('');
       setSelectedDuration(duration.toString());
       setSelectedServiceId(serviceId);
+      setIsInsufficientFunds(false);
     } else {
       setNotes(customerNotes || '');
       setSelectedDuration(duration.toString());
@@ -110,6 +122,42 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   }, [selectedServiceId, services]);
 
+  // Check if user has sufficient funds whenever the total price changes
+  useEffect(() => {
+    const totalPrice = calculateTotalPrice();
+    setIsInsufficientFunds(userBalance < totalPrice);
+  }, [selectedService, selectedDuration, userBalance]);
+
+  const fetchUserBalance = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session?.user) {
+        console.error('No authenticated user found');
+        return;
+      }
+      
+      const userId = sessionData.session.user.id;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user balance:', error);
+        return;
+      }
+      
+      if (data) {
+        setUserBalance(data.balance || 0);
+        console.log('User balance:', data.balance);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserBalance:', error);
+    }
+  };
+
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomer(customerId);
     if (onCustomerChange) {
@@ -140,12 +188,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const handleSubmit = () => {
     if (!selectedCustomer) {
-      alert('Please select a customer');
+      toast.error("Please select a customer");
       return;
     }
 
     if (!selectedServiceId || !selectedService) {
-      alert('Please select a service');
+      toast.error("Please select a service");
+      return;
+    }
+
+    const totalPrice = calculateTotalPrice();
+    
+    if (userBalance < totalPrice) {
+      toast.error("Insufficient funds", {
+        description: `Your balance ($${userBalance.toFixed(2)}) is insufficient for this purchase ($${totalPrice.toFixed(2)})`
+      });
       return;
     }
 
@@ -159,7 +216,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       customerId: selectedCustomer,
       serviceId: selectedServiceId,
       quantity: 1,
-      totalPrice: calculateTotalPrice(),
+      totalPrice: totalPrice,
       status: 'pending',
       createdAt: new Date().toISOString(),
       notes: notes,
@@ -177,6 +234,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   console.log('Selected service:', selectedService?.name);
   console.log('Service wholesale price:', selectedService?.wholesalePrice);
   console.log('Calculated total price:', calculateTotalPrice());
+  console.log('User balance:', userBalance);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,6 +247,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="p-3 bg-muted/30 rounded-md flex justify-between items-center">
+            <span className="text-sm font-medium">Your Balance:</span>
+            <span className={`font-bold ${isInsufficientFunds ? 'text-red-500' : ''}`}>
+              ${userBalance.toFixed(2)}
+            </span>
+          </div>
+
           <CustomerSelector 
             customers={customers}
             selectedCustomer={selectedCustomer}
@@ -224,6 +289,13 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           />
 
           <TotalPriceDisplay totalPrice={calculateTotalPrice()} />
+
+          {isInsufficientFunds && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+              <p className="font-medium">Insufficient funds</p>
+              <p>Your balance (${userBalance.toFixed(2)}) is not enough to complete this purchase (${calculateTotalPrice().toFixed(2)}). Please add funds to your account.</p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -232,7 +304,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting || !selectedServiceId || !selectedCustomer}
+            disabled={isSubmitting || !selectedServiceId || !selectedCustomer || isInsufficientFunds}
           >
             {isSubmitting ? 'Processing...' : 'Complete Purchase'}
           </Button>
