@@ -211,6 +211,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                 isWholesale={true}
                 onClick={() => handleServiceClick(service)}
                 onViewDetails={(e) => handleViewDetails(service, e)}
+                isMobile={false}
               />
             </div>
           ))}

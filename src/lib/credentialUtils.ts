@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Credential } from '@/lib/types';
 import { toast } from '@/lib/toast';
@@ -144,7 +143,7 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
   try {
     const { data, error } = await supabase
       .from('orders')
-      .select('credentials')
+      .select('*')
       .eq('id', orderId)
       .single();
       
@@ -153,11 +152,25 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       return null;
     }
     
+    // Safely handle the credentials property which might not exist
     if (!data.credentials) {
       return null;
     }
     
-    return data.credentials as Credential;
+    // Parse credentials if they're a string, or use directly if object
+    let credentials: Credential;
+    if (typeof data.credentials === 'string') {
+      try {
+        credentials = JSON.parse(data.credentials);
+      } catch (e) {
+        console.error('Error parsing credentials string:', e);
+        return null;
+      }
+    } else {
+      credentials = data.credentials as Credential;
+    }
+    
+    return credentials;
   } catch (error) {
     console.error('Error in getCredentialsByOrderId:', error);
     return null;

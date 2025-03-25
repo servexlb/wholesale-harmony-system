@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Credential, StockRequest } from '@/lib/types';
 import { toast } from '@/lib/toast';
@@ -65,6 +64,15 @@ export const createStockRequest = async (
   notes?: string
 ): Promise<boolean> => {
   try {
+    // Fetch user name for display in the stock issue
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', userId)
+      .single();
+    
+    const customerName = userData?.name || 'Unknown Customer';
+    
     // Create a stock request
     const { error: requestError } = await supabase
       .from('stock_issue_logs')

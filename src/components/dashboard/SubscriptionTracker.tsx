@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -22,7 +21,6 @@ const SubscriptionTracker: React.FC = () => {
   const [sortOption, setSortOption] = useState('expiring-soon');
   const navigate = useNavigate();
 
-  // Get current user ID
   useEffect(() => {
     const getUserId = async () => {
       const { data: session } = await supabase.auth.getSession();
@@ -34,7 +32,6 @@ const SubscriptionTracker: React.FC = () => {
     getUserId();
   }, []);
 
-  // Fetch all user subscriptions
   useEffect(() => {
     if (!userId) return;
     
@@ -42,7 +39,6 @@ const SubscriptionTracker: React.FC = () => {
       try {
         setIsLoading(true);
         
-        // Fetch all user subscriptions (active, expired, cancelled)
         const { data: subscriptionsData, error } = await supabase
           .from('subscriptions')
           .select('*')
@@ -50,24 +46,37 @@ const SubscriptionTracker: React.FC = () => {
           
         if (error) {
           console.error('Error fetching subscriptions:', error);
-          // Fallback to localStorage
           fallbackToLocalStorage();
           return;
         }
         
         if (subscriptionsData) {
-          const formattedSubscriptions: Subscription[] = subscriptionsData.map(sub => ({
-            id: sub.id,
-            userId: sub.user_id,
-            serviceId: sub.service_id,
-            startDate: sub.start_date,
-            endDate: sub.end_date,
-            status: sub.status as "active" | "expired" | "cancelled",
-            durationMonths: sub.duration_months,
-            credentials: sub.credentials ? sub.credentials : undefined
-          }));
+          const mappedSubscriptions = subscriptionsData.map(sub => {
+            let formattedCredentials = null;
+            
+            if (sub.credentials) {
+              if (typeof sub.credentials === 'string') {
+                try {
+                  formattedCredentials = JSON.parse(sub.credentials);
+                } catch (e) {
+                  formattedCredentials = { notes: sub.credentials };
+                }
+              } else if (typeof sub.credentials === 'object') {
+                formattedCredentials = sub.credentials;
+              } else {
+                formattedCredentials = { notes: String(sub.credentials) };
+              }
+            } else {
+              formattedCredentials = {};
+            }
+            
+            return {
+              ...sub,
+              credentials: formattedCredentials
+            } as Subscription;
+          });
           
-          setSubscriptions(formattedSubscriptions);
+          setSubscriptions(mappedSubscriptions);
         }
         
         setIsLoading(false);
@@ -97,7 +106,6 @@ const SubscriptionTracker: React.FC = () => {
     
     fetchSubscriptions();
     
-    // Set up real-time subscription for updates
     const subscriptionsChannel = supabase
       .channel('subscriptions_tracker')
       .on('postgres_changes', {
@@ -106,7 +114,6 @@ const SubscriptionTracker: React.FC = () => {
         table: 'subscriptions',
         filter: `user_id=eq.${userId}`
       }, (payload) => {
-        // Refresh subscriptions when data changes
         fetchSubscriptions();
       })
       .subscribe();
@@ -116,13 +123,11 @@ const SubscriptionTracker: React.FC = () => {
     };
   }, [userId]);
 
-  // Get service name from product data
   const getServiceName = (serviceId: string): string => {
     const product = products.find(p => p.id === serviceId);
     return product ? product.name : 'Unknown Service';
   };
 
-  // Get subscription status and color based on remaining days
   const getSubscriptionStatus = (endDate: string) => {
     const today = new Date();
     const end = parseISO(endDate);
@@ -162,27 +167,22 @@ const SubscriptionTracker: React.FC = () => {
       icon: <Clock className="h-4 w-4" />
     };
   };
-  
-  // Calculate the percentage of time elapsed in the subscription
+
   const calculateProgressPercentage = (startDate: string, endDate: string) => {
     const start = parseISO(startDate);
     const end = parseISO(endDate);
     const today = new Date();
     
-    // If already expired, return 100%
     if (today > end) return 100;
     
     const totalDuration = differenceInDays(end, start);
     const elapsed = differenceInDays(today, start);
     
-    // Calculate percentage of time elapsed
     const percentage = (elapsed / totalDuration) * 100;
     
-    // Cap percentage between 0 and 100
     return Math.min(Math.max(percentage, 0), 100);
   };
 
-  // Sort subscriptions based on selected option
   const sortedSubscriptions = [...subscriptions].sort((a, b) => {
     switch (sortOption) {
       case 'expiring-soon':
@@ -196,25 +196,21 @@ const SubscriptionTracker: React.FC = () => {
     }
   });
 
-  // Active subscriptions
   const activeSubscriptions = sortedSubscriptions.filter(
     sub => sub.status === 'active' || 
     (sub.status !== 'cancelled' && differenceInDays(parseISO(sub.endDate), new Date()) >= 0)
   );
   
-  // Expired subscriptions
   const expiredSubscriptions = sortedSubscriptions.filter(
     sub => sub.status === 'expired' || 
     (sub.status !== 'cancelled' && differenceInDays(parseISO(sub.endDate), new Date()) < 0)
   );
   
-  // Calculate counts for summary
   const expiringCount = activeSubscriptions.filter(
     sub => differenceInDays(parseISO(sub.endDate), new Date()) <= 30
   ).length;
 
   const handleRenew = (subscription: Subscription) => {
-    // Navigate to the service page or payment page
     navigate(`/services/${subscription.serviceId}`);
     toast.info("Redirecting to renewal page", {
       description: "You'll be able to renew your subscription there."
@@ -222,7 +218,6 @@ const SubscriptionTracker: React.FC = () => {
   };
 
   const handleUpgrade = (subscription: Subscription) => {
-    // Navigate to upgrade options
     navigate('/services');
     toast.info("Check out our available services", {
       description: "You can upgrade to a different service or package."
@@ -297,7 +292,6 @@ const SubscriptionTracker: React.FC = () => {
         </CardHeader>
         
         <CardContent>
-          {/* Summary Box */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="bg-green-50 border border-green-200">
               <CardContent className="p-4">
@@ -429,7 +423,11 @@ const SubscriptionTracker: React.FC = () => {
                               <span>Progress</span>
                               <span>{Math.round(progressPercent)}%</span>
                             </div>
-                            <Progress value={progressPercent} className="h-2" />
+                            <Progress
+                              value={progressPercent}
+                              className="h-2 w-full"
+                              indicatorClassname="bg-primary"
+                            />
                           </div>
                         </CardContent>
                       </Card>
@@ -606,3 +604,5 @@ const SubscriptionTracker: React.FC = () => {
 };
 
 export default SubscriptionTracker;
+
+

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -380,7 +379,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   };
 
-  const isSubscription = service.type === 'subscription';
+  const isSubscription = service.type === 'subscription' as ServiceType;
 
   return (
     <>

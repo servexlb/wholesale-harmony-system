@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, UploadCloud, RefreshCw, Trash2, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,11 +47,9 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
     notes: ''
   });
   
-  // Load inventory data
   useEffect(() => {
     loadInventoryData();
     
-    // Listen for inventory updates
     window.addEventListener('credential-stock-updated', loadInventoryData);
     return () => {
       window.removeEventListener('credential-stock-updated', loadInventoryData);
@@ -63,15 +60,12 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
     setIsLoading(true);
     
     try {
-      // Initialize inventory data structure
       const inventoryItems: any[] = [];
       
-      // For each service, get available credentials
       for (const service of services) {
         try {
           const credentials = await getAvailableCredentials(service.id);
           
-          // Map credentials to the expected format
           const items = credentials.map(cred => ({
             ...cred,
             serviceName: service.name
@@ -114,7 +108,6 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
       const success = await addCredentialToStock(selectedService, newCredential);
       
       if (success) {
-        // Clear form and refresh data
         setNewCredential({
           email: '',
           password: '',
@@ -125,7 +118,6 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
         setShowAddDialog(false);
         await loadInventoryData();
         
-        // Create a custom event to notify other components
         window.dispatchEvent(new CustomEvent('credential-stock-updated'));
         
         toast.success('Credential added successfully');
@@ -138,7 +130,6 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
     }
   };
   
-  // Group inventory by service name
   const groupedInventory = inventory.reduce((groups, item) => {
     const serviceName = item.serviceName || "Unknown Service";
     if (!groups[serviceName]) {
@@ -234,7 +225,6 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ services }) => {
         </div>
       )}
       
-      {/* Add Credential Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
