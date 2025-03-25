@@ -5,7 +5,23 @@ import { services } from '@/lib/data'; // Use services from data.ts instead of m
 
 export const getAllServices = (): Service[] => {
   try {
-    return services as Service[];
+    // Add additional logging to debug what's happening
+    console.log('getAllServices called, services.length:', services.length);
+    
+    // Convert our services array to the right format
+    const formattedServices = services.map(service => ({
+      ...service,
+      // Ensure required fields for Service type
+      id: service.id || `service-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      name: service.name || 'Unnamed Service',
+      type: service.type || 'subscription',
+      wholesalePrice: service.wholesalePrice || service.price || 0,
+      price: service.price || 0,
+      category: service.category || 'Other'
+    })) as Service[];
+    
+    console.log('Formatted services length:', formattedServices.length);
+    return formattedServices;
   } catch (error) {
     console.error('Error getting services:', error);
     return [];

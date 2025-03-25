@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceCard from './ServiceCard';
@@ -22,11 +21,13 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 interface ProductsTabProps {
   customers: Customer[];
   onOrderPlaced: (order: WholesaleOrder) => void;
+  services?: Service[]; // Add this prop to accept services from parent
 }
 
 const ProductsTab: React.FC<ProductsTabProps> = ({ 
   customers,
-  onOrderPlaced
+  onOrderPlaced,
+  services = [] // Default to empty array if not provided
 }) => {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -41,16 +42,24 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   
   const isMobile = useMediaQuery('(max-width: 640px)');
   
-  // Need to fetch services from local state or API
-  const [services, setServices] = useState<Service[]>([]);
+  // Get services from props or localStorage if not available
+  const [availableServices, setAvailableServices] = useState<Service[]>(services);
   
   useEffect(() => {
-    // Get services from localStorage
+    // If services are provided as props, use them
+    if (services && services.length > 0) {
+      console.log('Using services from props:', services.length);
+      setAvailableServices(services);
+      return;
+    }
+    
+    // Otherwise fall back to localStorage
     const storedServices = localStorage.getItem('services');
     if (storedServices) {
       try {
         const parsedServices = JSON.parse(storedServices);
-        setServices(parsedServices);
+        console.log('Using services from localStorage:', parsedServices.length);
+        setAvailableServices(parsedServices);
       } catch (error) {
         console.error('Error parsing services:', error);
       }
@@ -61,7 +70,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       if (updatedServices) {
         try {
           const parsedServices = JSON.parse(updatedServices);
-          setServices(parsedServices);
+          setAvailableServices(parsedServices);
         } catch (error) {
           console.error('Error parsing updated services:', error);
         }
@@ -77,11 +86,11 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       window.removeEventListener('service-added', handleServiceUpdated);
       window.removeEventListener('service-deleted', handleServiceUpdated);
     };
-  }, []);
+  }, [services]);
 
-  // Filter services based on search query and category, ensuring Netflix services are displayed
+  // Filter services based on search query and category
   const filteredServices = React.useMemo(() => {
-    let filtered = services.filter((service) => {
+    let filtered = availableServices.filter((service) => {
       const nameMatch = service.name.toLowerCase().includes(searchQuery.toLowerCase());
       const descriptionMatch = service.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
       return nameMatch || descriptionMatch;
@@ -95,7 +104,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     console.log('Filtered services count:', filtered.length);
     
     return filtered;
-  }, [services, searchQuery, categoryFilter]);
+  }, [availableServices, searchQuery, categoryFilter]);
 
   // Sort services
   const sortedServices = React.useMemo(() => {
@@ -144,6 +153,11 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   const handlePurchase = (order: WholesaleOrder) => {
     setIsSubmitting(true);
     try {
+      // If we have a selected service, add its id to the order
+      if (selectedService) {
+        order.serviceId = selectedService.id;
+      }
+      
       onOrderPlaced(order);
       toast.success('Purchase completed successfully');
       setPurchaseOpen(false);
@@ -155,6 +169,10 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const uniqueCategories = React.useMemo(() => {
+    return [...new Set(availableServices.map((service) => service.category))].filter(Boolean);
+  }, [availableServices]);
 
   return (
     <div className="h-full">
@@ -186,7 +204,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                   <DropdownMenuCheckboxItem checked={categoryFilter === 'all'} onCheckedChange={() => setCategoryFilter('all')}>
                     All Categories
                   </DropdownMenuCheckboxItem>
-                  {[...new Set(services.map((service) => service.category))].map((category) => (
+                  {uniqueCategories.map((category) => (
                     <DropdownMenuCheckboxItem
                       key={category}
                       checked={categoryFilter === category}
@@ -252,11 +270,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       {/* Purchase dialog with proper customer selection */}
       <PurchaseDialog
         customerName={customerName}
+        serviceName={selectedService?.name}
+        serviceId={selectedService?.id}
         onPurchase={handlePurchase}
         isSubmitting={isSubmitting}
         isMobile={isMobile}
         open={purchaseOpen}
         onOpenChange={setPurchaseOpen}
+        customers={customers}
+        onCustomerChange={handleCustomerChange}
+        selectedCustomerId={selectedCustomer}
       >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Create New Purchase</h3>
@@ -267,43 +290,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
             Create New Purchase
           </Button>
         </div>
-        
-        <div className="mt-4 mb-4">
-          <FormField
-            label="Customer"
-            className="mb-4"
-          >
-            <Select
-              value={selectedCustomer}
-              onValueChange={handleCustomerChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id}>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>{customer.name}</span>
-                      <span className="text-xs text-muted-foreground">{customer.company || ""}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-        </div>
       </PurchaseDialog>
-    </div>
-  );
-};
-
-const FormField = ({ label, children, className }) => {
-  return (
-    <div className={className}>
-      <label className="block text-sm font-medium mb-2">{label}</label>
-      {children}
     </div>
   );
 };

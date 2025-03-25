@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WholesaleOrder, Customer } from '@/lib/types';
+import { User } from 'lucide-react';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -14,9 +15,13 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
-  // Add the missing props that were referenced in Wholesale.tsx
   customerName?: string;
   customerNotes?: string;
+  serviceName?: string;
+  serviceId?: string;
+  customers?: Customer[];
+  onCustomerChange?: (customerId: string) => void;
+  selectedCustomerId?: string;
 }
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({ 
@@ -26,16 +31,17 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   open,
   onOpenChange,
   children,
-  customerName = '', // Provide default value
-  customerNotes = ''  // Provide default value
+  customerName = '',
+  customerNotes = '',
+  serviceName = '',
+  serviceId = '',
+  customers = [],
+  onCustomerChange,
+  selectedCustomerId = ''
 }) => {
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState('');
-
-  // Get available customers from localStorage
-  const customersFromStorage = localStorage.getItem('wholesale_customers');
-  const customers: Customer[] = customersFromStorage ? JSON.parse(customersFromStorage) : [];
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -43,21 +49,34 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setNotes('');
       setQuantity(1);
       setSelectedCustomer('');
-    } else if (customerName) {
+    } else {
       // Use the provided customer name for notes if available
       setNotes(customerNotes || '');
+      
+      // If we have a selected customer ID from props, use it
+      if (selectedCustomerId) {
+        setSelectedCustomer(selectedCustomerId);
+      }
     }
-  }, [open, customerName, customerNotes]);
+  }, [open, customerName, customerNotes, selectedCustomerId]);
 
   // Set selected customer based on customerName prop if available
   useEffect(() => {
-    if (customerName && customers.length > 0) {
+    if (customerName && customers.length > 0 && !selectedCustomer) {
       const customer = customers.find(c => c.name === customerName);
       if (customer) {
         setSelectedCustomer(customer.id);
+        if (onCustomerChange) onCustomerChange(customer.id);
       }
     }
-  }, [customerName, customers]);
+  }, [customerName, customers, selectedCustomer, onCustomerChange]);
+
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    if (onCustomerChange) {
+      onCustomerChange(customerId);
+    }
+  };
 
   const handleSubmit = () => {
     if (!selectedCustomer) {
@@ -65,16 +84,22 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       return;
     }
 
-    // Create mock order
+    const customer = customers.find(c => c.id === selectedCustomer);
+
+    // Create order
     const order: WholesaleOrder = {
       id: `order-${Date.now()}`,
       customerId: selectedCustomer,
+      serviceId: serviceId || '',
       quantity: quantity,
-      totalPrice: 19.99 * quantity, // Mock price
+      totalPrice: 19.99 * quantity, // This would be calculated based on the selected service
       status: 'pending',
       createdAt: new Date().toISOString(),
       notes: notes,
-      customerName: customers.find(c => c.id === selectedCustomer)?.name || 'Unknown',
+      customerName: customer?.name || 'Unknown',
+      customerEmail: customer?.email,
+      customerPhone: customer?.phone,
+      customerCompany: customer?.company
     };
 
     onPurchase(order);
@@ -82,18 +107,18 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Complete Your Purchase</DialogTitle>
           <DialogDescription>
-            Enter the details to process your order
+            {serviceName ? `Purchase ${serviceName} for your customer` : 'Enter the details to process your order'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="customer">Customer</Label>
-            <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+            <Select value={selectedCustomer} onValueChange={handleCustomerChange}>
               <SelectTrigger id="customer">
                 <SelectValue placeholder="Select a customer" />
               </SelectTrigger>
@@ -103,13 +128,28 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                 ) : (
                   customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>{customer.name}</span>
+                        {customer.company && (
+                          <span className="text-xs text-muted-foreground">({customer.company})</span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
           </div>
+
+          {serviceName && (
+            <div className="grid gap-2">
+              <Label>Service</Label>
+              <div className="p-2 bg-muted rounded-md">
+                {serviceName}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="quantity">Quantity</Label>

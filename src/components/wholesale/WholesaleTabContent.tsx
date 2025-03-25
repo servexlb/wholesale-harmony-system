@@ -63,6 +63,22 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
     return customers;
   }, [customers]);
 
+  // Add the combined services array using both products and allServices
+  const combinedServices = React.useMemo(() => {
+    const combined = [...products];
+    
+    // Add services from allServices that aren't already in products
+    allServices.forEach(service => {
+      const exists = combined.some(p => p.id === service.id);
+      if (!exists) {
+        combined.push(service);
+      }
+    });
+    
+    console.log('Combined services count:', combined.length);
+    return combined;
+  }, [products, allServices]);
+
   return (
     <div className="h-full">
       <Tabs value={activeTab} defaultValue={activeTab}>
@@ -77,6 +93,7 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
           <ProductsTab 
             customers={wholesalerCustomers as unknown as Customer[]}
             onOrderPlaced={handleOrderPlaced}
+            services={combinedServices}
           />
         </TabsContent>
         
