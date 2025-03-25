@@ -139,7 +139,7 @@ const UserBalance = () => {
         onClick={handleClick}
       >
         <CreditCard className="h-4 w-4" />
-        <span>${userBalance.toFixed(2)}</span>
+        <span>{isPositiveChange ? '+' : '-'}${Math.abs(userBalance).toFixed(2)}</span>
       </Button>
     </div>
   );
