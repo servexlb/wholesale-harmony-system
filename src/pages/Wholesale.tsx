@@ -13,8 +13,15 @@ import { Button } from '@/components/ui/button';
 
 // Use a local function to load services
 const loadServices = (): Service[] => {
-  const storedServices = localStorage.getItem('services');
-  return storedServices ? JSON.parse(storedServices) : [];
+  try {
+    const storedServices = localStorage.getItem('services');
+    const services = storedServices ? JSON.parse(storedServices) : [];
+    console.log(`Loaded ${services.length} services from localStorage`);
+    return services;
+  } catch (error) {
+    console.error('Error loading services:', error);
+    return [];
+  }
 };
 
 const Wholesale = () => {
@@ -54,12 +61,16 @@ const Wholesale = () => {
     handleUpdateCustomer
   } = useWholesaleData(currentWholesaler);
 
-  // Load services
+  // Load services with better debugging
   useEffect(() => {
-    setAvailableServices(loadServices());
+    const services = loadServices();
+    console.log('Services loaded for display:', services.length);
+    setAvailableServices(services);
     
     const handleServiceUpdated = () => {
-      setAvailableServices(loadServices());
+      const updatedServices = loadServices();
+      console.log('Services updated:', updatedServices.length);
+      setAvailableServices(updatedServices);
     };
     
     window.addEventListener('service-updated', handleServiceUpdated);
@@ -78,19 +89,30 @@ const Wholesale = () => {
     const handleOpenPurchaseDialog = (event: Event) => {
       try {
         const customEvent = event as CustomEvent;
+        console.log('Opening purchase dialog with details:', customEvent.detail);
+        
         if (customEvent.detail) {
           // Set all customer details from the event
           if (customEvent.detail.customerId) {
             setSelectedCustomerId(customEvent.detail.customerId);
+            
+            // Find customer name from the ID
+            const customer = wholesalerCustomers.find(c => c.id === customEvent.detail.customerId);
+            if (customer) {
+              setCustomerName(customer.name || '');
+            }
           } else {
             setSelectedCustomerId('');
           }
           
-          // Set customer name if provided
-          setCustomerName(customEvent.detail.customerName || '');
+          // Set customer name if provided directly
+          if (customEvent.detail.customerName) {
+            setCustomerName(customEvent.detail.customerName);
+          }
           
           // Log for debugging
-          console.log('Opening purchase dialog with customer details:', customEvent.detail);
+          console.log('Selected customer ID:', customEvent.detail.customerId);
+          console.log('Customer name set to:', customEvent.detail.customerName || (wholesalerCustomers.find(c => c.id === customEvent.detail.customerId)?.name || ''));
         }
         
         setPurchaseDialogOpen(true);
@@ -104,7 +126,7 @@ const Wholesale = () => {
     return () => {
       window.removeEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
     };
-  }, []);
+  }, [wholesalerCustomers]);
 
   // Purchase for customer handler
   const handlePurchaseForCustomer = (customerId: string) => {
@@ -113,6 +135,9 @@ const Wholesale = () => {
       const customer = wholesalerCustomers.find(c => c.id === customerId);
       if (customer) {
         setCustomerName(customer.name || '');
+        console.log('Found customer for purchase:', customer.name);
+      } else {
+        console.warn('Customer not found for ID:', customerId);
       }
       
       setSelectedCustomerId(customerId);
@@ -129,6 +154,7 @@ const Wholesale = () => {
     
     // Process the order
     handleOrderPlaced(order);
+    console.log('Order placed successfully:', order);
     
     setTimeout(() => {
       setIsSubmitting(false);

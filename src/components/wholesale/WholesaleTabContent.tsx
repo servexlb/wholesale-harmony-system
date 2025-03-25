@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
@@ -37,11 +38,17 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
   onUpdateCustomer,
   onPurchaseForCustomer
 }) => {
+  // Log products to help with debugging
+  React.useEffect(() => {
+    console.log('Products received in WholesaleTabContent:', products.length);
+    console.log('Wholesale customers count:', wholesalerCustomers.length);
+  }, [products, wholesalerCustomers]);
+
   // Get all available services using the utility function
   const allServices = React.useMemo(() => {
     try {
       const servicesList = getAllServices();
-      console.log('Services count:', servicesList.length);
+      console.log('Services count from getAllServices:', servicesList.length);
       return servicesList;
     } catch (error) {
       console.error('Error processing services:', error);

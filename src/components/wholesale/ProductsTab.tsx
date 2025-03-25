@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceCard from './ServiceCard';
 import ServiceDetails from './ServiceDetails';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingCart, Search, Filter, ListFilter, Check } from 'lucide-react';
+import { ShoppingCart, Search, Filter, ListFilter, Check, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   const [ascOrder, setAscOrder] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [customerName, setCustomerName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -43,7 +44,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   // Need to fetch services from local state or API
   const [services, setServices] = useState<Service[]>([]);
   
-  React.useEffect(() => {
+  useEffect(() => {
     // Get services from localStorage
     const storedServices = localStorage.getItem('services');
     if (storedServices) {
@@ -78,16 +79,21 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     };
   }, []);
 
-  // Filter services based on search query and category
+  // Filter services based on search query and category, ensuring Netflix services are displayed
   const filteredServices = React.useMemo(() => {
-    let filtered = services.filter((service) =>
-      service.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    let filtered = services.filter((service) => {
+      const nameMatch = service.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const descriptionMatch = service.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
+      return nameMatch || descriptionMatch;
+    });
 
     if (categoryFilter !== 'all') {
       filtered = filtered.filter((service) => service.category === categoryFilter);
     }
 
+    // Log to help debug what services are being shown
+    console.log('Filtered services count:', filtered.length);
+    
     return filtered;
   }, [services, searchQuery, categoryFilter]);
 
@@ -120,6 +126,20 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     setSelectedService(service);
   };
 
+  // Handle purchase dialog open
+  const handleOpenPurchaseDialog = () => {
+    setPurchaseOpen(true);
+  };
+
+  // Handle customer selection
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setCustomerName(customer.name);
+    }
+  };
+
   // Handle purchase dialog submission
   const handlePurchase = (order: WholesaleOrder) => {
     setIsSubmitting(true);
@@ -135,12 +155,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  // Add this unique customer options
-  const uniqueCustomers = customers.map(customer => ({
-    id: customer.id,
-    name: customer.name
-  }));
 
   return (
     <div className="h-full">
@@ -204,18 +218,24 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-        {sortedServices.map((service) => (
-          <ServiceCard
-            key={service.id}
-            service={service}
-            isWholesale={true}
-            isMobile={isMobile}
-            onClick={() => handleServiceSelect(service)}
-            onViewDetails={(e) => handleViewDetails(e, service)}
-          />
-        ))}
-      </div>
+      {sortedServices.length === 0 ? (
+        <div className="mt-8 p-6 text-center border rounded-md">
+          <p className="text-muted-foreground">No services found. Try adjusting your search criteria.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+          {sortedServices.map((service) => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              isWholesale={true}
+              isMobile={isMobile}
+              onClick={() => handleServiceSelect(service)}
+              onViewDetails={(e) => handleViewDetails(e, service)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Service details modal */}
       {selectedService && (
@@ -229,16 +249,61 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         />
       )}
 
-      {/* Purchase dialog */}
+      {/* Purchase dialog with proper customer selection */}
       <PurchaseDialog
+        customerName={customerName}
         onPurchase={handlePurchase}
         isSubmitting={isSubmitting}
         isMobile={isMobile}
         open={purchaseOpen}
         onOpenChange={setPurchaseOpen}
       >
-        <div></div> {/* This is needed as the children prop for the dialog */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Create New Purchase</h3>
+          <Button 
+            variant="default" 
+            onClick={handleOpenPurchaseDialog}
+          >
+            Create New Purchase
+          </Button>
+        </div>
+        
+        <div className="mt-4 mb-4">
+          <FormField
+            label="Customer"
+            className="mb-4"
+          >
+            <Select
+              value={selectedCustomer}
+              onValueChange={handleCustomerChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>{customer.name}</span>
+                      <span className="text-xs text-muted-foreground">{customer.company || ""}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+        </div>
       </PurchaseDialog>
+    </div>
+  );
+};
+
+const FormField = ({ label, children, className }) => {
+  return (
+    <div className={className}>
+      <label className="block text-sm font-medium mb-2">{label}</label>
+      {children}
     </div>
   );
 };
