@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Service, Customer, WholesaleOrder } from '@/lib/types';
 import PurchaseDialog from './PurchaseDialog';
@@ -105,6 +106,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
                 key={service.id}
                 service={service}
                 isMobile={isMobile}
+                isWholesale={true}
                 onClick={() => handleServiceClick(service)}
                 onViewDetails={(e) => handleViewDetails(e, service)}
               />

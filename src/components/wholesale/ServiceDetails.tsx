@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Service } from '@/lib/types';
-import { CheckCircle, Calendar, Clock, Tag } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Tag, ShoppingCart } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
@@ -130,8 +130,9 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handlePurchase}>
-            {isSubscription ? `Purchase (${selectedDuration} ${parseInt(selectedDuration) === 1 ? 'month' : 'months'})` : 'Purchase'}
+          <Button onClick={handlePurchase} className="gap-2">
+            <ShoppingCart className="h-4 w-4" />
+            {isSubscription ? `Purchase for Customer (${selectedDuration} ${parseInt(selectedDuration) === 1 ? 'month' : 'months'})` : 'Purchase for Customer'}
           </Button>
         </DialogFooter>
       </DialogContent>
