@@ -185,7 +185,7 @@ export function useWholesaleData(currentWholesaler: string) {
             customerAddress: order.customer_address,
             customerCompany: order.customer_company,
             notes: order.notes,
-            credentials: order.credentials
+            credentials: order.credentials as any
           }));
           setOrders(formattedOrders);
         }
@@ -271,7 +271,7 @@ export function useWholesaleData(currentWholesaler: string) {
             customer_address: order.customerAddress,
             customer_company: order.customerCompany,
             notes: order.notes,
-            credentials: order.credentials // Make sure we're saving credentials to Supabase
+            credentials: order.credentials
           });
           
         if (error) {

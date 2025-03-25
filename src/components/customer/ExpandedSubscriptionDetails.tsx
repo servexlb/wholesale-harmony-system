@@ -1,142 +1,166 @@
 
-import React, { useMemo } from 'react';
-import { Calendar, Key } from 'lucide-react';
+import React, { useState } from 'react';
+import { Subscription, Service } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Subscription } from '@/lib/types';
-import { products } from '@/lib/data';
-import SubscriptionActions from './SubscriptionActions';
-import { getSubscriptionStatusColor, getStatusLabel } from './SubscriptionStatusBadge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Clock, CheckCircle2, XCircle, AlertCircle, Clipboard, ClipboardCheck } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from '@/lib/toast';
+import CredentialsDisplay from '@/components/wholesale/CredentialsDisplay';
 
 interface ExpandedSubscriptionDetailsProps {
-  subscriptions: Subscription[];
-  customerId: string;
+  subscription: Subscription;
+  service?: Service;
+  onClose: () => void;
+  isWholesale?: boolean;
 }
 
 const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = ({
-  subscriptions,
-  customerId
+  subscription,
+  service,
+  onClose,
+  isWholesale = false
 }) => {
-  // Filter and validate subscriptions
-  const validSubscriptions = useMemo(() => {
-    try {
-      if (!Array.isArray(subscriptions)) {
-        console.error('subscriptions is not an array:', subscriptions);
-        return [];
-      }
+  const [copyingCredentials, setCopyingCredentials] = useState(false);
+  
+  const formattedStartDate = new Date(subscription.startDate).toLocaleDateString();
+  const formattedEndDate = new Date(subscription.endDate).toLocaleDateString();
+  const daysRemaining = Math.ceil((new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  
+  const isActive = subscription.status === 'active';
+  const isExpired = subscription.status === 'expired' || new Date(subscription.endDate) < new Date();
+  const isPending = subscription.status === 'pending' || subscription.isPending;
+  
+  const statusIcon = isActive ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : 
+                     isExpired ? <XCircle className="h-4 w-4 text-red-500" /> : 
+                     <AlertCircle className="h-4 w-4 text-amber-500" />;
+                     
+  const statusText = isActive ? "Active" : isExpired ? "Expired" : "Pending";
+  const statusColor = isActive ? "bg-green-100 text-green-800" : 
+                      isExpired ? "bg-red-100 text-red-800" : 
+                      "bg-amber-100 text-amber-800";
+
+  const copyAllCredentials = () => {
+    if (!subscription.credentials) return;
+    
+    setCopyingCredentials(true);
+    
+    const credentialsText = Object.entries(subscription.credentials)
+      .filter(([key, value]) => value && typeof value === 'string')
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
       
-      return subscriptions.filter(sub => 
-        sub && 
-        typeof sub === 'object' &&
-        sub.id && 
-        sub.serviceId && 
-        sub.endDate
-      );
-    } catch (error) {
-      console.error('Error processing subscriptions:', error);
-      return [];
-    }
-  }, [subscriptions]);
-
-  if (validSubscriptions.length === 0) {
-    return (
-      <div className="p-4">
-        <h4 className="font-medium mb-2">Subscription Details</h4>
-        <div className="p-4 bg-muted/30 rounded-md text-center">
-          <p className="text-muted-foreground">No active subscriptions</p>
-        </div>
-      </div>
-    );
-  }
-
-  console.log('Valid subscriptions with credentials:', validSubscriptions);
+    navigator.clipboard.writeText(credentialsText).then(() => {
+      toast.success('All credentials copied to clipboard');
+      setTimeout(() => setCopyingCredentials(false), 2000);
+    });
+  };
 
   return (
-    <div className="p-4">
-      <h4 className="font-medium mb-2">Subscription Details</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {validSubscriptions.map((sub) => {
-          try {
-            const product = products.find(p => p.id === sub.serviceId);
-            
-            if (!product) {
-              console.warn(`Product not found for subscription: ${sub.id}`);
-              return null;
-            }
-            
-            const statusColor = getSubscriptionStatusColor(sub.endDate);
-            const today = new Date();
-            const end = new Date(sub.endDate);
-            const daysLeft = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
-            console.log('Subscription:', sub.id, 'Credentials:', sub.credentials);
-            
-            return (
-              <div key={sub.id} className="bg-white p-3 rounded-md border shadow-sm">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h5 className="font-medium">{product.name || 'Unknown Service'}</h5>
-                    <p className="text-sm text-muted-foreground">
-                      Expires: {new Date(sub.endDate).toLocaleDateString()}
-                    </p>
-                    {sub.durationMonths && (
-                      <p className="text-xs text-muted-foreground flex items-center mt-1">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {sub.durationMonths} month{sub.durationMonths > 1 ? 's' : ''} subscription
-                      </p>
-                    )}
-                  </div>
-                  <Badge 
-                    variant={
-                      statusColor === "green" ? "default" : 
-                      statusColor === "orange" ? "outline" : 
-                      "destructive"
-                    }
-                    className={
-                      statusColor === "orange" 
-                        ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
-                        : ""
-                    }
-                  >
-                    {getStatusLabel(statusColor, daysLeft > 0 ? daysLeft : undefined)}
-                  </Badge>
-                </div>
-                
-                {sub.credentials && (
-                  <div className="mt-2 pt-2 border-t">
-                    <div className="flex items-center gap-1 mb-1">
-                      <Key className="h-3 w-3 text-primary" />
-                      <span className="text-sm font-medium">Credentials</span>
-                    </div>
-                    <div className="bg-muted/30 p-2 rounded text-sm">
-                      <div><span className="font-medium">Email:</span> {sub.credentials.email || 'N/A'}</div>
-                      <div><span className="font-medium">Password:</span> {sub.credentials.password || 'N/A'}</div>
-                      {sub.credentials.username && (
-                        <div><span className="font-medium">Username:</span> {sub.credentials.username}</div>
-                      )}
-                      {sub.credentials.pinCode && (
-                        <div><span className="font-medium">PIN:</span> {sub.credentials.pinCode}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-3 pt-2 border-t">
-                  <SubscriptionActions 
-                    subscriptionId={sub.id}
-                    serviceId={sub.serviceId}
-                    customerId={customerId}
-                    hasCredentials={!!sub.credentials}
-                  />
-                </div>
+    <Card className="border shadow-sm">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-lg font-semibold">
+            {service?.name || 'Subscription Details'}
+          </CardTitle>
+          <Badge className={statusColor}>
+            <span className="flex items-center gap-1">
+              {statusIcon}
+              {statusText}
+            </span>
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Start Date:</span>
+              <span>{formattedStartDate}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">End Date:</span>
+              <span>{formattedEndDate}</span>
+            </div>
+            {!isExpired && (
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Days Remaining:</span>
+                <span className={daysRemaining <= 5 ? "text-red-500 font-medium" : ""}>
+                  {daysRemaining > 0 ? daysRemaining : 'Expired'}
+                </span>
               </div>
-            );
-          } catch (error) {
-            console.error(`Error rendering subscription ${sub?.id || 'unknown'}:`, error);
-            return null;
-          }
-        }).filter(Boolean)}
-      </div>
-    </div>
+            )}
+          </div>
+          
+          <div>
+            <h4 className="text-sm font-medium mb-1">Subscription Details</h4>
+            <div className="text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Duration:</span>
+                <span>{subscription.durationMonths || 1} month{(subscription.durationMonths || 1) > 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Type:</span>
+                <span>{service?.type || 'Subscription'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">ID:</span>
+                <span className="font-mono text-xs truncate max-w-[150px]" title={subscription.id}>
+                  {subscription.id}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {subscription.credentials && (
+          <div className="pt-2">
+            <CredentialsDisplay 
+              credentials={subscription.credentials}
+              title="Access Credentials"
+              description="Login information for this subscription"
+            />
+            
+            <div className="flex justify-end mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs"
+                onClick={copyAllCredentials}
+              >
+                {copyingCredentials ? (
+                  <>
+                    <ClipboardCheck className="h-3 w-3 mr-1" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Clipboard className="h-3 w-3 mr-1" />
+                    Copy All
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {isPending && (
+          <div className="bg-amber-50 border border-amber-100 rounded p-3 text-amber-800 text-sm">
+            <p className="font-medium">Pending Activation</p>
+            <p className="text-xs">This subscription is waiting for credentials to be assigned.</p>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="pt-0 flex justify-end">
+        <Button variant="outline" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

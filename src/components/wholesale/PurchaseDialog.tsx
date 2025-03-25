@@ -137,6 +137,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       }
       
       const userId = sessionData.session.user.id;
+      console.log('Fetching balance for user:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -150,6 +151,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       }
       
       if (data) {
+        console.log('User balance data:', data);
         setUserBalance(data.balance || 0);
         console.log('User balance:', data.balance);
       }
