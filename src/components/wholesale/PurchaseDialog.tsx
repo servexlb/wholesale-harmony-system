@@ -186,6 +186,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const isSubscription = selectedService?.type === 'subscription';
 
+  const generateDemoCredentials = () => {
+    return {
+      email: `user${Math.floor(Math.random() * 10000)}@example.com`,
+      password: `pass${Math.floor(Math.random() * 10000)}`,
+      username: `user${Math.floor(Math.random() * 10000)}`,
+      pinCode: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    };
+  };
+
   const handleSubmit = () => {
     if (!selectedCustomer) {
       toast.error("Please select a customer");
@@ -212,12 +221,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     const orderId = uuidv4();
 
     // Generate random demo credentials for the order
-    const demoCredentials = {
-      email: `user${Math.floor(Math.random() * 10000)}@example.com`,
-      password: `pass${Math.floor(Math.random() * 10000)}`,
-      username: `user${Math.floor(Math.random() * 10000)}`,
-      pinCode: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-    };
+    const demoCredentials = generateDemoCredentials();
 
     const order: WholesaleOrder = {
       id: orderId,

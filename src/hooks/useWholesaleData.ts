@@ -271,7 +271,7 @@ export function useWholesaleData(currentWholesaler: string) {
             customer_address: order.customerAddress,
             customer_company: order.customerCompany,
             notes: order.notes,
-            credentials: order.credentials // Store credentials in the order
+            credentials: order.credentials // Make sure we're saving credentials to Supabase
           });
           
         if (error) {
