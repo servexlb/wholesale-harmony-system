@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Package } from 'lucide-react';
 import { toast } from "@/lib/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { StockRequest, Credential } from '@/lib/types';
 import { useServiceManager } from '@/hooks/useServiceManager';
+import { Badge } from "@/components/ui/badge";
 
 const StockIssueManagerComponent = () => {
   const [issues, setIssues] = useState<StockRequest[]>([]);
@@ -234,7 +235,12 @@ const StockIssueManagerComponent = () => {
               <div key={issue.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium">{issue.serviceName || issue.serviceId}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package className="h-5 w-5 text-primary" />
+                      <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
+                        {issue.serviceName || issue.serviceId}
+                      </Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Requested by {issue.customerName} on {new Date(issue.createdAt).toLocaleDateString()}
                     </p>
@@ -277,13 +283,21 @@ const StockIssueManagerComponent = () => {
             </DialogHeader>
             
             <div className="grid gap-4 py-4">
-              <div className="bg-muted p-3 rounded-md">
-                <h3 className="font-medium mb-1">
-                  {selectedIssue?.serviceName}
-                </h3>
+              <div className="bg-primary/10 p-3 rounded-md border border-primary/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Package className="h-5 w-5 text-primary" />
+                  <h3 className="font-medium text-primary">
+                    {selectedIssue?.serviceName}
+                  </h3>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Customer: {selectedIssue?.customerName}
                 </p>
+                {selectedIssue?.notes && (
+                  <p className="text-sm mt-2 italic">
+                    Note: "{selectedIssue.notes}"
+                  </p>
+                )}
               </div>
               
               <div>
