@@ -27,6 +27,7 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   const availableDurations = service.availableMonths || [1, 3, 6, 12];
   
   const handlePurchase = () => {
+    console.log("Purchase initiated from details for service:", service.name, "ID:", service.id);
     onPurchase(isSubscription ? parseInt(selectedDuration) : undefined);
   };
 

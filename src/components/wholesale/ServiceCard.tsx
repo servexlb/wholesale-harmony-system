@@ -46,6 +46,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
   };
 
+  const handlePurchaseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("Purchase clicked for service:", service.name, "ID:", service.id);
+    onClick();
+  };
+
   return (
     <Card 
       className={cn(
@@ -98,10 +104,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         <Button 
           size="sm" 
           className="text-xs" 
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-          }}
+          onClick={handlePurchaseClick}
         >
           <ShoppingCart className="h-3.5 w-3.5 mr-1" />
           {isMobile ? 'Buy' : 'Purchase for Customer'}

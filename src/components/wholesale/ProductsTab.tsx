@@ -34,6 +34,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
   }, [services, searchQuery]);
 
   const handleServiceClick = (service: Service) => {
+    console.log("Service clicked:", service);
     setSelectedService(service);
     setDetailsOpen(true);
   };
@@ -44,6 +45,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
 
   const handlePurchase = (duration?: number) => {
     if (selectedService) {
+      console.log("Initiating purchase for service:", selectedService.name, "ID:", selectedService.id);
       setDetailsOpen(false);
       if (duration) {
         setSelectedDuration(duration);
@@ -57,6 +59,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
     
     try {
       if (selectedService) {
+        console.log("Processing order for service:", selectedService.name, "ID:", selectedService.id);
         order.totalPrice = selectedService.wholesalePrice * (order.quantity || 1);
         order.services = [selectedService.name];
         order.serviceId = selectedService.id;
