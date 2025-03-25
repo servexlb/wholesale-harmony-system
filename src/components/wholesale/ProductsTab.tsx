@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { InputWithIcon } from '@/components/ui/input-with-icon';
 import { Search } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProductsTabProps {
   services: Service[];
@@ -22,6 +23,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(1);
+  const isMobile = useIsMobile();
   
   // Filter services by search query
   const filteredServices = React.useMemo(() => {
@@ -77,6 +79,13 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
     }
   };
 
+  // Handler for view details button on service card
+  const handleViewDetails = (e: React.MouseEvent, service: Service) => {
+    e.stopPropagation();
+    setSelectedService(service);
+    setDetailsOpen(true);
+  };
+
   return (
     <div className="h-full">
       <div className="flex flex-col gap-4">
@@ -103,7 +112,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
               <ServiceCard
                 key={service.id}
                 service={service}
+                isMobile={isMobile}
                 onClick={() => handleServiceClick(service)}
+                onViewDetails={(e) => handleViewDetails(e, service)}
               />
             ))
           ) : (
@@ -127,7 +138,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
         <PurchaseDialog
           onPurchase={handleOrderSubmit}
           isSubmitting={isSubmitting}
-          isMobile={false}
+          isMobile={isMobile}
           open={purchaseDialogOpen}
           onOpenChange={setPurchaseDialogOpen}
           customers={customers}

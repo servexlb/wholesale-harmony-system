@@ -95,7 +95,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           Details
         </Button>
         
-        <Button size="sm" className="text-xs">
+        <Button size="sm" className="text-xs" onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}>
           <PlusCircle className="h-3.5 w-3.5 mr-1" />
           {isMobile ? 'Add' : 'Add to Cart'}
         </Button>
