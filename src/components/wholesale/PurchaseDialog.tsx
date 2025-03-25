@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WholesaleOrder, Customer } from '@/lib/types';
-import { User } from 'lucide-react';
+import { WholesaleOrder, Customer, Service } from '@/lib/types';
+import { User, DollarSign } from 'lucide-react';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -19,6 +18,7 @@ interface PurchaseDialogProps {
   customerNotes?: string;
   serviceName?: string;
   serviceId?: string;
+  service?: Service;
   duration?: number;
   customers?: Customer[];
   onCustomerChange?: (customerId: string) => void;
@@ -36,6 +36,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   customerNotes = '',
   serviceName = '',
   serviceId = '',
+  service,
   duration = 1,
   customers = [],
   onCustomerChange,
@@ -46,7 +47,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedDuration, setSelectedDuration] = useState(duration.toString());
 
-  // Reset form when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setNotes('');
@@ -54,18 +54,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setSelectedCustomer('');
       setSelectedDuration(duration.toString());
     } else {
-      // Use the provided customer name for notes if available
       setNotes(customerNotes || '');
       setSelectedDuration(duration.toString());
       
-      // If we have a selected customer ID from props, use it
       if (selectedCustomerId) {
         setSelectedCustomer(selectedCustomerId);
       }
     }
   }, [open, customerName, customerNotes, selectedCustomerId, duration]);
 
-  // Set selected customer based on customerName prop if available
   useEffect(() => {
     if (customerName && customers.length > 0 && !selectedCustomer) {
       const customer = customers.find(c => c.name === customerName);
@@ -83,6 +80,18 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   };
 
+  const calculateTotalPrice = () => {
+    if (!service) return 0;
+    const basePrice = service.wholesalePrice || service.price || 0;
+    const quantityAdjustedPrice = basePrice * quantity;
+    const durationAdjustedPrice = isSubscription 
+      ? basePrice * parseInt(selectedDuration) 
+      : quantityAdjustedPrice;
+    return durationAdjustedPrice;
+  };
+
+  const isSubscription = service?.type === 'subscription';
+
   const handleSubmit = () => {
     if (!selectedCustomer) {
       alert('Please select a customer');
@@ -91,13 +100,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
     const customer = customers.find(c => c.id === selectedCustomer);
 
-    // Create order
     const order: WholesaleOrder = {
       id: `order-${Date.now()}`,
       customerId: selectedCustomer,
       serviceId: serviceId || '',
       quantity: quantity,
-      totalPrice: 19.99 * quantity, // This would be calculated based on the selected service
+      totalPrice: calculateTotalPrice(),
       status: 'pending',
       createdAt: new Date().toISOString(),
       notes: notes,
@@ -122,6 +130,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <span className="font-medium">Wholesale Price:</span>
+            </div>
+            <span className="text-lg font-bold">
+              ${service?.wholesalePrice?.toFixed(2) || service?.price?.toFixed(2) || '0.00'}
+            </span>
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="customer">Customer</Label>
             <Select value={selectedCustomer} onValueChange={handleCustomerChange}>
@@ -159,32 +177,46 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
           <div className="grid gap-2">
             <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-            />
+            <div className="flex items-center">
+              <Input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                className="w-full"
+              />
+            </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="duration">Duration (months)</Label>
-            <Select 
-              value={selectedDuration} 
-              onValueChange={setSelectedDuration}
-            >
-              <SelectTrigger id="duration">
-                <SelectValue placeholder="Select duration" />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 3, 6, 12].map((month) => (
-                  <SelectItem key={month} value={month.toString()}>
-                    {month} {month === 1 ? 'month' : 'months'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="duration">{isSubscription ? 'Duration' : 'Quantity'}</Label>
+            {isSubscription ? (
+              <Select 
+                value={selectedDuration} 
+                onValueChange={setSelectedDuration}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 3, 6, 12].map((month) => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {month} {month === 1 ? 'month' : 'months'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex items-center">
+                <Input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  className="w-full"
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -195,6 +227,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional instructions or notes"
             />
+          </div>
+
+          <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <span className="font-medium">Total Price:</span>
+            </div>
+            <span className="text-xl font-bold text-primary">
+              ${calculateTotalPrice().toFixed(2)}
+            </span>
           </div>
         </div>
 
