@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import { Service, ServiceCategory, ServiceType } from '@/lib/types';
 import { toast } from '@/lib/toast';
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
   DialogContent,
@@ -46,11 +48,46 @@ const ServiceDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedDuration, setSelectedDuration] = useState<string>("1");
   const [accountId, setAccountId] = useState("");
-
-  const userId = localStorage.getItem('currentUserId') || 'guest';
+  const { user, isAuthenticated } = useAuth();
   
-  const userBalanceStr = localStorage.getItem(`userBalance_${userId}`);
-  const userBalance = userBalanceStr ? parseFloat(userBalanceStr) : 0;
+  const userId = user?.id || localStorage.getItem('currentUserId') || 'guest';
+  
+  const [userBalance, setUserBalance] = useState(0);
+
+  useEffect(() => {
+    // Fetch user balance from Supabase if authenticated
+    const fetchUserBalance = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('balance')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Error fetching balance:', error);
+            // Fallback to localStorage
+            const balanceStr = localStorage.getItem(`userBalance_${userId}`);
+            setUserBalance(balanceStr ? parseFloat(balanceStr) : 0);
+          } else if (data) {
+            setUserBalance(data.balance || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching user balance:', error);
+          // Fallback to localStorage
+          const balanceStr = localStorage.getItem(`userBalance_${userId}`);
+          setUserBalance(balanceStr ? parseFloat(balanceStr) : 0);
+        }
+      } else {
+        // Use localStorage for guest users
+        const balanceStr = localStorage.getItem(`userBalance_${userId}`);
+        setUserBalance(balanceStr ? parseFloat(balanceStr) : 0);
+      }
+    };
+    
+    fetchUserBalance();
+  }, [userId, isAuthenticated, user]);
 
   useEffect(() => {
     if (id) {
@@ -94,7 +131,7 @@ const ServiceDetail = () => {
     setIsConfirmDialogOpen(true);
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (isRecharge && !accountId.trim()) {
       toast.error("Account ID required", {
         description: "Please enter your account ID for this recharge"
@@ -119,8 +156,34 @@ const ServiceDetail = () => {
     }
 
     const newBalance = userBalance - finalPrice;
+    
+    // Update balance in Supabase if authenticated
+    if (isAuthenticated && user) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ balance: newBalance })
+          .eq('id', user.id);
+          
+        if (error) {
+          console.error('Error updating balance in Supabase:', error);
+          toast.error("Failed to update balance");
+          setIsPurchasing(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Error updating balance:', error);
+        toast.error("Failed to update balance");
+        setIsPurchasing(false);
+        return;
+      }
+    }
+    
+    // Update balance in localStorage
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
+    setUserBalance(newBalance);
 
+    // Create the order
     const order = {
       id: `order-${Date.now()}`,
       serviceId: service?.id,
@@ -132,10 +195,47 @@ const ServiceDetail = () => {
       createdAt: new Date().toISOString(),
     };
 
+    // Save order to localStorage
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
     customerOrders.push(order);
     localStorage.setItem(customerOrdersKey, JSON.stringify(customerOrders));
+
+    // If authenticated, also save order to Supabase
+    if (isAuthenticated && user) {
+      try {
+        const { error } = await supabase.from('orders').insert({
+          id: order.id,
+          user_id: user.id,
+          service_id: service?.id || '',
+          service_name: service?.name || '',
+          quantity: shouldUseMonths ? 1 : quantity,
+          duration_months: shouldUseMonths ? parseInt(selectedDuration) : null,
+          account_id: isRecharge ? accountId : null,
+          total_price: finalPrice,
+          status: 'pending'
+        });
+        
+        if (error) {
+          console.error('Error saving order to Supabase:', error);
+        }
+        
+        // Add payment record
+        const paymentId = `pmt-${Date.now()}`;
+        await supabase.from('payments').insert({
+          id: paymentId,
+          user_id: user.id,
+          amount: finalPrice,
+          method: 'account_balance',
+          status: 'completed',
+          description: `Purchase of ${service?.name}`,
+          order_id: order.id,
+          user_name: user.user_metadata?.name || ''
+        });
+      } catch (error) {
+        console.error('Error saving order to database:', error);
+      }
+    }
 
     console.log("Created order:", order);
     
@@ -392,6 +492,10 @@ const ServiceDetail = () => {
                       ? service.price * parseInt(selectedDuration)
                       : service.price * quantity).toFixed(2)}
                   </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Your Balance:</span>
+                  <span className="font-medium">${userBalance.toFixed(2)}</span>
                 </div>
                 {shouldUseMonths && (
                   <div className="text-sm text-muted-foreground mb-4">

@@ -94,7 +94,7 @@ const Account: React.FC = () => {
           }
         } else if (subscriptionData) {
           // Format subscriptions from Supabase
-          const formattedSubscriptions = subscriptionData.map(subscription => ({
+          const formattedSubscriptions: Subscription[] = subscriptionData.map(subscription => ({
             id: subscription.id,
             userId: subscription.user_id,
             serviceId: subscription.service_id,
@@ -102,7 +102,7 @@ const Account: React.FC = () => {
             endDate: subscription.end_date,
             status: subscription.status as 'active' | 'expired' | 'cancelled',
             durationMonths: subscription.duration_months || undefined,
-            credentials: subscription.credentials || subscription.credential_stock?.credentials || undefined
+            credentials: subscription.credentials || (subscription.credential_stock?.credentials as Subscription['credentials']) || undefined
           }));
           setSubscriptions(formattedSubscriptions);
         }
