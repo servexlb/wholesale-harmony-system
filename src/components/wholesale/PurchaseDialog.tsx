@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -83,10 +84,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const calculateTotalPrice = () => {
     if (!service) return 0;
     const basePrice = service.wholesalePrice || service.price || 0;
-    const quantityAdjustedPrice = basePrice * quantity;
     const durationAdjustedPrice = isSubscription 
       ? basePrice * parseInt(selectedDuration) 
-      : quantityAdjustedPrice;
+      : basePrice;
     return durationAdjustedPrice;
   };
 
@@ -104,7 +104,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       id: `order-${Date.now()}`,
       customerId: selectedCustomer,
       serviceId: serviceId || '',
-      quantity: quantity,
+      quantity: 1,
       totalPrice: calculateTotalPrice(),
       status: 'pending',
       createdAt: new Date().toISOString(),
@@ -130,14 +130,23 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <span className="font-medium">Wholesale Price:</span>
+          <div className="bg-muted/30 p-4 rounded-lg flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                <span className="font-medium">Base Price:</span>
+              </div>
+              <span className="text-lg font-bold">
+                ${service?.wholesalePrice?.toFixed(2) || service?.price?.toFixed(2) || '0.00'}
+              </span>
             </div>
-            <span className="text-lg font-bold">
-              ${service?.wholesalePrice?.toFixed(2) || service?.price?.toFixed(2) || '0.00'}
-            </span>
+            
+            {isSubscription && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>For {selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
+                <span>${calculateTotalPrice().toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -175,22 +184,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             </div>
           )}
 
-          <div className="grid gap-2">
-            <Label htmlFor="quantity">Quantity</Label>
-            <div className="flex items-center">
-              <Input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="duration">{isSubscription ? 'Duration' : 'Quantity'}</Label>
-            {isSubscription ? (
+          {isSubscription && (
+            <div className="grid gap-2">
+              <Label htmlFor="duration">Duration</Label>
               <Select 
                 value={selectedDuration} 
                 onValueChange={setSelectedDuration}
@@ -206,18 +202,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-            ) : (
-              <div className="flex items-center">
-                <Input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full"
-                />
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -229,7 +215,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
             />
           </div>
 
-          <div className="bg-muted/30 p-4 rounded-lg flex items-center justify-between">
+          <div className="bg-primary/10 p-4 rounded-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
               <span className="font-medium">Total Price:</span>
