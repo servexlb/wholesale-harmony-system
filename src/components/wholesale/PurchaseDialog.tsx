@@ -84,8 +84,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const calculateTotalPrice = () => {
     if (!service) return 0;
     
-    // Ensure we're using the correct property and providing fallbacks
-    const basePrice = service.wholesalePrice || service.price || 0;
+    // Always use the wholesalePrice for this component since it's for wholesale purchases
+    const basePrice = service.wholesalePrice || 0;
     
     // Calculate adjusted price based on service type and duration
     const durationAdjustedPrice = service.type === 'subscription' 
@@ -123,6 +123,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
     onPurchase(order);
   };
+
+  // Log price details for debugging
+  console.log('Service wholesale price:', service?.wholesalePrice);
+  console.log('Calculated total price:', calculateTotalPrice());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

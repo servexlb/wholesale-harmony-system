@@ -17,8 +17,8 @@ const PriceDisplay: React.FC<PriceDisplayProps> = ({
   isSubscription,
   calculateTotalPrice
 }) => {
-  // Get the base price with proper fallback
-  const basePrice = service?.wholesalePrice || service?.price || 0;
+  // Get the base price with proper fallback - ensure we're using wholesalePrice for wholesale context
+  const basePrice = service?.wholesalePrice || 0;
   
   return (
     <div className="bg-muted/30 p-4 rounded-lg flex flex-col gap-2">
