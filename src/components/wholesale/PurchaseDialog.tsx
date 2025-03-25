@@ -9,6 +9,7 @@ import NotesInput from './NotesInput';
 import PriceDisplay from './PriceDisplay';
 import ServiceDisplay from './ServiceDisplay';
 import TotalPriceDisplay from './TotalPriceDisplay';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -105,8 +106,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
     const customer = customers.find(c => c.id === selectedCustomer);
 
+    // Generate a proper UUID for the order ID instead of a string format
+    const orderId = uuidv4();
+
     const order: WholesaleOrder = {
-      id: `order-${Date.now()}`,
+      id: orderId,
       customerId: selectedCustomer,
       serviceId: serviceId || '',
       quantity: 1,
