@@ -59,6 +59,7 @@ export interface StockRequest {
   userId: string;
   serviceId: string;
   serviceName?: string;
+  productName?: string; // Add this new property
   orderId: string;
   status: 'pending' | 'fulfilled' | 'cancelled';
   createdAt: string;

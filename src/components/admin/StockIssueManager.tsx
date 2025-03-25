@@ -79,7 +79,9 @@ const StockIssueManagerComponent = () => {
         }
         
         return {
-          ...issue,
+          id: issue.id,
+          userId: issue.user_id,
+          serviceId: issue.service_id,
           productName,
           serviceName: productName,
           orderId: issue.order_id,
