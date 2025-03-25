@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,12 +52,10 @@ const StockIssueManagerComponent = () => {
   const filterIssues = () => {
     let result = [...issues];
     
-    // Apply status filter
     if (statusFilter !== "all") {
       result = result.filter(issue => issue.status === statusFilter);
     }
     
-    // Apply search term
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       result = result.filter(issue => 
@@ -195,7 +192,6 @@ const StockIssueManagerComponent = () => {
       console.log('Resolving issue with credentials:', newCredential);
       console.log('Selected issue:', selectedIssue);
       
-      // Add credential to stock as assigned
       const { data: stockData, error: stockError } = await supabase
         .from('credential_stock')
         .insert({
@@ -213,7 +209,6 @@ const StockIssueManagerComponent = () => {
       
       console.log('Added credential to stock:', stockData);
       
-      // Update the order with the credentials
       const { error: orderError } = await supabase
         .from('orders')
         .update({
@@ -231,19 +226,29 @@ const StockIssueManagerComponent = () => {
       
       console.log('Updated order with credentials');
       
-      // Update the stock issue status
       const { error: issueError } = await supabase
         .from('stock_issue_logs')
         .update({
-          status: 'fulfilled',
-          fulfilled_at: new Date().toISOString()
+          status: 'resolved',
+          resolved_at: new Date().toISOString()
         })
         .eq('id', selectedIssue.id);
         
       if (issueError) {
         console.error('Error updating stock issue:', issueError);
-        toast.error('Error updating stock issue');
-        return;
+        const { error: secondTryError } = await supabase
+          .from('stock_issue_logs')
+          .update({
+            status: 'fulfilled',
+            fulfilled_at: new Date().toISOString()
+          })
+          .eq('id', selectedIssue.id);
+          
+        if (secondTryError) {
+          console.error('Second try error:', secondTryError);
+          toast.error('Error updating stock issue status');
+          return;
+        }
       }
       
       console.log('Updated stock issue status');
@@ -252,7 +257,6 @@ const StockIssueManagerComponent = () => {
       setShowResolveDialog(false);
       loadIssues();
       
-      // Dispatch events to notify other components
       window.dispatchEvent(new CustomEvent('credential-added'));
       window.dispatchEvent(new CustomEvent('stock-issue-resolved'));
     } catch (error) {
@@ -270,7 +274,7 @@ const StockIssueManagerComponent = () => {
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'pending': return 'outline';
-      case 'fulfilled': return 'default';  // Changed from 'success' to 'default'
+      case 'fulfilled': return 'default';
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
