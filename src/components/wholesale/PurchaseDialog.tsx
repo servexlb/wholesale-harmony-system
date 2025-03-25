@@ -83,10 +83,15 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const calculateTotalPrice = () => {
     if (!service) return 0;
+    
+    // Ensure we're using the correct property and providing fallbacks
     const basePrice = service.wholesalePrice || service.price || 0;
+    
+    // Calculate adjusted price based on service type and duration
     const durationAdjustedPrice = service.type === 'subscription' 
       ? basePrice * parseInt(selectedDuration) 
       : basePrice;
+      
     return durationAdjustedPrice;
   };
 
