@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Credential, StockRequest } from '@/lib/types';
 import { toast } from '@/lib/toast';
@@ -118,15 +117,19 @@ export const createStockRequest = async (
     const userProfile = userError ? null : userData;
     const customerDisplayName = customerName || (userProfile && userProfile.name ? userProfile.name : 'Unknown Customer');
     
-    // Create a stock request
+    // Create a stock request with proper names
     const { error: requestError } = await supabase
       .from('stock_issue_logs')
       .insert({
         user_id: userId,
         service_id: serviceId,
+        service_name: serviceName,
+        customer_name: customerDisplayName,
         order_id: orderId,
         status: 'pending',
-        notes: notes || 'Automatic request due to empty stock'
+        priority: 'medium',
+        notes: notes || 'Automatic request due to empty stock',
+        created_at: new Date().toISOString()
       });
     
     if (requestError) {
@@ -135,21 +138,26 @@ export const createStockRequest = async (
     }
     
     // Create admin notification
-    const { error: notificationError } = await supabase
-      .from('admin_notifications')
-      .insert({
-        type: 'stock',
-        title: 'Stock Replenishment Needed',
-        message: `A customer has requested ${serviceName} but stock is empty.`,
-        customer_id: userId,
-        customer_name: customerDisplayName,
-        service_id: serviceId,
-        service_name: serviceName,
-        is_read: false
-      });
-    
-    if (notificationError) {
-      console.error('Error creating admin notification:', notificationError);
+    try {
+      const { error: notificationError } = await supabase
+        .from('admin_notifications')
+        .insert({
+          type: 'stock',
+          title: 'Stock Replenishment Needed',
+          message: `A customer has requested ${serviceName} but stock is empty.`,
+          customer_id: userId,
+          customer_name: customerDisplayName,
+          service_id: serviceId,
+          service_name: serviceName,
+          is_read: false,
+          created_at: new Date().toISOString()
+        });
+      
+      if (notificationError) {
+        console.error('Error creating admin notification:', notificationError);
+      }
+    } catch (notificationError) {
+      console.error('Error in creating notification:', notificationError);
     }
     
     return true;
@@ -198,7 +206,7 @@ export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('stock_issue_logs')
-      .select('*, profiles:user_id(*)')
+      .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
     
@@ -208,19 +216,19 @@ export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
     }
     
     // Type-safe map with correct type assertions
-    return (data || []).map(item => {
-      const profile = item.profiles ? item.profiles as Record<string, any> : null;
-      return {
-        id: item.id,
-        userId: item.user_id,
-        serviceId: item.service_id,
-        orderId: item.order_id,
-        status: item.status as "pending" | "fulfilled" | "cancelled",
-        createdAt: item.created_at,
-        customerName: profile ? profile.name || 'Unknown' : 'Unknown',
-        notes: item.notes || ''
-      };
-    });
+    return (data || []).map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      serviceId: item.service_id,
+      serviceName: item.service_name || 'Unknown Service',
+      orderId: item.order_id,
+      status: item.status as "pending" | "fulfilled" | "cancelled",
+      createdAt: item.created_at,
+      fulfilledAt: item.fulfilled_at,
+      customerName: item.customer_name || 'Unknown',
+      priority: (item.priority as 'high' | 'medium' | 'low') || 'medium',
+      notes: item.notes || ''
+    }));
   } catch (error) {
     console.error('Error in getPendingStockRequests:', error);
     return [];

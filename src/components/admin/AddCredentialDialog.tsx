@@ -63,15 +63,36 @@ const AddCredentialDialog: React.FC<AddCredentialDialogProps> = ({ open, setOpen
     try {
       console.log('Adding credential for service:', selectedService);
       
-      // Add to Supabase
-      const success = await addCredentialToStock(selectedService, credentials);
+      // Get service name for better display
+      const service = services.find(s => s.id === selectedService);
+      const serviceName = service ? service.name : "Unknown Service";
       
-      if (success) {
-        toast.success('Credential added successfully');
-        setOpen(false);
-      } else {
-        toast.error('Failed to add credential to Supabase');
+      // Generate a unique stock ID
+      const stockId = `stock-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Insert directly into Supabase
+      const { error } = await supabase
+        .from('credential_stock')
+        .insert({
+          id: stockId,
+          service_id: selectedService,
+          credentials: credentials,
+          status: 'available',
+          created_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error('Error adding credential to Supabase:', error);
+        toast.error('Failed to add credential: ' + error.message);
+        return;
       }
+      
+      toast.success('Credential added successfully');
+      
+      // Dispatch an event to update the UI
+      window.dispatchEvent(new CustomEvent('credential-added'));
+      
+      setOpen(false);
     } catch (error) {
       console.error('Error adding credential:', error);
       toast.error('Failed to add credential');

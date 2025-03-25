@@ -128,6 +128,7 @@ export type Database = {
           account_id: string | null
           completed_at: string | null
           created_at: string
+          credentials: Json | null
           duration_months: number | null
           id: string
           notes: string | null
@@ -142,6 +143,7 @@ export type Database = {
           account_id?: string | null
           completed_at?: string | null
           created_at?: string
+          credentials?: Json | null
           duration_months?: number | null
           id: string
           notes?: string | null
@@ -156,6 +158,7 @@ export type Database = {
           account_id?: string | null
           completed_at?: string | null
           created_at?: string
+          credentials?: Json | null
           duration_months?: number | null
           id?: string
           notes?: string | null
@@ -303,31 +306,43 @@ export type Database = {
       stock_issue_logs: {
         Row: {
           created_at: string
+          customer_name: string | null
+          fulfilled_at: string | null
           id: string
           notes: string | null
           order_id: string | null
+          priority: string | null
           resolved_at: string | null
           service_id: string
+          service_name: string | null
           status: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string
+          customer_name?: string | null
+          fulfilled_at?: string | null
           id?: string
           notes?: string | null
           order_id?: string | null
+          priority?: string | null
           resolved_at?: string | null
           service_id: string
+          service_name?: string | null
           status?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string
+          customer_name?: string | null
+          fulfilled_at?: string | null
           id?: string
           notes?: string | null
           order_id?: string | null
+          priority?: string | null
           resolved_at?: string | null
           service_id?: string
+          service_name?: string | null
           status?: string | null
           user_id?: string | null
         }
