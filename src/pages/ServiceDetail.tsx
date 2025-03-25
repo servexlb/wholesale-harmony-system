@@ -56,6 +56,7 @@ const ServiceDetail = () => {
     const fetchUserBalance = async () => {
       if (isAuthenticated && user) {
         try {
+          console.log('Fetching balance for user:', user.id);
           const { data, error } = await supabase
             .from('profiles')
             .select('balance')
@@ -153,6 +154,7 @@ const ServiceDetail = () => {
     
     if (isAuthenticated && user) {
       try {
+        console.log(`Updating balance for user ${user.id} from ${userBalance} to ${newBalance}`);
         const { error } = await supabase
           .from('profiles')
           .update({ balance: newBalance })
@@ -193,6 +195,7 @@ const ServiceDetail = () => {
 
     if (isAuthenticated && user) {
       try {
+        console.log('Saving order to Supabase:', order);
         const { error } = await supabase.from('orders').insert({
           id: order.id,
           user_id: user.id,
