@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, User } from 'lucide-react';
 import { WholesaleOrder, Customer, Service } from '@/lib/types';
+import CustomerSelector from './CustomerSelector';
+import DurationSelector from './DurationSelector';
+import NotesInput from './NotesInput';
+import PriceDisplay from './PriceDisplay';
+import ServiceDisplay from './ServiceDisplay';
+import TotalPriceDisplay from './TotalPriceDisplay';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -127,100 +130,33 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="bg-muted/30 p-4 rounded-lg flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <span className="font-medium">Base Price:</span>
-              </div>
-              <span className="text-lg font-bold">
-                ${service?.wholesalePrice?.toFixed(2) || service?.price?.toFixed(2) || '0.00'}
-              </span>
-            </div>
-            
-            {isSubscription && (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>For {selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
-                <span>${calculateTotalPrice().toFixed(2)}</span>
-              </div>
-            )}
-          </div>
+          <PriceDisplay 
+            service={service}
+            selectedDuration={selectedDuration}
+            isSubscription={isSubscription}
+            calculateTotalPrice={calculateTotalPrice}
+          />
 
-          <div className="grid gap-2">
-            <Label htmlFor="customer">Customer</Label>
-            <Select value={selectedCustomer} onValueChange={handleCustomerChange}>
-              <SelectTrigger id="customer">
-                <SelectValue placeholder="Select a customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 ? (
-                  <SelectItem value="none" disabled>No customers available</SelectItem>
-                ) : (
-                  customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span>{customer.name}</span>
-                        {customer.company && (
-                          <span className="text-xs text-muted-foreground">({customer.company})</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+          <CustomerSelector 
+            customers={customers}
+            selectedCustomer={selectedCustomer}
+            onCustomerChange={handleCustomerChange}
+          />
 
-          {serviceName && (
-            <div className="grid gap-2">
-              <Label>Service</Label>
-              <div className="p-2 bg-muted rounded-md">
-                {serviceName}
-              </div>
-            </div>
-          )}
+          <ServiceDisplay serviceName={serviceName} />
 
-          {isSubscription && (
-            <div className="grid gap-2">
-              <Label htmlFor="duration">Duration</Label>
-              <Select 
-                value={selectedDuration} 
-                onValueChange={setSelectedDuration}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 3, 6, 12].map((month) => (
-                    <SelectItem key={month} value={month.toString()}>
-                      {month} {month === 1 ? 'month' : 'months'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <DurationSelector 
+            selectedDuration={selectedDuration}
+            onDurationChange={setSelectedDuration}
+            isSubscription={isSubscription}
+          />
 
-          <div className="grid gap-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Input
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional instructions or notes"
-            />
-          </div>
+          <NotesInput 
+            notes={notes}
+            onChange={setNotes}
+          />
 
-          <div className="bg-primary/10 p-4 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <span className="font-medium">Total Price:</span>
-            </div>
-            <span className="text-xl font-bold text-primary">
-              ${calculateTotalPrice().toFixed(2)}
-            </span>
-          </div>
+          <TotalPriceDisplay totalPrice={calculateTotalPrice()} />
         </div>
 
         <DialogFooter>
