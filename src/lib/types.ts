@@ -149,14 +149,14 @@ export interface MonthlyPricing {
   savings?: number;
 }
 
-// Add Subscription type
+// Update Subscription type to include 'pending' status and isPending property
 export interface Subscription {
   id: string;
   userId: string;
   serviceId: string;
   startDate: string;
   endDate: string;
-  status: 'active' | 'expired' | 'cancelled';
+  status: 'active' | 'expired' | 'cancelled' | 'pending';
   durationMonths?: number;
   credentials?: {
     username?: string;
@@ -167,6 +167,7 @@ export interface Subscription {
   };
   credentialStatus?: 'available' | 'pending' | 'assigned';
   credentialStockId?: string; // Added for Supabase credential_stock reference
+  isPending?: boolean; // Added to track if credentials are pending
 }
 
 // Update SupportTicket type to include priority and proper status
