@@ -1,14 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Service } from '@/lib/types';
 import { CheckCircle, Calendar, Clock, Tag } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export interface ServiceDetailsProps {
   service: Service;
   onClose: () => void;
-  onPurchase: () => void;
+  onPurchase: (duration?: number) => void;
   isOpen?: boolean;
 }
 
@@ -18,6 +20,16 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
   onPurchase,
   isOpen = true
 }) => {
+  const [selectedDuration, setSelectedDuration] = useState<string>("1");
+  const isSubscription = service.type === 'subscription';
+  
+  // Define available durations - either from service or default options
+  const availableDurations = service.availableMonths || [1, 3, 6, 12];
+  
+  const handlePurchase = () => {
+    onPurchase(isSubscription ? parseInt(selectedDuration) : undefined);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
@@ -74,6 +86,31 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
             )}
           </div>
           
+          {/* Add duration selection for subscription services */}
+          {isSubscription && (
+            <div className="mt-2">
+              <Label htmlFor="duration" className="text-sm font-medium">Duration</Label>
+              <Select
+                value={selectedDuration}
+                onValueChange={setSelectedDuration}
+              >
+                <SelectTrigger id="duration" className="mt-1">
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDurations.map((month) => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {month} {month === 1 ? 'month' : 'months'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Select how many months of service to purchase
+              </p>
+            </div>
+          )}
+          
           {service.features && service.features.length > 0 && (
             <div>
               <h3 className="text-lg font-medium">Features</h3>
@@ -93,8 +130,8 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={onPurchase}>
-            Purchase
+          <Button onClick={handlePurchase}>
+            {isSubscription ? `Purchase (${selectedDuration} ${parseInt(selectedDuration) === 1 ? 'month' : 'months'})` : 'Purchase'}
           </Button>
         </DialogFooter>
       </DialogContent>

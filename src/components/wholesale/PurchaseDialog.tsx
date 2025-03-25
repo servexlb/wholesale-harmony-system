@@ -19,6 +19,7 @@ interface PurchaseDialogProps {
   customerNotes?: string;
   serviceName?: string;
   serviceId?: string;
+  duration?: number;
   customers?: Customer[];
   onCustomerChange?: (customerId: string) => void;
   selectedCustomerId?: string;
@@ -35,6 +36,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   customerNotes = '',
   serviceName = '',
   serviceId = '',
+  duration = 1,
   customers = [],
   onCustomerChange,
   selectedCustomerId = ''
@@ -42,6 +44,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedDuration, setSelectedDuration] = useState(duration.toString());
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -49,16 +52,18 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setNotes('');
       setQuantity(1);
       setSelectedCustomer('');
+      setSelectedDuration(duration.toString());
     } else {
       // Use the provided customer name for notes if available
       setNotes(customerNotes || '');
+      setSelectedDuration(duration.toString());
       
       // If we have a selected customer ID from props, use it
       if (selectedCustomerId) {
         setSelectedCustomer(selectedCustomerId);
       }
     }
-  }, [open, customerName, customerNotes, selectedCustomerId]);
+  }, [open, customerName, customerNotes, selectedCustomerId, duration]);
 
   // Set selected customer based on customerName prop if available
   useEffect(() => {
@@ -99,7 +104,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       customerName: customer?.name || 'Unknown',
       customerEmail: customer?.email,
       customerPhone: customer?.phone,
-      customerCompany: customer?.company
+      customerCompany: customer?.company,
+      durationMonths: parseInt(selectedDuration)
     };
 
     onPurchase(order);
@@ -160,6 +166,25 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               value={quantity}
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="duration">Duration (months)</Label>
+            <Select 
+              value={selectedDuration} 
+              onValueChange={setSelectedDuration}
+            >
+              <SelectTrigger id="duration">
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 3, 6, 12].map((month) => (
+                  <SelectItem key={month} value={month.toString()}>
+                    {month} {month === 1 ? 'month' : 'months'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">
