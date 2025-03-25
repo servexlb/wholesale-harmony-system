@@ -195,6 +195,7 @@ const StockIssueManagerComponent = () => {
       console.log('Resolving issue with credentials:', newCredential);
       console.log('Selected issue:', selectedIssue);
       
+      // Add credential to stock as assigned
       const { data: stockData, error: stockError } = await supabase
         .from('credential_stock')
         .insert({
@@ -212,6 +213,7 @@ const StockIssueManagerComponent = () => {
       
       console.log('Added credential to stock:', stockData);
       
+      // Update the order with the credentials
       const { error: orderError } = await supabase
         .from('orders')
         .update({
@@ -229,6 +231,7 @@ const StockIssueManagerComponent = () => {
       
       console.log('Updated order with credentials');
       
+      // Update the stock issue status
       const { error: issueError } = await supabase
         .from('stock_issue_logs')
         .update({
@@ -238,7 +241,9 @@ const StockIssueManagerComponent = () => {
         .eq('id', selectedIssue.id);
         
       if (issueError) {
-        throw issueError;
+        console.error('Error updating stock issue:', issueError);
+        toast.error('Error updating stock issue');
+        return;
       }
       
       console.log('Updated stock issue status');
@@ -247,6 +252,7 @@ const StockIssueManagerComponent = () => {
       setShowResolveDialog(false);
       loadIssues();
       
+      // Dispatch events to notify other components
       window.dispatchEvent(new CustomEvent('credential-added'));
       window.dispatchEvent(new CustomEvent('stock-issue-resolved'));
     } catch (error) {
@@ -264,7 +270,7 @@ const StockIssueManagerComponent = () => {
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'pending': return 'outline';
-      case 'fulfilled': return 'success';
+      case 'fulfilled': return 'default';  // Changed from 'success' to 'default'
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
