@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DollarSign, User } from 'lucide-react';
 import { WholesaleOrder, Customer, Service } from '@/lib/types';
-import { User, DollarSign } from 'lucide-react';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -44,14 +43,12 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   selectedCustomerId = ''
 }) => {
   const [notes, setNotes] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedDuration, setSelectedDuration] = useState(duration.toString());
 
   useEffect(() => {
     if (!open) {
       setNotes('');
-      setQuantity(1);
       setSelectedCustomer('');
       setSelectedDuration(duration.toString());
     } else {
@@ -84,7 +81,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const calculateTotalPrice = () => {
     if (!service) return 0;
     const basePrice = service.wholesalePrice || service.price || 0;
-    const durationAdjustedPrice = isSubscription 
+    const durationAdjustedPrice = service.type === 'subscription' 
       ? basePrice * parseInt(selectedDuration) 
       : basePrice;
     return durationAdjustedPrice;
