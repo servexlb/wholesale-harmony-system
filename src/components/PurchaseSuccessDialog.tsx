@@ -1,220 +1,154 @@
 
 import React from 'react';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Copy, AlertCircle, Clock } from "lucide-react";
-import { Service, Subscription } from '@/lib/types';
-import { useNavigate } from 'react-router-dom';
-import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Service } from '@/lib/types';
+import { Check, Clock, Copy, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
-interface PurchaseSuccessDialogProps {
+export interface PurchaseSuccessDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service: Service;
-  subscription?: Subscription;
+  orderId: string;
+  orderStatus: 'pending' | 'processing' | 'completed';
+  stockAvailable: boolean;
   credentials?: {
     email?: string;
     password?: string;
     username?: string;
     notes?: string;
   };
-  stockAvailable?: boolean;
-  orderStatus?: 'completed' | 'processing' | 'pending';
-  orderId?: string;
 }
 
-export const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
+const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
   open,
   onOpenChange,
   service,
-  subscription,
-  credentials,
-  stockAvailable = true,
-  orderStatus = 'completed',
   orderId,
+  orderStatus,
+  stockAvailable,
+  credentials
 }) => {
-  const navigate = useNavigate();
-
-  const handleViewDashboard = () => {
-    onOpenChange(false);
-    navigate('/dashboard');
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
   };
-
-  const handleCopyCredentials = () => {
-    if (!credentials) return;
-    
-    const credentialText = `
-Service: ${service.name}
-${credentials.email ? `Email: ${credentials.email}` : ''}
-${credentials.username ? `Username: ${credentials.username}` : ''}
-${credentials.password ? `Password: ${credentials.password}` : ''}
-${credentials.notes ? `Notes: ${credentials.notes}` : ''}
-    `.trim();
-    
-    navigator.clipboard.writeText(credentialText);
-    toast.success("Credentials copied to clipboard");
-  };
-
-  const handleViewOrder = () => {
-    if (!orderId) return;
-    onOpenChange(false);
-    navigate(`/dashboard/orders/${orderId}`);
-  };
-
-  // Check if this service is using the external API
-  const isExternalApiService = service.useExternalApi && 
-    (service.type === 'topup' || service.type === 'recharge');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center text-green-600">
-            <CheckCircle className="mr-2 h-5 w-5" />
-            Purchase Successful
+          <DialogTitle className="flex items-center">
+            {orderStatus === 'completed' ? (
+              <Check className="h-5 w-5 mr-2 text-green-500" />
+            ) : (
+              <Clock className="h-5 w-5 mr-2 text-yellow-500" />
+            )}
+            Order {orderStatus === 'completed' ? 'Complete' : 'Received'}
           </DialogTitle>
           <DialogDescription>
-            Your order for {service.name} has been processed {orderStatus === 'completed' ? 'successfully' : 'and is being processed'}
+            {orderStatus === 'completed'
+              ? 'Your purchase has been completed successfully'
+              : 'Your order has been received and is being processed'}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          <div className="rounded-md bg-green-50 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <CheckCircle className="h-5 w-5 text-green-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  Order confirmed
-                </h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p>
-                    Your payment has been processed and your service is {orderStatus === 'completed' ? 'now active' : 'being activated'}.
-                    {orderId && (
-                      <span className="block mt-1">Order ID: {orderId}</span>
-                    )}
-                  </p>
-                </div>
-              </div>
+          <div className="bg-muted p-3 rounded-md">
+            <div className="flex justify-between mb-1 text-sm">
+              <span>Order ID:</span>
+              <span className="font-mono">{orderId}</span>
+            </div>
+            <div className="flex justify-between mb-1 text-sm">
+              <span>Service:</span>
+              <span>{service.name}</span>
+            </div>
+            <div className="flex justify-between mb-1 text-sm">
+              <span>Status:</span>
+              <span className={`font-medium ${
+                orderStatus === 'completed' ? 'text-green-500' : 
+                orderStatus === 'processing' ? 'text-blue-500' : 
+                'text-yellow-500'
+              }`}>
+                {orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1)}
+              </span>
             </div>
           </div>
           
-          {orderStatus === 'processing' ? (
-            <div className="border border-amber-200 rounded-md p-4 space-y-2 bg-amber-50">
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 text-amber-500 mr-2" />
-                <h4 className="text-sm font-medium text-amber-800">Order Processing</h4>
-              </div>
-              <p className="text-sm text-amber-700">
-                Your order is currently being processed. This typically takes a few minutes. You can check the status in your dashboard.
-                {isExternalApiService && (
-                  <span className="block mt-1">
-                    Your top-up request has been sent to the provider and will be completed shortly.
-                  </span>
-                )}
-              </p>
-              <div className="flex items-center mt-2 text-xs text-amber-700">
-                <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                <span>You will be notified when your order is complete</span>
-              </div>
-            </div>
-          ) : stockAvailable ? (
-            credentials && !isExternalApiService && (
-              <div className="border rounded-md p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-medium">Your Access Credentials</h4>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleCopyCredentials}
-                    className="h-8"
-                  >
-                    <Copy className="h-3.5 w-3.5 mr-1" />
-                    Copy
-                  </Button>
+          {orderStatus === 'completed' && service.type === 'subscription' && credentials && (
+            <div className="border p-3 rounded-md space-y-2">
+              <div className="font-medium mb-2">Your Account Credentials</div>
+              
+              {credentials.email && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Email:</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => handleCopyToClipboard(credentials.email || '')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="bg-muted p-2 rounded text-xs font-mono">{credentials.email}</div>
                 </div>
-                
-                {credentials.email && (
-                  <div className="grid grid-cols-3 text-sm">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.email}</span>
+              )}
+              
+              {credentials.password && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Password:</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => handleCopyToClipboard(credentials.password || '')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
                   </div>
-                )}
-                
-                {credentials.password && (
-                  <div className="grid grid-cols-3 text-sm">
-                    <span className="text-muted-foreground">Password:</span>
-                    <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.password}</span>
+                  <div className="bg-muted p-2 rounded text-xs font-mono">{credentials.password}</div>
+                </div>
+              )}
+              
+              {credentials.username && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Username:</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => handleCopyToClipboard(credentials.username || '')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
                   </div>
-                )}
-                
-                {credentials.username && (
-                  <div className="grid grid-cols-3 text-sm">
-                    <span className="text-muted-foreground">Username:</span>
-                    <span className="col-span-2 font-mono bg-gray-100 px-2 py-1 rounded">{credentials.username}</span>
-                  </div>
-                )}
-                
-                {credentials.notes && (
-                  <div className="text-sm mt-2">
-                    <span className="text-muted-foreground block">Notes:</span>
-                    <span className="text-xs mt-1">{credentials.notes}</span>
-                  </div>
-                )}
-                
-                <p className="text-xs text-muted-foreground mt-2">
-                  Please save these credentials. You can also access them later from your dashboard.
-                </p>
-              </div>
-            )
-          ) : (
-            <div className="border border-amber-200 rounded-md p-4 space-y-2 bg-amber-50">
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 text-amber-500 mr-2" />
-                <h4 className="text-sm font-medium text-amber-800">Pending Credentials</h4>
-              </div>
-              <p className="text-sm text-amber-700">
-                Your credentials are being processed and will be available shortly. Please check your dashboard or email for updates.
-              </p>
-              <div className="flex items-center mt-2 text-xs text-amber-700">
-                <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                <span>You will be notified when your credentials are ready</span>
-              </div>
+                  <div className="bg-muted p-2 rounded text-xs font-mono">{credentials.username}</div>
+                </div>
+              )}
+              
+              {credentials.notes && (
+                <div className="space-y-1">
+                  <div className="text-sm">Notes:</div>
+                  <div className="bg-muted p-2 rounded text-xs">{credentials.notes}</div>
+                </div>
+              )}
             </div>
           )}
           
-          {/* Show special message for external API services that are completed */}
-          {isExternalApiService && orderStatus === 'completed' && (
-            <div className="border border-green-200 rounded-md p-4 space-y-2 bg-green-50">
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                <h4 className="text-sm font-medium text-green-800">Top-up Completed</h4>
+          {!stockAvailable && orderStatus !== 'completed' && (
+            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md flex items-start">
+              <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-yellow-700">
+                This service is currently out of stock. Your order will be fulfilled as soon as stock becomes available.
               </div>
-              <p className="text-sm text-green-700">
-                Your top-up request has been processed successfully. Your account has been credited with the purchased amount.
-              </p>
             </div>
           )}
         </div>
-        
-        <DialogFooter>
-          {orderId && orderStatus !== 'completed' && (
-            <Button variant="outline" onClick={handleViewOrder} className="mr-2">
-              View Order Details
-            </Button>
-          )}
-          <Button onClick={handleViewDashboard}>
-            View My Dashboard
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -1,116 +1,47 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, FileText, Layers, Archive } from "lucide-react";
-import { toast } from "sonner";
-import { loadServices } from '@/lib/productManager';
-import { Service, DigitalItem } from '@/lib/types';
-import CredentialManager from '@/components/admin/CredentialManager';
-import StockIssueManager from '@/components/admin/StockIssueManager';
+import AdminCredentialsList from './admin/AdminCredentialsList';
+import { AdminStockManager } from './admin/AdminStockManager';
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useServiceManager } from '@/hooks/useServiceManager';
+import { Service } from '@/lib/types';
+import AddCredentialDialog from './admin/AddCredentialDialog';
+import { StockIssueManagerComponent } from './admin/StockIssueManager';
 
-// Create a StockIssueManager component since it's missing
-const StockIssueManager = () => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Stock Issues</CardTitle>
-        <CardDescription>
-          Manage pending stock requests and issues
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          This feature is coming soon.
-        </p>
-      </CardContent>
-    </Card>
-  );
-};
-
+// Renamed to avoid conflict
 const AdminDigitalInventory = () => {
-  const [activeTab, setActiveTab] = useState('stock');
-  const [isLoading, setIsLoading] = useState(true);
-  const [services, setServices] = useState<Service[]>([]);
-
-  // Load services
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      
-      // Load services
-      const services = loadServices();
-      setServices(services);
-      setIsLoading(false);
-    };
-    
-    loadData();
-    
-    // Listen for updates
-    const handleStockUpdated = () => {
-      loadData();
-    };
-    
-    window.addEventListener('credential-stock-updated', handleStockUpdated);
-    window.addEventListener('stock-issue-resolved', handleStockUpdated);
-    
-    return () => {
-      window.removeEventListener('credential-stock-updated', handleStockUpdated);
-      window.removeEventListener('stock-issue-resolved', handleStockUpdated);
-    };
-  }, []);
+  const [open, setOpen] = useState(false);
+  const { services, isLoading, fetchServices } = useServiceManager();
 
   return (
-    <div className="space-y-6">
+    <div className="w-full">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Digital Inventory</h2>
-        <Button variant="outline" onClick={() => window.location.reload()} disabled={isLoading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+        <h1 className="text-3xl font-bold tracking-tight">Digital Inventory</h1>
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add New Service
         </Button>
       </div>
-      
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="stock">
-            <Layers className="h-4 w-4 mr-2" />
-            Credential Stock
-          </TabsTrigger>
-          <TabsTrigger value="issues">
-            <FileText className="h-4 w-4 mr-2" />
-            Stock Issues
-          </TabsTrigger>
-          <TabsTrigger value="archive">
-            <Archive className="h-4 w-4 mr-2" />
-            Assigned Items
-          </TabsTrigger>
+
+      <Tabs defaultValue="credentials" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="credentials">Credentials</TabsTrigger>
+          <TabsTrigger value="stock">Stock Management</TabsTrigger>
+          <TabsTrigger value="issues">Stock Issues</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="stock" className="space-y-4">
-          <CredentialManager services={services} />
+        <TabsContent value="credentials">
+          <AdminCredentialsList />
         </TabsContent>
-        
+        <TabsContent value="stock">
+          <AdminStockManager services={services} isLoading={isLoading} fetchServices={fetchServices} />
+        </TabsContent>
         <TabsContent value="issues">
-          <StockIssueManager />
-        </TabsContent>
-        
-        <TabsContent value="archive">
-          <Card>
-            <CardHeader>
-              <CardTitle>Assigned Credentials</CardTitle>
-              <CardDescription>
-                View credentials that have been assigned to customers
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                This feature is coming soon.
-              </p>
-            </CardContent>
-          </Card>
+          <StockIssueManagerComponent />
         </TabsContent>
       </Tabs>
+
+      <AddCredentialDialog open={open} setOpen={setOpen} />
     </div>
   );
 };

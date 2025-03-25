@@ -1,162 +1,170 @@
-
 import React, { useState, useEffect } from 'react';
-import { getAvailableCredentials } from '@/lib/credentialService';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Service, CredentialStock } from '@/lib/types';
-import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Copy, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Trash2, PenLine, RefreshCw, Clipboard, Check } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { CredentialStock } from '@/lib/types';
 
-interface AdminCredentialsListProps {
-  services: Service[];
-}
-
-const AdminCredentialsList: React.FC<AdminCredentialsListProps> = ({ services }) => {
-  const [selectedService, setSelectedService] = useState<string>("");
+const AdminCredentialsList = () => {
   const [credentials, setCredentials] = useState<CredentialStock[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const fetchCredentials = async () => {
-    if (!selectedService) return;
-    
-    setIsLoading(true);
-    try {
-      const data = await getAvailableCredentials(selectedService);
-      setCredentials(data);
-    } catch (error) {
-      console.error('Error fetching credentials:', error);
-      toast.error('Error loading credentials');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedService) {
-      fetchCredentials();
-    }
-  }, [selectedService]);
+    const fetchCredentials = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('credential_stock')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        // Transform the data to match CredentialStock type
+        const transformedData: CredentialStock[] = (data || []).map(item => ({
+          id: item.id,
+          serviceId: item.service_id,
+          credentials: typeof item.credentials === 'string' 
+            ? JSON.parse(item.credentials) 
+            : item.credentials,
+          status: item.status as 'available' | 'assigned',
+          createdAt: item.created_at,
+          orderId: item.order_id,
+          userId: item.user_id
+        }));
+        
+        setCredentials(transformedData);
+      } catch (error) {
+        console.error('Error fetching credentials:', error);
+        toast.error('Failed to load credentials');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCredentials();
+  }, []);
 
-  const copyToClipboard = (text: string, id: string) => {
+  const handleCopyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    setCopied(id);
+    toast.success('Copied to clipboard');
+    setTimeout(() => setCopied(null), 2000);
   };
 
-  const renderCredentialValue = (value: any, id: string) => (
-    <div className="flex items-center justify-between">
-      <span className="font-mono text-sm truncate">{value}</span>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6"
-        onClick={() => copyToClipboard(value, id)}
-      >
-        {copiedId === id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      </Button>
-    </div>
-  );
-
   return (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="service-select">Select Service</Label>
-        <Select value={selectedService} onValueChange={setSelectedService}>
-          <SelectTrigger id="service-select">
-            <SelectValue placeholder="Select a service" />
-          </SelectTrigger>
-          <SelectContent>
-            {services.map((service) => (
-              <SelectItem key={service.id} value={service.id}>
-                {service.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="pt-2">
-        <Button 
-          onClick={fetchCredentials} 
-          disabled={!selectedService || isLoading}
-          variant="outline"
-        >
-          {isLoading ? 'Loading...' : 'Refresh'}
-        </Button>
-      </div>
-      
-      {selectedService && credentials.length === 0 && !isLoading && (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No credentials found for this service.</p>
+    <Card className="h-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle>Credentials Stock</CardTitle>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
         </div>
-      )}
-      
-      <div className="grid grid-cols-1 gap-4">
-        {credentials.map((credential) => (
-          <Card key={credential.id}>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-start mb-4">
-                <Badge>{credential.status}</Badge>
-                <div className="text-xs text-muted-foreground">
-                  ID: {credential.id.substring(0, 8)}...
-                </div>
-              </div>
-              
-              {credential.credentials && (
-                <div className="space-y-3">
-                  {credential.credentials.email && (
-                    <div>
-                      <Label className="text-xs">Email</Label>
-                      {renderCredentialValue(credential.credentials.email, `${credential.id}-email`)}
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Service ID</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Password</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            )}
+            {!loading && credentials.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No credentials found.
+                </TableCell>
+              </TableRow>
+            )}
+            {credentials.map((credential) => (
+              <TableRow key={credential.id}>
+                <TableCell>{credential.serviceId}</TableCell>
+                <TableCell>
+                  {credential.credentials?.email ? (
+                    <div className="flex items-center">
+                      {credential.credentials.email}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleCopyToClipboard(credential.credentials.email, credential.id)}
+                      >
+                        {copied === credential.id ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Clipboard className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
+                  ) : (
+                    "N/A"
                   )}
-                  
-                  {credential.credentials.username && (
-                    <div>
-                      <Label className="text-xs">Username</Label>
-                      {renderCredentialValue(credential.credentials.username, `${credential.id}-username`)}
+                </TableCell>
+                <TableCell>
+                  {credential.credentials?.password ? (
+                    <div className="flex items-center">
+                      {credential.credentials.password}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleCopyToClipboard(credential.credentials.password, credential.id)}
+                      >
+                        {copied === credential.id ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Clipboard className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
+                  ) : (
+                    "N/A"
                   )}
-                  
-                  {credential.credentials.password && (
-                    <div>
-                      <Label className="text-xs">Password</Label>
-                      {renderCredentialValue(credential.credentials.password, `${credential.id}-password`)}
-                    </div>
-                  )}
-                  
-                  {credential.credentials.pinCode && (
-                    <div>
-                      <Label className="text-xs">PIN Code</Label>
-                      {renderCredentialValue(credential.credentials.pinCode, `${credential.id}-pin`)}
-                    </div>
-                  )}
-                  
-                  {credential.credentials.notes && (
-                    <div>
-                      <Label className="text-xs">Notes</Label>
-                      <div className="text-sm mt-1 whitespace-pre-wrap">
-                        {credential.credentials.notes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      credential.status === "available" ? "secondary" : "default"
+                    }
+                  >
+                    {credential.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon">
+                      <PenLine className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
 

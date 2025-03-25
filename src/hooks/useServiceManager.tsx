@@ -27,48 +27,45 @@ export const useServiceManager = () => {
   const fetchServices = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Try to fetch from Supabase
-      const { data, error } = await supabase
-        .from('services')
-        .select('*');
-      
-      if (error) {
-        console.error('Error fetching services:', error);
-        // Fallback to local storage if exists
-        const storedServices = localStorage.getItem('services');
-        if (storedServices) {
-          const parsedServices = JSON.parse(storedServices) as Service[];
-          setServices(parsedServices);
-        }
-        return;
-      }
-      
-      if (data) {
-        const formattedServices = data.map(service => ({
-          id: service.id,
-          name: service.name,
-          description: service.description,
-          price: service.price,
-          wholesalePrice: service.wholesale_price,
-          type: service.type as any,
-          image: service.image_url,
-          categoryId: service.category_id,
-          category: service.category_name,
-          featured: service.featured,
-          deliveryTime: service.delivery_time,
-          apiUrl: service.api_url,
-          availableMonths: service.available_months,
-          value: service.value,
-          minQuantity: service.min_quantity,
-          requiresId: service.requires_id,
-          features: service.features
-        }));
+      // Since the services table doesn't exist in Supabase, we'll use local storage
+      // and display a message if no services are found
+      const storedServices = localStorage.getItem('services');
+      if (storedServices) {
+        const parsedServices = JSON.parse(storedServices) as Service[];
+        setServices(parsedServices);
+      } else {
+        // Create some default services if none exist
+        const defaultServices: Service[] = [
+          {
+            id: 'service-1',
+            name: 'Basic Subscription',
+            description: 'Monthly basic service subscription',
+            price: 9.99,
+            wholesalePrice: 7.99,
+            type: 'subscription',
+            image: 'https://images.unsplash.com/photo-1563770660941-10a63110472a?auto=format&fit=crop&w=300&q=80',
+            availableMonths: [1, 3, 6, 12],
+            features: ['Basic access', '720p streaming', '1 device']
+          },
+          {
+            id: 'service-2',
+            name: 'Premium Subscription',
+            description: 'Monthly premium service with additional features',
+            price: 19.99,
+            wholesalePrice: 15.99,
+            type: 'subscription',
+            image: 'https://images.unsplash.com/photo-1586892478381-237bd8da4c85?auto=format&fit=crop&w=300&q=80',
+            availableMonths: [1, 3, 6, 12],
+            features: ['Premium access', '4K streaming', '4 devices']
+          }
+        ];
         
-        setServices(formattedServices);
-        localStorage.setItem('services', JSON.stringify(formattedServices));
+        localStorage.setItem('services', JSON.stringify(defaultServices));
+        setServices(defaultServices);
       }
     } catch (error) {
       console.error('Error in fetchServices:', error);
+      toast.error('Error loading services');
     } finally {
       setIsLoading(false);
     }

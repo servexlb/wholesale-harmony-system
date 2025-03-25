@@ -114,7 +114,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       const stockCheck = await checkStockAvailability(service.id);
       setStockAvailable(stockCheck);
       
-      if (!stockCheck && service.type === 'subscription') {
+      if (!stockCheck && (service.type as string) === 'subscription') {
         setOrderStatus('pending');
         toast.error('This service is currently out of stock. Your order will be placed and fulfilled as soon as stock becomes available.');
       }
@@ -148,7 +148,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       }
       
       // If stock is available, assign credentials
-      if (stockCheck && service.type === 'subscription') {
+      if (stockCheck && (service.type as string) === 'subscription') {
         try {
           const { data: credentialAssignment, error: assignError } = await supabase
             .rpc('assign_credential', {
@@ -177,7 +177,16 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               .single();
             
             if (credentialData) {
-              setCredentials(credentialData.credentials);
+              // Fix for TS2345 error - handle JSON from Supabase
+              if (typeof credentialData.credentials === 'string') {
+                try {
+                  setCredentials(JSON.parse(credentialData.credentials));
+                } catch (e) {
+                  setCredentials({});
+                }
+              } else {
+                setCredentials(credentialData.credentials as any);
+              }
             }
             
             setOrderStatus('completed');
@@ -367,7 +376,7 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           onOpenChange={setShowSuccessDialog}
           service={service}
           orderId={orderId}
-          status={orderStatus}
+          orderStatus={orderStatus}
           stockAvailable={stockAvailable}
           credentials={credentials}
         />

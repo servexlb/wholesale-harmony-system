@@ -1,119 +1,93 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { toast } from 'sonner';
-import { Key, Copy, CheckCircle, User, Mail, KeyRound, AlertCircle } from "lucide-react";
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal, RefreshCw, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getCredentialsByOrderId } from '@/lib/credentialUtils';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from '@/lib/toast';
 import NoDataMessage from '../ui/NoDataMessage';
 import Loader from '../ui/Loader';
 
-const DashboardCredentials: React.FC = () => {
-  const navigate = useNavigate();
+const DashboardCredentials = () => {
   const { user } = useAuth();
+  const [completedOrders, setCompletedOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('services');
-  const [copiedField, setCopiedField] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchOrders();
-  }, [user]);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      if (!user) {
-        console.log('No user, loading from localStorage');
-        const savedOrders = localStorage.getItem('orders');
-        if (savedOrders) {
-          setOrders(JSON.parse(savedOrders));
+    const fetchCompletedOrders = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
         }
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('status', ['completed', 'pending'])
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching orders:', error);
-        toast.error('Failed to load credentials');
-        setLoading(false);
-        return;
-      }
-
-      // Process orders and fetch credentials if necessary
-      const processedOrders = await Promise.all(
-        data.map(async (order) => {
-          // Check if credentials are already in the order
-          if (!order.credentials) {
-            // Try to fetch credentials by order ID
-            const credentials = await getCredentialsByOrderId(order.id);
+        
+        // Try to get credential information for each order
+        const ordersWithCredentials = await Promise.all((data || []).map(async (order) => {
+          // Check if there's credential in credential_stock for this order
+          const { data: stockData, error: stockError } = await supabase
+            .from('credential_stock')
+            .select('*')
+            .eq('order_id', order.id)
+            .eq('status', 'assigned')
+            .single();
             
-            if (credentials) {
-              return {
-                ...order,
-                credentials
-              };
-            }
+          if (!stockError && stockData) {
+            // Return order with credentials from stock
+            return {
+              ...order,
+              credentials: stockData.credentials
+            };
           }
           
           return order;
-        })
-      );
-
-      setOrders(processedOrders);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast.error('Failed to load credentials');
-      setLoading(false);
-    }
-  };
-
-  const handleCopyToClipboard = (text: string, field: string) => {
-    if (!text) return;
+        }));
+        
+        setCompletedOrders(ordersWithCredentials);
+      } catch (error) {
+        console.error('Error fetching completed orders:', error);
+        toast.error('Failed to load orders');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        setCopiedField(field);
-        setTimeout(() => setCopiedField(''), 2000);
-        toast.success('Copied to clipboard');
-      })
-      .catch(err => {
-        console.error('Failed to copy:', err);
-        toast.error('Failed to copy');
-      });
+    fetchCompletedOrders();
+  }, [user]);
+
+  const handleCopyToClipboard = (text: string, id: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setCopiedField(field);
+    toast.success(`${field} copied to clipboard`);
+    setTimeout(() => {
+      setCopiedId(null);
+      setCopiedField(null);
+    }, 2000);
   };
 
   if (loading) {
-    return <Loader text="Loading your credentials..." />;
+    return <Loader text="Loading credentials..." />;
   }
 
-  // Filter orders with credentials
-  const ordersWithCredentials = orders.filter(order => {
-    if (!order) return false;
-    return order.credentials && 
-      (order.credentials.email || order.credentials.username || order.credentials.password);
-  });
-
-  if (ordersWithCredentials.length === 0) {
+  if (completedOrders.length === 0) {
     return (
       <NoDataMessage
         title="No Credentials Found"
-        description="You don't have any credentials available yet. Complete a purchase to get service credentials."
-        actionText="Browse Services"
-        actionLink="/services"
+        description="You don't have any completed orders with credentials yet."
       />
     );
   }
@@ -121,239 +95,82 @@ const DashboardCredentials: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your Credentials</CardTitle>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Your Credentials</CardTitle>
+            <CardDescription>
+              Access credentials for your purchased services
+            </CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="services">By Service</TabsTrigger>
-            <TabsTrigger value="all">All Credentials</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="services">
-            <div className="space-y-4">
-              {ordersWithCredentials.map((order) => {
-                if (!order?.credentials) return null;
-                
-                const credentials = order.credentials;
-                
-                return (
-                  <Card key={order.id} className="overflow-hidden">
-                    <CardHeader className="pb-2 bg-slate-50 dark:bg-slate-900">
-                      <div className="flex justify-between items-center">
-                        <CardTitle className="text-base">{order.service_name}</CardTitle>
-                        <Badge>{order.status}</Badge>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="p-4">
-                      <div className="grid gap-3">
-                        {credentials.username && (
-                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-slate-500" />
-                              <span className="text-sm font-medium">Username:</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono">{credentials.username}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.username, `username-${order.id}`)}
-                                className="h-6 w-6"
-                              >
-                                {copiedField === `username-${order.id}` ? 
-                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                                  <Copy className="h-4 w-4" />
-                                }
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {credentials.email && (
-                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-slate-500" />
-                              <span className="text-sm font-medium">Email:</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono">{credentials.email}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.email, `email-${order.id}`)}
-                                className="h-6 w-6"
-                              >
-                                {copiedField === `email-${order.id}` ? 
-                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                                  <Copy className="h-4 w-4" />
-                                }
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {credentials.password && (
-                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
-                            <div className="flex items-center gap-2">
-                              <KeyRound className="h-4 w-4 text-slate-500" />
-                              <span className="text-sm font-medium">Password:</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono">{credentials.password}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.password, `password-${order.id}`)}
-                                className="h-6 w-6"
-                              >
-                                {copiedField === `password-${order.id}` ? 
-                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                                  <Copy className="h-4 w-4" />
-                                }
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {credentials.pinCode && (
-                          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-900 rounded">
-                            <div className="flex items-center gap-2">
-                              <Key className="h-4 w-4 text-slate-500" />
-                              <span className="text-sm font-medium">PIN Code:</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-mono">{credentials.pinCode}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.pinCode, `pin-${order.id}`)}
-                                className="h-6 w-6"
-                              >
-                                {copiedField === `pin-${order.id}` ? 
-                                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                                  <Copy className="h-4 w-4" />
-                                }
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {credentials.notes && (
-                          <div className="p-2 mt-2 bg-blue-50 dark:bg-blue-950 rounded text-sm">
-                            <div className="flex items-start gap-2">
-                              <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5" />
-                              <span>{credentials.notes}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="all">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800">
-                    <th className="px-4 py-2 text-left">Service</th>
-                    <th className="px-4 py-2 text-left">Username</th>
-                    <th className="px-4 py-2 text-left">Email</th>
-                    <th className="px-4 py-2 text-left">Password</th>
-                    <th className="px-4 py-2 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ordersWithCredentials.map((order) => {
-                    if (!order?.credentials) return null;
-                    
-                    const credentials = order.credentials;
-                    
-                    return (
-                      <tr key={order.id} className="border-b border-slate-200 dark:border-slate-700">
-                        <td className="px-4 py-3">{order.service_name}</td>
-                        <td className="px-4 py-3">
-                          {credentials.username ? (
-                            <div className="flex items-center">
-                              <span className="font-mono">{credentials.username}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.username, `username-table-${order.id}`)}
-                                className="ml-2 h-7 w-7"
-                              >
-                                {copiedField === `username-table-${order.id}` ? 
-                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : 
-                                  <Copy className="h-3.5 w-3.5" />
-                                }
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {credentials.email ? (
-                            <div className="flex items-center">
-                              <span className="font-mono">{credentials.email}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.email, `email-table-${order.id}`)}
-                                className="ml-2 h-7 w-7"
-                              >
-                                {copiedField === `email-table-${order.id}` ? 
-                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : 
-                                  <Copy className="h-3.5 w-3.5" />
-                                }
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {credentials.password ? (
-                            <div className="flex items-center">
-                              <span className="font-mono">{credentials.password}</span>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => handleCopyToClipboard(credentials.password, `password-table-${order.id}`)}
-                                className="ml-2 h-7 w-7"
-                              >
-                                {copiedField === `password-table-${order.id}` ? 
-                                  <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : 
-                                  <Copy className="h-3.5 w-3.5" />
-                                }
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Service</TableHead>
+              <TableHead>Order Date</TableHead>
+              <TableHead>Credentials</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {completedOrders.map((order) => {
+              const hasCredentials = !!order.credentials;
+              
+              return (
+                <TableRow key={order.id}>
+                  <TableCell>
+                    <div className="font-medium">{order.service_name}</div>
+                    <div className="text-xs text-muted-foreground">Order #{order.id}</div>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(order.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {hasCredentials ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
+                        Available
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50">
+                        Not Available
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {hasCredentials && order.credentials && (
+                      <div className="flex justify-end gap-2">
+                        {typeof order.credentials === 'object' && order.credentials.email && (
                           <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => navigate(`/order/${order.id}`)}
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleCopyToClipboard(order.credentials.email, order.id, 'Email')}
+                            title="Copy email"
                           >
-                            View Details
+                            {copiedId === order.id && copiedField === 'Email' ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
                           </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-        </Tabs>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

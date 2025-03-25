@@ -1,11 +1,17 @@
-
+import { Credential, Subscription } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
-import { Credential } from '@/lib/types';
-import { toast } from '@/lib/toast';
 
-// Function to convert subscription data format to credential stock format
-export const convertSubscriptionToStock = (subscriptionData: any): Credential => {
-  if (!subscriptionData.credentials) {
+// Convert a subscription's credentials to a Credential object for stock
+export const convertSubscriptionToStock = (data: {
+  credentials?: {
+    username?: string;
+    password?: string;
+    email?: string;
+    notes?: string;
+    [key: string]: any;
+  } 
+}): Credential => {
+  if (!data.credentials) {
     return {
       email: '',
       password: '',
@@ -13,15 +19,52 @@ export const convertSubscriptionToStock = (subscriptionData: any): Credential =>
       pinCode: ''
     };
   }
-
-  const { email, password, username, pinCode, notes } = subscriptionData.credentials;
   
   return {
-    email: email || '',
-    password: password || '',
-    username: username || '',
-    pinCode: pinCode || '',
-    notes: notes || ''
+    email: data.credentials.email || '',
+    password: data.credentials.password || '',
+    username: data.credentials.username || '',
+    pinCode: data.credentials.pinCode || ''
+  };
+};
+
+// Handle orders that may not have credentials property
+export const convertOrderToStock = (order: any): Credential => {
+  // Check if order has credentials directly
+  if (order.credentials) {
+    if (typeof order.credentials === 'string') {
+      try {
+        const parsed = JSON.parse(order.credentials);
+        return {
+          email: parsed.email || '',
+          password: parsed.password || '',
+          username: parsed.username || '',
+          pinCode: parsed.pinCode || ''
+        };
+      } catch {
+        return {
+          email: '',
+          password: '',
+          username: '',
+          pinCode: ''
+        };
+      }
+    } else {
+      return {
+        email: order.credentials.email || '',
+        password: order.credentials.password || '',
+        username: order.credentials.username || '',
+        pinCode: order.credentials.pinCode || ''
+      };
+    }
+  }
+  
+  // For orders without credentials, create an empty one
+  return {
+    email: '',
+    password: '',
+    username: '',
+    pinCode: ''
   };
 };
 

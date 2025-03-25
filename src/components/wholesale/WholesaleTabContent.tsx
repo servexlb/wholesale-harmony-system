@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import CustomerTable from '@/components/CustomerTable';
@@ -69,7 +68,6 @@ const WholesaleTabContent: React.FC<WholesaleTabContentProps> = ({
         
         <TabsContent value="products" className="h-full">
           <ProductsTab 
-            services={allServices} 
             customers={wholesalerCustomers as unknown as Customer[]}
             onOrderPlaced={handleOrderPlaced}
           />
