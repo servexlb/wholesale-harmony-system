@@ -21,6 +21,7 @@ const AddCredentialDialog: React.FC<AddCredentialDialogProps> = ({ open, setOpen
     email: '',
     password: '',
     username: '',
+    pinCode: '',
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +34,7 @@ const AddCredentialDialog: React.FC<AddCredentialDialogProps> = ({ open, setOpen
         email: '',
         password: '',
         username: '',
+        pinCode: '',
         notes: ''
       });
     }
@@ -140,6 +142,16 @@ const AddCredentialDialog: React.FC<AddCredentialDialogProps> = ({ open, setOpen
               value={credentials.username || ''}
               onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
               placeholder="username"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="pinCode">PIN Code (Optional)</Label>
+            <Input
+              id="pinCode"
+              value={credentials.pinCode || ''}
+              onChange={(e) => setCredentials({ ...credentials, pinCode: e.target.value })}
+              placeholder="1234"
             />
           </div>
 

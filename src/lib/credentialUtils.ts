@@ -1,3 +1,4 @@
+
 import { Credential, Subscription } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -196,7 +197,7 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       return null;
     }
     
-    // Check if credentials exist in the order
+    // Add credentials property if it doesn't exist
     if (!data.credentials) {
       console.log('No credentials found for order:', orderId);
       return null;

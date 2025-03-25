@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -6,9 +7,13 @@ import { Trash2, PenLine, RefreshCw, Clipboard, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CredentialStock } from '@/lib/types';
+import { CredentialStock, Service } from '@/lib/types';
 
-const AdminCredentialsList = () => {
+interface AdminCredentialsListProps {
+  services?: Service[];
+}
+
+const AdminCredentialsList: React.FC<AdminCredentialsListProps> = ({ services }) => {
   const [credentials, setCredentials] = useState<CredentialStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
@@ -76,6 +81,7 @@ const AdminCredentialsList = () => {
               <TableHead>Service ID</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Password</TableHead>
+              <TableHead>PIN Code</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -83,14 +89,14 @@ const AdminCredentialsList = () => {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             )}
             {!loading && credentials.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   No credentials found.
                 </TableCell>
               </TableRow>
@@ -128,6 +134,27 @@ const AdminCredentialsList = () => {
                         size="icon"
                         className="ml-2"
                         onClick={() => handleCopyToClipboard(credential.credentials.password, credential.id)}
+                      >
+                        {copied === credential.id ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Clipboard className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    "N/A"
+                  )}
+                </TableCell>
+                <TableCell>
+                  {credential.credentials?.pinCode ? (
+                    <div className="flex items-center">
+                      {credential.credentials.pinCode}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-2"
+                        onClick={() => handleCopyToClipboard(credential.credentials.pinCode, credential.id)}
                       >
                         {copied === credential.id ? (
                           <Check className="h-4 w-4" />

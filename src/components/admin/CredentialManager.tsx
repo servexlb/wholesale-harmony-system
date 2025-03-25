@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, FileText, ArrowUp } from "lucide-react";
-import AdminCredentialsList from "./AdminCredentialsList";
+import AdminCredentialsList from './AdminCredentialsList';
 import { Service } from '@/lib/types';
 import { addCredentialToStock } from '@/lib/credentialService';
 import AdminStockIssues from './AdminStockIssues';

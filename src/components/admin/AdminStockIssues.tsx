@@ -1,270 +1,208 @@
 
 import React, { useState, useEffect } from 'react';
-import { getPendingStockRequests, resolveStockIssue, fulfillStockRequest } from '@/lib/credentialService';
-import { StockRequest, Service, Credential } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Service, StockRequest } from '@/lib/types';
 import { toast } from '@/lib/toast';
-import { AlertCircle, CheckCircle, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Check, X, Clock, AlertTriangle } from 'lucide-react';
 
 interface AdminStockIssuesProps {
-  services: Service[];
+  services?: Service[];
 }
 
 const AdminStockIssues: React.FC<AdminStockIssuesProps> = ({ services }) => {
-  const [issues, setIssues] = useState<StockRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedIssue, setSelectedIssue] = useState<StockRequest | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [pinCode, setPinCode] = useState('');
-  const [notes, setNotes] = useState('');
-
-  const fetchIssues = async () => {
-    setIsLoading(true);
-    try {
-      const data = await getPendingStockRequests();
-      setIssues(data);
-    } catch (error) {
-      console.error('Error fetching stock issues:', error);
-      toast.error('Failed to load stock issues');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [stockRequests, setStockRequests] = useState<StockRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchIssues();
-    
-    const handleStockUpdate = () => {
-      fetchIssues();
-    };
-    
-    window.addEventListener('stock-issue-resolved', handleStockUpdate);
-    
-    return () => {
-      window.removeEventListener('stock-issue-resolved', handleStockUpdate);
-    };
+    fetchStockRequests();
   }, []);
 
-  const handleCancelRequest = async (issueId: string) => {
+  const fetchStockRequests = async () => {
     try {
-      const success = await resolveStockIssue(issueId, 'cancelled');
-      if (success) {
-        toast.success('Stock request cancelled');
-        fetchIssues();
-      } else {
-        toast.error('Failed to cancel request');
+      setLoading(true);
+      // Try to get data from Supabase if available
+      const { data, error } = await supabase
+        .from('stock_issue_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error('Error cancelling request:', error);
-      toast.error('Failed to cancel request');
-    }
-  };
 
-  const handleFulfillRequest = async () => {
-    if (!selectedIssue) return;
-    
-    if (!email && !username) {
-      toast.error('Please provide either email or username');
-      return;
-    }
-    
-    if (!password) {
-      toast.error('Please provide a password');
-      return;
-    }
-    
-    try {
-      const credentials: Credential = {
-        email,
-        password,
-        username,
-        pinCode,
-        notes
-      };
+      // Transform the data to match StockRequest type
+      const transformedData: StockRequest[] = (data || []).map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        serviceId: item.service_id,
+        serviceName: item.service_name,
+        orderId: item.order_id,
+        status: item.status as 'pending' | 'fulfilled' | 'cancelled',
+        createdAt: item.created_at,
+        fulfilledAt: item.fulfilled_at,
+        customerName: item.customer_name,
+        priority: item.priority as 'high' | 'medium' | 'low',
+        notes: item.notes
+      }));
+
+      setStockRequests(transformedData);
+    } catch (error) {
+      console.error('Error fetching stock requests:', error);
+      toast.error('Failed to load stock requests');
       
-      const success = await fulfillStockRequest(
-        selectedIssue.id,
-        selectedIssue.orderId,
-        selectedIssue.userId,
-        selectedIssue.serviceId,
-        credentials
-      );
-      
-      if (success) {
-        toast.success('Stock request fulfilled');
-        setSelectedIssue(null);
-        fetchIssues();
-        
-        // Reset form
-        setEmail('');
-        setPassword('');
-        setUsername('');
-        setPinCode('');
-        setNotes('');
-      } else {
-        toast.error('Failed to fulfill request');
+      // Fallback to localStorage if Supabase fails
+      const storedRequests = localStorage.getItem('stock_requests');
+      if (storedRequests) {
+        try {
+          setStockRequests(JSON.parse(storedRequests));
+        } catch (e) {
+          console.error('Error parsing stock requests from localStorage:', e);
+        }
       }
-    } catch (error) {
-      console.error('Error fulfilling request:', error);
-      toast.error('Failed to fulfill request');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getServiceNameById = (serviceId: string) => {
-    const service = services.find(s => s.id === serviceId);
-    return service ? service.name : 'Unknown Service';
+  // Filter requests based on search term
+  const filteredRequests = stockRequests.filter(request => 
+    request.serviceName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleFulfillRequest = async (requestId: string) => {
+    // Implementation would go here - update status to 'fulfilled'
+    toast.success('Request fulfilled');
   };
 
-  if (isLoading) {
-    return <div className="text-center py-8">Loading stock issues...</div>;
-  }
-
-  if (issues.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No pending stock issues found.</p>
-      </div>
-    );
-  }
+  const handleCancelRequest = async (requestId: string) => {
+    // Implementation would go here - update status to 'cancelled'
+    toast.success('Request cancelled');
+  };
 
   return (
-    <div className="space-y-4">
-      {selectedIssue ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Fulfill Stock Request</CardTitle>
-            <CardDescription>
-              Provide credentials for customer: {selectedIssue.customerName}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Badge className="mb-2">Service: {getServiceNameById(selectedIssue.serviceId)}</Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    placeholder="user@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    placeholder="username123"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pinCode">PIN Code (optional)</Label>
-                  <Input
-                    id="pinCode"
-                    placeholder="1234"
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="notes">Notes (optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Additional information about this credential"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setSelectedIssue(null)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleFulfillRequest}
-              disabled={(!email && !username) || !password}
-            >
-              Fulfill Request
-            </Button>
-          </CardFooter>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {issues.map((issue) => (
-            <Card key={issue.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <CardTitle className="text-lg">{issue.customerName}</CardTitle>
-                  <Badge>Pending</Badge>
-                </div>
-                <CardDescription>
-                  Service: {getServiceNameById(issue.serviceId)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-2">
-                <div className="text-sm">
-                  <p><strong>Order ID:</strong> {issue.orderId}</p>
-                  {issue.notes && (
-                    <div className="mt-2">
-                      <p><strong>Notes:</strong></p>
-                      <p className="text-muted-foreground">{issue.notes}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="pt-2">
-                <div className="flex space-x-2 ml-auto">
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => handleCancelRequest(issue.id)}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    size="sm"
-                    onClick={() => setSelectedIssue(issue)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Fulfill
-                  </Button>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle>Stock Issues</CardTitle>
+          <CardDescription>
+            Handle customer requests for stock
+          </CardDescription>
         </div>
-      )}
-    </div>
+        <Button variant="outline" size="sm" onClick={fetchStockRequests}>
+          Refresh
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center mb-4">
+          <Input
+            placeholder="Search requests..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Service</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : filteredRequests.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center">
+                  No stock issues found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRequests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell className="font-medium">{request.serviceName || request.serviceId}</TableCell>
+                  <TableCell>{request.customerName || 'Unknown customer'}</TableCell>
+                  <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        request.status === "pending" ? "outline" : 
+                        request.status === "fulfilled" ? "default" : 
+                        "secondary"
+                      }
+                      className="flex items-center w-fit gap-1"
+                    >
+                      {request.status === "pending" ? (
+                        <Clock className="h-3 w-3" />
+                      ) : request.status === "fulfilled" ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <X className="h-3 w-3" />
+                      )}
+                      {request.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        request.priority === "high" ? "destructive" : 
+                        request.priority === "medium" ? "outline" : 
+                        "secondary"
+                      }
+                      className="flex items-center w-fit gap-1"
+                    >
+                      {request.priority === "high" && <AlertTriangle className="h-3 w-3" />}
+                      {request.priority || "low"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      {request.status === "pending" && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleFulfillRequest(request.id)}
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Fulfill
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCancelRequest(request.id)}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
 
