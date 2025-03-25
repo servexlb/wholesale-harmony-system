@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle, XCircle, AlertCircle, RefreshCw, Package, User, Clock, CreditCard, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle, XCircle, AlertCircle, RefreshCw, Package, User, Clock, CreditCard, FileText, Filter } from 'lucide-react';
 import { toast } from "@/lib/toast";
 import { supabase } from '@/integrations/supabase/client';
 import { StockRequest, Credential } from '@/lib/types';
@@ -14,9 +16,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const StockIssueManagerComponent = () => {
   const [issues, setIssues] = useState<StockRequest[]>([]);
+  const [filteredIssues, setFilteredIssues] = useState<StockRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<StockRequest | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [searchTerm, setSearchTerm] = useState("");
   const { services } = useServiceManager();
   
   const [newCredential, setNewCredential] = useState<Credential>({
@@ -40,6 +45,31 @@ const StockIssueManagerComponent = () => {
       window.removeEventListener('stock-issue-resolved', handleStockIssueResolved);
     };
   }, []);
+
+  useEffect(() => {
+    filterIssues();
+  }, [issues, statusFilter, searchTerm]);
+  
+  const filterIssues = () => {
+    let result = [...issues];
+    
+    // Apply status filter
+    if (statusFilter !== "all") {
+      result = result.filter(issue => issue.status === statusFilter);
+    }
+    
+    // Apply search term
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      result = result.filter(issue => 
+        issue.productName?.toLowerCase().includes(search) ||
+        issue.customerName?.toLowerCase().includes(search) ||
+        issue.orderId.toLowerCase().includes(search)
+      );
+    }
+    
+    setFilteredIssues(result);
+  };
   
   const loadIssues = async () => {
     setIsLoading(true);
@@ -48,7 +78,6 @@ const StockIssueManagerComponent = () => {
       const { data: issuesData, error: issuesError } = await supabase
         .from('stock_issue_logs')
         .select('*')
-        .eq('status', 'pending')
         .order('created_at', { ascending: false });
         
       if (issuesError) {
@@ -231,6 +260,15 @@ const StockIssueManagerComponent = () => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending': return 'outline';
+      case 'fulfilled': return 'success';
+      case 'cancelled': return 'destructive';
+      default: return 'outline';
+    }
+  };
   
   return (
     <Card>
@@ -239,7 +277,7 @@ const StockIssueManagerComponent = () => {
           <div>
             <CardTitle>Stock Issues</CardTitle>
             <CardDescription>
-              Handle pending stock requests from customers
+              Handle stock requests from customers
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={loadIssues}>
@@ -249,20 +287,55 @@ const StockIssueManagerComponent = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="flex justify-between items-center mb-4 gap-4">
+          <div className="flex items-center">
+            <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+            <Select 
+              value={statusFilter} 
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Status</SelectLabel>
+                  <SelectItem value="all">All Issues</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <Input
+            placeholder="Search service or customer..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
+        
         {isLoading ? (
           <div className="text-center py-6">
             <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
             <p className="mt-2 text-sm text-muted-foreground">Loading stock issues...</p>
           </div>
-        ) : issues.length === 0 ? (
+        ) : filteredIssues.length === 0 ? (
           <div className="text-center py-6">
             <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No pending stock issues</p>
+            <p className="text-muted-foreground">No stock issues found</p>
+            {statusFilter !== 'all' && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Try changing your filter to see more results
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
-            {issues.map(issue => (
-              <div key={issue.id} className="border rounded-lg p-4">
+            {filteredIssues.map(issue => (
+              <div key={issue.id} className={`border rounded-lg p-4 ${issue.status === 'fulfilled' ? 'bg-green-50/20 border-green-200' : issue.status === 'cancelled' ? 'bg-red-50/20 border-red-200' : ''}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="text-lg font-medium mb-1 flex items-center">
@@ -273,28 +346,35 @@ const StockIssueManagerComponent = () => {
                       <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
                         Service ID: {issue.serviceId}
                       </Badge>
+                      <Badge variant={getStatusBadgeVariant(issue.status)}>
+                        {issue.status}
+                      </Badge>
                       <Badge variant={issue.priority === 'high' ? 'destructive' : 'outline'}>
                         {issue.priority} priority
                       </Badge>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={() => handleCancelIssue(issue)}
-                    >
-                      <XCircle className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleOpenResolveDialog(issue)}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Resolve
-                    </Button>
+                    {issue.status === 'pending' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleCancelIssue(issue)}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenResolveDialog(issue)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Resolve
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
                 
@@ -305,6 +385,16 @@ const StockIssueManagerComponent = () => {
                     <span className="text-sm text-muted-foreground">({issue.orderDetails.customerEmail})</span>
                   )}
                 </div>
+                
+                {issue.status !== 'pending' && (
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {issue.status === 'fulfilled' ? (
+                      <span>Resolved on: {formatDate(issue.fulfilledAt || '')}</span>
+                    ) : (
+                      <span>Cancelled on: {formatDate(issue.fulfilledAt || '')}</span>
+                    )}
+                  </div>
+                )}
                 
                 <Accordion type="single" collapsible className="w-full border-t pt-2">
                   <AccordionItem value="details">
