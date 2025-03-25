@@ -185,6 +185,7 @@ export function useWholesaleData(currentWholesaler: string) {
             customerAddress: order.customer_address,
             customerCompany: order.customer_company,
             notes: order.notes,
+            // Fix for TypeScript error - ensures credentials property exists
             credentials: order.credentials as any
           }));
           setOrders(formattedOrders);
@@ -245,14 +246,60 @@ export function useWholesaleData(currentWholesaler: string) {
 
   const handleOrderPlaced = async (order: WholesaleOrder) => {
     try {
-      console.log('Processing order with credentials:', order.credentials);
+      // Get credentials from stock for this service
+      let orderCredentials: any = null;
+      
+      // We'll check for available credentials in the credential_stock table
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session) {
+        const { data: availableCredential, error: credentialError } = await supabase
+          .from('credential_stock')
+          .select('*')
+          .eq('service_id', order.serviceId)
+          .eq('status', 'available')
+          .limit(1)
+          .single();
+          
+        if (credentialError) {
+          console.error('Error fetching credential from stock:', credentialError);
+          // Still proceed with the order, but it will have pending status
+        } else if (availableCredential) {
+          console.log('Found available credential in stock:', availableCredential.id);
+          orderCredentials = availableCredential.credentials;
+          
+          // Update the credential status to assigned
+          const { error: updateError } = await supabase
+            .from('credential_stock')
+            .update({ 
+              status: 'assigned', 
+              user_id: order.customerId,
+              order_id: order.id
+            })
+            .eq('id', availableCredential.id);
+            
+          if (updateError) {
+            console.error('Error updating credential status:', updateError);
+          }
+        } else {
+          console.log('No credentials available in stock for service:', order.serviceId);
+        }
+      }
+      
+      // Add credentials to the order if found
+      if (orderCredentials) {
+        order.credentials = orderCredentials;
+        order.status = 'completed';
+        console.log('Added credentials to order:', orderCredentials);
+      } else {
+        order.status = 'pending';
+        console.log('No credentials available, order status set to pending');
+      }
       
       setOrders(prev => {
         const updatedOrders = [order, ...prev];
         return updatedOrders.slice(0, 100);
       });
       
-      const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
         const { error } = await supabase
           .from('wholesale_orders')
@@ -331,7 +378,7 @@ export function useWholesaleData(currentWholesaler: string) {
       
       const service = services.find(s => s.id === order.serviceId);
       
-      if (service?.type === 'subscription' || order.credentials) {
+      if (service?.type === 'subscription') {
         const durationMonths = order.durationMonths || 1;
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + durationMonths);
@@ -383,36 +430,19 @@ export function useWholesaleData(currentWholesaler: string) {
         } else {
           console.warn('No active session, subscription only saved to local state');
         }
-        
-        if (order.serviceId) {
-          try {
-            if (order.credentials) {
-              const stockCredentials = convertSubscriptionToStock({
-                credentials: order.credentials
-              });
-              addCredentialToStock(order.serviceId, stockCredentials);
-            } 
-            else {
-              const credentials: Credential = {
-                email: "",
-                password: "", 
-                username: "",
-                pinCode: ""
-              };
-              
-              addCredentialToStock(order.serviceId, credentials);
-            }
-            
-            window.dispatchEvent(new CustomEvent('subscription-added', { 
-              detail: { serviceId: order.serviceId }
-            }));
-          } catch (error) {
-            console.error('Error adding subscription to credential stock:', error);
-          }
-        }
       }
       
       window.dispatchEvent(new CustomEvent('orderPlaced'));
+      
+      if (order.credentials) {
+        toast.success('Order completed with credentials', {
+          description: 'Credentials have been assigned from stock'
+        });
+      } else {
+        toast.warning('Order pending', {
+          description: 'No credentials available in stock. Please add credentials in the Admin Panel.'
+        });
+      }
     } catch (error) {
       console.error('Error in handleOrderPlaced:', error);
       toast.error('Error processing order');

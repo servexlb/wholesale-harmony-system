@@ -188,15 +188,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
   const isSubscription = selectedService?.type === 'subscription';
 
-  const generateDemoCredentials = () => {
-    return {
-      email: `user${Math.floor(Math.random() * 10000)}@example.com`,
-      password: `pass${Math.floor(Math.random() * 10000)}`,
-      username: `user${Math.floor(Math.random() * 10000)}`,
-      pinCode: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-    };
-  };
-
   const handleSubmit = () => {
     if (!selectedCustomer) {
       toast.error("Please select a customer");
@@ -222,9 +213,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     // Generate a proper UUID for the order ID
     const orderId = uuidv4();
 
-    // Generate random demo credentials for the order
-    const demoCredentials = generateDemoCredentials();
-
+    // Use existing credentials from the stock rather than generating new ones
     const order: WholesaleOrder = {
       id: orderId,
       customerId: selectedCustomer,
@@ -238,11 +227,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       customerEmail: customer?.email,
       customerPhone: customer?.phone,
       customerCompany: customer?.company,
-      durationMonths: parseInt(selectedDuration),
-      credentials: demoCredentials // Add demo credentials to the order
+      durationMonths: parseInt(selectedDuration)
+      // Note: We're not setting credentials here - they will be assigned from stock
     };
 
-    console.log('Submitting order with credentials:', order.credentials);
+    console.log('Submitting order without credentials - will be assigned from stock');
     onPurchase(order);
   };
 
