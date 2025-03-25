@@ -15,49 +15,49 @@ const UserBalance = () => {
   const [prevBalance, setPrevBalance] = useState(0);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchUserBalance = async () => {
-      if (!isAuthenticated || !user) {
+  const fetchUserBalance = async () => {
+    if (!isAuthenticated || !user) {
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      console.log('Fetching balance for user:', user.id);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user balance:', error);
         setIsLoading(false);
         return;
       }
       
-      try {
-        console.log('Fetching balance for user:', user.id);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('balance')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching user balance:', error);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (data) {
-          console.log('User balance data:', data);
-          // Check if balance has changed
-          if (userBalance !== 0 && data.balance !== userBalance) {
-            setPrevBalance(userBalance);
-            setShowBalanceUpdated(true);
-            
-            // Hide the notification after 3 seconds
-            setTimeout(() => {
-              setShowBalanceUpdated(false);
-            }, 3000);
-          }
+      if (data) {
+        console.log('User balance data:', data);
+        // Check if balance has changed
+        if (userBalance !== 0 && data.balance !== userBalance) {
+          setPrevBalance(userBalance);
+          setShowBalanceUpdated(true);
           
-          setUserBalance(data.balance || 0);
+          // Hide the notification after 3 seconds
+          setTimeout(() => {
+            setShowBalanceUpdated(false);
+          }, 3000);
         }
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error in fetchUserBalance:', error);
-        setIsLoading(false);
+        
+        setUserBalance(data.balance || 0);
       }
-    };
-    
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error in fetchUserBalance:', error);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserBalance();
     
     // Set up real-time updates for user balance changes
@@ -92,9 +92,7 @@ const UserBalance = () => {
         
       // Set up interval to refresh balance every minute as a fallback
       const intervalId = setInterval(() => {
-        if (isAuthenticated) {
-          fetchUserBalance();
-        }
+        fetchUserBalance();
       }, 60000); // 60 seconds
       
       // Listen for custom purchase event
@@ -111,7 +109,7 @@ const UserBalance = () => {
         window.removeEventListener('purchase-completed', handlePurchaseEvent);
       };
     }
-  }, [user, isAuthenticated, userBalance]);
+  }, [user, isAuthenticated]);
 
   const handleClick = () => {
     navigate('/payment');
