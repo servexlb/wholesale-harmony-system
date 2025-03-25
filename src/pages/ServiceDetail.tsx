@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Tag, Check, CreditCard, Zap, RotateCw, Minus, Plus } from 'lucide-react';
@@ -26,7 +25,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
-// Create local service and category lookup functions
 const getServiceById = (id: string): Service | null => {
   const services = JSON.parse(localStorage.getItem('services') || '[]');
   return services.find((service: Service) => service.id === id) || null;
@@ -55,7 +53,6 @@ const ServiceDetail = () => {
   const [userBalance, setUserBalance] = useState(0);
 
   useEffect(() => {
-    // Fetch user balance from Supabase if authenticated
     const fetchUserBalance = async () => {
       if (isAuthenticated && user) {
         try {
@@ -67,7 +64,6 @@ const ServiceDetail = () => {
           
           if (error) {
             console.error('Error fetching balance:', error);
-            // Fallback to localStorage
             const balanceStr = localStorage.getItem(`userBalance_${userId}`);
             setUserBalance(balanceStr ? parseFloat(balanceStr) : 0);
           } else if (data) {
@@ -75,12 +71,10 @@ const ServiceDetail = () => {
           }
         } catch (error) {
           console.error('Error fetching user balance:', error);
-          // Fallback to localStorage
           const balanceStr = localStorage.getItem(`userBalance_${userId}`);
           setUserBalance(balanceStr ? parseFloat(balanceStr) : 0);
         }
       } else {
-        // Use localStorage for guest users
         const balanceStr = localStorage.getItem(`userBalance_${userId}`);
         setUserBalance(balanceStr ? parseFloat(balanceStr) : 0);
       }
@@ -157,7 +151,6 @@ const ServiceDetail = () => {
 
     const newBalance = userBalance - finalPrice;
     
-    // Update balance in Supabase if authenticated
     if (isAuthenticated && user) {
       try {
         const { error } = await supabase
@@ -179,11 +172,9 @@ const ServiceDetail = () => {
       }
     }
     
-    // Update balance in localStorage
     localStorage.setItem(`userBalance_${userId}`, newBalance.toString());
     setUserBalance(newBalance);
 
-    // Create the order
     const order = {
       id: `order-${Date.now()}`,
       serviceId: service?.id,
@@ -195,13 +186,11 @@ const ServiceDetail = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // Save order to localStorage
     const customerOrdersKey = `customerOrders_${userId}`;
     const customerOrders = JSON.parse(localStorage.getItem(customerOrdersKey) || '[]');
     customerOrders.push(order);
     localStorage.setItem(customerOrdersKey, JSON.stringify(customerOrders));
 
-    // If authenticated, also save order to Supabase
     if (isAuthenticated && user) {
       try {
         const { error } = await supabase.from('orders').insert({
@@ -220,7 +209,6 @@ const ServiceDetail = () => {
           console.error('Error saving order to Supabase:', error);
         }
         
-        // Add payment record
         const paymentId = `pmt-${Date.now()}`;
         await supabase.from('payments').insert({
           id: paymentId,
@@ -230,7 +218,7 @@ const ServiceDetail = () => {
           status: 'completed',
           description: `Purchase of ${service?.name}`,
           order_id: order.id,
-          user_name: user.user_metadata?.name || ''
+          user_name: user.name || ''
         });
       } catch (error) {
         console.error('Error saving order to database:', error);
