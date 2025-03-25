@@ -94,16 +94,45 @@ const Account: React.FC = () => {
           }
         } else if (subscriptionData) {
           // Format subscriptions from Supabase
-          const formattedSubscriptions: Subscription[] = subscriptionData.map(subscription => ({
-            id: subscription.id,
-            userId: subscription.user_id,
-            serviceId: subscription.service_id,
-            startDate: subscription.start_date,
-            endDate: subscription.end_date,
-            status: subscription.status as 'active' | 'expired' | 'cancelled',
-            durationMonths: subscription.duration_months || undefined,
-            credentials: subscription.credentials || (subscription.credential_stock?.credentials as Subscription['credentials']) || undefined
-          }));
+          const formattedSubscriptions: Subscription[] = subscriptionData.map(subscription => {
+            // Parse credentials data properly
+            let credentialsObj = undefined;
+            
+            if (subscription.credential_stock?.credentials) {
+              // Handle credentials from credential_stock
+              const stockCreds = subscription.credential_stock.credentials;
+              credentialsObj = typeof stockCreds === 'string' 
+                ? JSON.parse(stockCreds)
+                : stockCreds;
+            } else if (subscription.credentials) {
+              // Handle direct credentials field
+              const directCreds = subscription.credentials;
+              credentialsObj = typeof directCreds === 'string'
+                ? JSON.parse(directCreds)
+                : directCreds;
+            }
+            
+            // Ensure credentials matches expected format
+            const formattedCredentials = credentialsObj ? {
+              username: credentialsObj.username || '',
+              password: credentialsObj.password || '',
+              email: credentialsObj.email || '',
+              notes: credentialsObj.notes || '',
+              ...(credentialsObj || {})
+            } : undefined;
+            
+            return {
+              id: subscription.id,
+              userId: subscription.user_id,
+              serviceId: subscription.service_id,
+              startDate: subscription.start_date,
+              endDate: subscription.end_date,
+              status: subscription.status as 'active' | 'expired' | 'cancelled',
+              durationMonths: subscription.duration_months || undefined,
+              credentials: formattedCredentials
+            };
+          });
+          
           setSubscriptions(formattedSubscriptions);
         }
       } catch (error) {
