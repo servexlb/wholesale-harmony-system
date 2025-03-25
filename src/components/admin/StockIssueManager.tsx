@@ -77,6 +77,13 @@ const StockIssueManagerComponent = () => {
         const service = services.find(s => s.id === issue.service_id);
         const associatedOrder = ordersData?.find(order => order.id === issue.order_id) || null;
         
+        // Safe access to customer email from credentials
+        let customerEmail = '';
+        if (associatedOrder?.credentials && typeof associatedOrder.credentials === 'object') {
+          const credentials = associatedOrder.credentials as any;
+          customerEmail = credentials.email || '';
+        }
+        
         return {
           id: issue.id,
           userId: issue.user_id,
@@ -86,7 +93,7 @@ const StockIssueManagerComponent = () => {
           status: issue.status as 'pending' | 'fulfilled' | 'cancelled',
           createdAt: issue.created_at,
           fulfilledAt: issue.fulfilled_at,
-          customerName: issue.customer_name || (associatedOrder ? associatedOrder.customer_name : "Unknown Customer"),
+          customerName: issue.customer_name || "Unknown Customer",
           priority: (issue.priority as 'high' | 'medium' | 'low') || 'medium',
           notes: issue.notes || '',
           // Additional order details
@@ -96,8 +103,8 @@ const StockIssueManagerComponent = () => {
             durationMonths: associatedOrder.duration_months,
             notes: associatedOrder.notes,
             accountId: associatedOrder.account_id,
-            customerEmail: associatedOrder.credentials?.email
-          } : null
+            customerEmail: customerEmail
+          } : undefined
         };
       });
       
@@ -166,31 +173,32 @@ const StockIssueManagerComponent = () => {
     setIsLoading(true);
     
     try {
-      // First, add the credential to the stock with assigned status
-      const stockId = `stock-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      console.log('Resolving issue with credentials:', newCredential);
+      console.log('Selected issue:', selectedIssue);
       
-      const { error: stockError } = await supabase
+      // First, add the credential to the stock with assigned status
+      const { data: stockData, error: stockError } = await supabase
         .from('credential_stock')
         .insert({
-          id: stockId,
           service_id: selectedIssue.serviceId,
           credentials: newCredential,
           status: 'assigned',
           user_id: selectedIssue.userId,
-          order_id: selectedIssue.orderId,
-          created_at: new Date().toISOString()
-        });
+          order_id: selectedIssue.orderId
+        })
+        .select();
         
       if (stockError) {
         throw stockError;
       }
+      
+      console.log('Added credential to stock:', stockData);
       
       // Update the order with the credentials
       const { error: orderError } = await supabase
         .from('orders')
         .update({
           credentials: newCredential,
-          credential_status: 'assigned',
           status: 'completed',
           completed_at: new Date().toISOString()
         })
@@ -198,7 +206,11 @@ const StockIssueManagerComponent = () => {
         
       if (orderError) {
         console.error('Error updating order:', orderError);
+        toast.error('Error updating order');
+        return;
       }
+      
+      console.log('Updated order with credentials');
       
       // Update the stock issue status
       const { error: issueError } = await supabase
@@ -212,6 +224,8 @@ const StockIssueManagerComponent = () => {
       if (issueError) {
         throw issueError;
       }
+      
+      console.log('Updated stock issue status');
       
       toast.success('Issue resolved successfully');
       setShowResolveDialog(false);
@@ -431,7 +445,7 @@ const StockIssueManagerComponent = () => {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  value={newCredential.email}
+                  value={newCredential.email || ''}
                   onChange={(e) => setNewCredential(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="user@example.com"
                 />
@@ -452,7 +466,7 @@ const StockIssueManagerComponent = () => {
                 <Input
                   id="password"
                   type="password"
-                  value={newCredential.password}
+                  value={newCredential.password || ''}
                   onChange={(e) => setNewCredential(prev => ({ ...prev, password: e.target.value }))}
                   placeholder="••••••••"
                 />
