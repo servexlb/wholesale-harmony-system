@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,6 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   useEffect(() => {
     if (!open) {
       setNotes('');
-      setSelectedCustomer('');
       setSelectedDuration(duration.toString());
     } else {
       setNotes(customerNotes || '');
@@ -63,17 +61,25 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         setSelectedCustomer(selectedCustomerId);
       }
     }
-  }, [open, customerName, customerNotes, selectedCustomerId, duration]);
+  }, [open, customerNotes, selectedCustomerId, duration]);
 
   useEffect(() => {
-    if (customerName && customers.length > 0 && !selectedCustomer) {
+    if (open && customerName && customers.length > 0 && !selectedCustomer) {
       const customer = customers.find(c => c.name === customerName);
       if (customer) {
+        console.log('Auto-selecting customer by name:', customer.name);
         setSelectedCustomer(customer.id);
         if (onCustomerChange) onCustomerChange(customer.id);
       }
     }
-  }, [customerName, customers, selectedCustomer, onCustomerChange]);
+  }, [customerName, customers, selectedCustomer, onCustomerChange, open]);
+
+  useEffect(() => {
+    if (selectedCustomerId && selectedCustomerId !== selectedCustomer) {
+      console.log('Setting customer from selectedCustomerId:', selectedCustomerId);
+      setSelectedCustomer(selectedCustomerId);
+    }
+  }, [selectedCustomerId, selectedCustomer]);
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomer(customerId);
@@ -146,7 +152,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           <PriceDisplay 
             service={service}
             selectedDuration={selectedDuration}
-            isSubscription={isSubscription}
+            isSubscription={service?.type === 'subscription'}
             calculateTotalPrice={calculateTotalPrice}
           />
 

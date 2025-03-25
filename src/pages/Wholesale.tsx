@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { customers as defaultCustomers } from '@/lib/data';
 import WholesaleAuth from '@/components/wholesale/WholesaleAuth';
@@ -11,7 +10,6 @@ import PurchaseDialog from '@/components/wholesale/PurchaseDialog';
 import { Service, WholesaleOrder } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
-// Use a local function to load services
 const loadServices = (): Service[] => {
   try {
     const storedServices = localStorage.getItem('services');
@@ -25,17 +23,14 @@ const loadServices = (): Service[] => {
 };
 
 const Wholesale = () => {
-  // State for purchase dialog
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
   
-  // For purchase dialog component
   const [customerName, setCustomerName] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Initialize hooks
   const { 
     isAuthenticated, 
     currentWholesaler, 
@@ -61,7 +56,6 @@ const Wholesale = () => {
     handleUpdateCustomer
   } = useWholesaleData(currentWholesaler);
 
-  // Load services with better debugging
   useEffect(() => {
     const services = loadServices();
     console.log('Services loaded for display:', services.length);
@@ -84,7 +78,6 @@ const Wholesale = () => {
     };
   }, []);
 
-  // Listen for purchase dialog events
   useEffect(() => {
     const handleOpenPurchaseDialog = (event: Event) => {
       try {
@@ -92,27 +85,32 @@ const Wholesale = () => {
         console.log('Opening purchase dialog with details:', customEvent.detail);
         
         if (customEvent.detail) {
-          // Set all customer details from the event
           if (customEvent.detail.customerId) {
             setSelectedCustomerId(customEvent.detail.customerId);
             
-            // Find customer name from the ID
             const customer = wholesalerCustomers.find(c => c.id === customEvent.detail.customerId);
             if (customer) {
               setCustomerName(customer.name || '');
+              console.log('Found customer by ID:', customer.name);
             }
           } else {
             setSelectedCustomerId('');
           }
           
-          // Set customer name if provided directly
           if (customEvent.detail.customerName) {
             setCustomerName(customEvent.detail.customerName);
+            
+            if (!customEvent.detail.customerId) {
+              const customer = wholesalerCustomers.find(c => c.name === customEvent.detail.customerName);
+              if (customer) {
+                setSelectedCustomerId(customer.id);
+                console.log('Auto-matched customer ID from name:', customer.id);
+              }
+            }
           }
           
-          // Log for debugging
-          console.log('Selected customer ID:', customEvent.detail.customerId);
-          console.log('Customer name set to:', customEvent.detail.customerName || (wholesalerCustomers.find(c => c.id === customEvent.detail.customerId)?.name || ''));
+          console.log('Selected customer ID:', customEvent.detail.customerId || selectedCustomerId);
+          console.log('Customer name set to:', customEvent.detail.customerName || customerName);
         }
         
         setPurchaseDialogOpen(true);
@@ -126,12 +124,10 @@ const Wholesale = () => {
     return () => {
       window.removeEventListener('openPurchaseDialog', handleOpenPurchaseDialog);
     };
-  }, [wholesalerCustomers]);
+  }, [wholesalerCustomers, selectedCustomerId, customerName]);
 
-  // Purchase for customer handler
   const handlePurchaseForCustomer = (customerId: string) => {
     try {
-      // Find the customer to get their details
       const customer = wholesalerCustomers.find(c => c.id === customerId);
       if (customer) {
         setCustomerName(customer.name || '');
@@ -148,11 +144,9 @@ const Wholesale = () => {
     }
   };
   
-  // Handle purchase submission
   const handlePurchaseSubmit = (order: WholesaleOrder) => {
     setIsSubmitting(true);
     
-    // Process the order
     handleOrderPlaced(order);
     console.log('Order placed successfully:', order);
     
@@ -162,7 +156,6 @@ const Wholesale = () => {
     }, 1000);
   };
 
-  // If not authenticated, show login screen
   if (!isAuthenticated) {
     return <WholesaleAuth onLoginSuccess={handleLoginSuccess} isLoggedOut={isLoggedOut} />;
   }
@@ -176,7 +169,6 @@ const Wholesale = () => {
         setActiveTab={setActiveTab}
         handleLogout={handleLogout}
       >
-        {/* Use the PurchaseDialog component with the proper props */}
         <PurchaseDialog
           customerName={customerName}
           customerNotes={customerNotes}
@@ -185,8 +177,10 @@ const Wholesale = () => {
           isMobile={false}
           open={purchaseDialogOpen}
           onOpenChange={setPurchaseDialogOpen}
+          customers={wholesalerCustomers}
+          selectedCustomerId={selectedCustomerId}
+          onCustomerChange={(id) => setSelectedCustomerId(id)}
         >
-          {/* Make sure we have a visible Button that opens the dialog */}
           <Button 
             variant="default" 
             className="mb-4"
