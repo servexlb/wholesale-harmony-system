@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -226,6 +227,128 @@ const StockIssueManagerComponent = () => {
       
       console.log('Updated order with credentials');
       
+      // Now let's create or update the customer's subscription
+      // First, fetch the order details to get duration_months
+      const { data: orderData, error: fetchOrderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', selectedIssue.orderId)
+        .single();
+        
+      if (fetchOrderError) {
+        console.error('Error fetching order details:', fetchOrderError);
+      } else if (orderData) {
+        // Calculate subscription end date based on duration months
+        const durationMonths = orderData.duration_months || 1;
+        const startDate = new Date().toISOString();
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + durationMonths);
+        
+        // First check if a subscription already exists for this order
+        const { data: existingSubscription, error: subCheckError } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', selectedIssue.userId)
+          .eq('service_id', selectedIssue.serviceId)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (subCheckError) {
+          console.error('Error checking existing subscription:', subCheckError);
+        }
+        
+        if (existingSubscription && existingSubscription.length > 0) {
+          // Update existing subscription
+          console.log('Updating existing subscription:', existingSubscription[0].id);
+          const { error: updateSubError } = await supabase
+            .from('subscriptions')
+            .update({
+              status: 'active', 
+              credentials: newCredential,
+              start_date: startDate,
+              end_date: endDate.toISOString(),
+              duration_months: durationMonths,
+              credential_stock_id: stockData?.[0]?.id
+            })
+            .eq('id', existingSubscription[0].id);
+            
+          if (updateSubError) {
+            console.error('Error updating subscription:', updateSubError);
+          } else {
+            console.log('Successfully updated customer subscription');
+          }
+        } else {
+          // Create new subscription
+          console.log('Creating new subscription for user:', selectedIssue.userId);
+          const { error: createSubError } = await supabase
+            .from('subscriptions')
+            .insert({
+              user_id: selectedIssue.userId,
+              service_id: selectedIssue.serviceId,
+              status: 'active',
+              credentials: newCredential,
+              start_date: startDate,
+              end_date: endDate.toISOString(),
+              duration_months: durationMonths,
+              credential_stock_id: stockData?.[0]?.id
+            });
+            
+          if (createSubError) {
+            console.error('Error creating subscription:', createSubError);
+          } else {
+            console.log('Successfully created customer subscription');
+          }
+        }
+        
+        // Check if this is a wholesale user - also update wholesale_subscriptions if needed
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', selectedIssue.userId)
+          .single();
+          
+        if (profileData) {
+          // Check user roles to see if they're a wholesaler
+          const { data: userRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', selectedIssue.userId);
+            
+          const isWholesale = userRoles?.some(role => role.role === 'wholesale');
+          
+          if (isWholesale) {
+            console.log('Updating wholesale subscription');
+            // Look for existing wholesale subscription
+            const { data: existingWholesaleSub } = await supabase
+              .from('wholesale_subscriptions')
+              .select('id')
+              .eq('customer_id', selectedIssue.userId)
+              .eq('service_id', selectedIssue.serviceId)
+              .order('created_at', { ascending: false })
+              .limit(1);
+              
+            if (existingWholesaleSub && existingWholesaleSub.length > 0) {
+              // Update existing wholesale subscription
+              const { error: updateWholesaleError } = await supabase
+                .from('wholesale_subscriptions')
+                .update({
+                  status: 'active',
+                  credentials: newCredential,
+                  start_date: startDate,
+                  end_date: endDate.toISOString(),
+                  duration_months: durationMonths
+                })
+                .eq('id', existingWholesaleSub[0].id);
+                
+              if (updateWholesaleError) {
+                console.error('Error updating wholesale subscription:', updateWholesaleError);
+              }
+            }
+          }
+        }
+      }
+      
       const { error: issueError } = await supabase
         .from('stock_issue_logs')
         .update({
@@ -259,6 +382,7 @@ const StockIssueManagerComponent = () => {
       
       window.dispatchEvent(new CustomEvent('credential-added'));
       window.dispatchEvent(new CustomEvent('stock-issue-resolved'));
+      window.dispatchEvent(new CustomEvent('subscription-updated'));
     } catch (error) {
       console.error('Error resolving issue:', error);
       toast.error('Failed to resolve issue');
