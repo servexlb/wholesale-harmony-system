@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Service } from '@/lib/types';
-import { PlusCircle, Info } from "lucide-react";
+import { PlusCircle, Info, ShoppingCart } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 export interface ServiceCardProps {
@@ -95,12 +95,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           Details
         </Button>
         
-        <Button size="sm" className="text-xs" onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}>
-          <PlusCircle className="h-3.5 w-3.5 mr-1" />
-          {isMobile ? 'Add' : 'Add to Cart'}
+        <Button 
+          size="sm" 
+          className="text-xs" 
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+        >
+          <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+          {isMobile ? 'Buy' : 'Purchase for Customer'}
         </Button>
       </CardFooter>
     </Card>

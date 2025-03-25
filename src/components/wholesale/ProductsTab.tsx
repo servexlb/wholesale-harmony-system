@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Service, Customer, WholesaleOrder } from '@/lib/types';
 import PurchaseDialog from './PurchaseDialog';
@@ -25,7 +24,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
   const [selectedDuration, setSelectedDuration] = useState(1);
   const isMobile = useIsMobile();
   
-  // Filter services by search query
   const filteredServices = React.useMemo(() => {
     return services.filter(service => 
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -46,11 +44,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
   const handlePurchase = (duration?: number) => {
     if (selectedService) {
       setDetailsOpen(false);
-      // Set the selected duration if provided
       if (duration) {
         setSelectedDuration(duration);
       }
-      // Trigger purchase dialog
       setPurchaseDialogOpen(true);
     }
   };
@@ -60,10 +56,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
     
     try {
       if (selectedService) {
-        // Calculate the correct total price based on the service price and quantity
         order.totalPrice = selectedService.wholesalePrice * (order.quantity || 1);
-        
-        // Include the selected service name for better order tracking
         order.services = [selectedService.name];
       }
       
@@ -79,7 +72,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
     }
   };
 
-  // Handler for view details button on service card
   const handleViewDetails = (e: React.MouseEvent, service: Service) => {
     e.stopPropagation();
     setSelectedService(service);
