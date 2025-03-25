@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ const StockIssueManagerComponent = () => {
           status: issue.status as 'pending' | 'fulfilled' | 'cancelled',
           createdAt: issue.created_at,
           fulfilledAt: issue.fulfilled_at,
-          customerName: issue.customer_name || (associatedOrder?.customerName || "Unknown Customer"),
+          customerName: issue.customer_name || (associatedOrder ? associatedOrder.customer_name : "Unknown Customer"),
           priority: (issue.priority as 'high' | 'medium' | 'low') || 'medium',
           notes: issue.notes || '',
           // Additional order details

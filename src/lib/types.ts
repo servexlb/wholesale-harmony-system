@@ -66,6 +66,14 @@ export interface StockRequest {
   customerName?: string;
   priority?: 'high' | 'medium' | 'low';
   notes?: string;
+  orderDetails?: {
+    quantity?: number;
+    totalPrice?: number;
+    durationMonths?: number;
+    notes?: string;
+    accountId?: string;
+    customerEmail?: string;
+  };
 }
 
 // Add the missing User and UserRole types
