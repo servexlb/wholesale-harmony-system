@@ -59,6 +59,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
       if (selectedService) {
         order.totalPrice = selectedService.wholesalePrice * (order.quantity || 1);
         order.services = [selectedService.name];
+        order.serviceId = selectedService.id;
       }
       
       onOrderPlaced(order);
