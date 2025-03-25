@@ -237,6 +237,8 @@ const ServiceDetail = () => {
     setIsPurchasing(false);
     setIsConfirmDialogOpen(false);
     
+    window.dispatchEvent(new Event('purchase-completed'));
+    
     navigate("/dashboard");
   };
 
@@ -660,3 +662,4 @@ const ServiceDetail = () => {
 };
 
 export default ServiceDetail;
+

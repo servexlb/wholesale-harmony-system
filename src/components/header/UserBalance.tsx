@@ -97,12 +97,21 @@ const UserBalance = () => {
         }
       }, 60000); // 60 seconds
       
+      // Listen for custom purchase event
+      const handlePurchaseEvent = () => {
+        console.log('Purchase event detected, refreshing balance');
+        fetchUserBalance();
+      };
+      
+      window.addEventListener('purchase-completed', handlePurchaseEvent);
+      
       return () => {
         clearInterval(intervalId);
         supabase.removeChannel(profilesChannel);
+        window.removeEventListener('purchase-completed', handlePurchaseEvent);
       };
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, userBalance]);
 
   const handleClick = () => {
     navigate('/payment');
@@ -139,7 +148,7 @@ const UserBalance = () => {
         onClick={handleClick}
       >
         <CreditCard className="h-4 w-4" />
-        <span>{isPositiveChange ? '+' : '-'}${Math.abs(userBalance).toFixed(2)}</span>
+        <span>${userBalance.toFixed(2)}</span>
       </Button>
     </div>
   );
