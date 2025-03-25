@@ -1,13 +1,13 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminCredentialsList from './admin/AdminCredentialsList';
-import { AdminStockManager } from './admin/AdminStockManager';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useServiceManager } from '@/hooks/useServiceManager';
-import { Service } from '@/lib/types';
 import AddCredentialDialog from './admin/AddCredentialDialog';
-import { StockIssueManagerComponent } from './admin/StockIssueManager';
+import StockIssueManagerComponent from './admin/StockIssueManager';
+import { AdminStockManager } from './admin/AdminStockManager';
 
 // Renamed to avoid conflict
 const AdminDigitalInventory = () => {
@@ -34,7 +34,11 @@ const AdminDigitalInventory = () => {
           <AdminCredentialsList />
         </TabsContent>
         <TabsContent value="stock">
-          <AdminStockManager services={services} isLoading={isLoading} fetchServices={fetchServices} />
+          <AdminStockManager 
+            services={services} 
+            isLoading={isLoading} 
+            fetchServices={fetchServices} 
+          />
         </TabsContent>
         <TabsContent value="issues">
           <StockIssueManagerComponent />

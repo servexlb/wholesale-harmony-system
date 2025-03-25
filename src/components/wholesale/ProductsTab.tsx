@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ServiceCard from './ServiceCard';
@@ -224,6 +225,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           onPurchase={() => {
             setPurchaseOpen(true);
           }}
+          isOpen={!!selectedService}
         />
       )}
 

@@ -6,12 +6,97 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { toast } from "sonner";
-import { getPendingStockRequests, getStockIssues, resolveStockIssue, fulfillStockRequest } from '@/lib/credentialService';
-import { loadServices } from '@/lib/productManager';
+import { toast } from "@/lib/toast";
+import { supabase } from '@/integrations/supabase/client';
 import { StockRequest, Credential } from '@/lib/types';
 
-const StockIssueManager = () => {
+// Mock functions for demo
+const getPendingStockRequests = async (): Promise<StockRequest[]> => {
+  // Try to get from local storage first
+  const storedRequests = localStorage.getItem('stock_requests');
+  if (storedRequests) {
+    return JSON.parse(storedRequests);
+  }
+  
+  // Create some sample data if none exists
+  const sampleRequests: StockRequest[] = [
+    {
+      id: 'req-1',
+      userId: 'user-1',
+      serviceId: 'service-1',
+      serviceName: 'Netflix Premium',
+      orderId: 'order-1',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      customerName: 'John Smith',
+      priority: 'high',
+      notes: 'Customer needs this urgently'
+    },
+    {
+      id: 'req-2',
+      userId: 'user-2',
+      serviceId: 'service-2',
+      serviceName: 'Spotify Premium',
+      orderId: 'order-2',
+      status: 'pending',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      customerName: 'Jane Doe',
+      priority: 'medium'
+    }
+  ];
+  
+  localStorage.setItem('stock_requests', JSON.stringify(sampleRequests));
+  return sampleRequests;
+};
+
+const getStockIssues = async () => {
+  return [];
+};
+
+const resolveStockIssue = async (id: string, status: 'fulfilled' | 'cancelled') => {
+  const requests = JSON.parse(localStorage.getItem('stock_requests') || '[]');
+  const updatedRequests = requests.map((req: StockRequest) => 
+    req.id === id ? { ...req, status: status } : req
+  );
+  localStorage.setItem('stock_requests', JSON.stringify(updatedRequests));
+  
+  // Trigger event for UI update
+  window.dispatchEvent(new Event('stock-issue-resolved'));
+  return true;
+};
+
+const fulfillStockRequest = async (
+  requestId: string, 
+  orderId: string, 
+  userId: string, 
+  serviceId: string, 
+  credentials: Credential
+) => {
+  // Add the credential to stock
+  const credentialStock = {
+    id: `cred-${Date.now()}`,
+    serviceId: serviceId,
+    credentials: credentials,
+    status: 'assigned',
+    createdAt: new Date().toISOString(),
+    orderId: orderId,
+    userId: userId
+  };
+  
+  const stockItems = JSON.parse(localStorage.getItem('credential_stock') || '[]');
+  stockItems.push(credentialStock);
+  localStorage.setItem('credential_stock', JSON.stringify(stockItems));
+  
+  // Update the request status
+  await resolveStockIssue(requestId, 'fulfilled');
+  
+  // Trigger events for UI updates
+  window.dispatchEvent(new Event('credential-added'));
+  
+  return true;
+};
+
+export const StockIssueManagerComponent = () => {
   const [issues, setIssues] = useState<StockRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
@@ -31,8 +116,10 @@ const StockIssueManager = () => {
     loadIssues();
     
     // Load services for service names
-    const availableServices = loadServices();
-    setServices(availableServices);
+    const availableServices = localStorage.getItem('services');
+    if (availableServices) {
+      setServices(JSON.parse(availableServices));
+    }
     
     // Handle stock issue resolution
     const handleStockIssueResolved = () => {
@@ -51,7 +138,7 @@ const StockIssueManager = () => {
     
     try {
       const issues = await getPendingStockRequests();
-      setIssues(issues);
+      setIssues(issues.filter(issue => issue.status === 'pending'));
     } catch (error) {
       console.error('Error loading stock issues:', error);
       toast.error('Failed to load stock issues');
@@ -155,7 +242,7 @@ const StockIssueManager = () => {
               <div key={issue.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium">{getServiceName(issue.serviceId)}</h3>
+                    <h3 className="font-medium">{issue.serviceName || getServiceName(issue.serviceId)}</h3>
                     <p className="text-sm text-muted-foreground">
                       Requested by {issue.customerName} on {new Date(issue.createdAt).toLocaleDateString()}
                     </p>
@@ -200,7 +287,7 @@ const StockIssueManager = () => {
             <div className="grid gap-4 py-4">
               <div className="bg-muted p-3 rounded-md">
                 <h3 className="font-medium mb-1">
-                  {selectedIssue && getServiceName(selectedIssue.serviceId)}
+                  {selectedIssue?.serviceName || (selectedIssue && getServiceName(selectedIssue.serviceId))}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Customer: {selectedIssue?.customerName}
@@ -221,7 +308,7 @@ const StockIssueManager = () => {
                 <Label htmlFor="username">Username (Optional)</Label>
                 <Input
                   id="username"
-                  value={newCredential.username}
+                  value={newCredential.username || ''}
                   onChange={(e) => setNewCredential(prev => ({ ...prev, username: e.target.value }))}
                   placeholder="username"
                 />
@@ -264,4 +351,4 @@ const StockIssueManager = () => {
   );
 };
 
-export default StockIssueManager;
+export default StockIssueManagerComponent;
