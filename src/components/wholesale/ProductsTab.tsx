@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Service, Customer, WholesaleOrder } from '@/lib/types';
 import PurchaseDialog from './PurchaseDialog';
@@ -142,6 +141,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderP
           customers={customers}
           serviceId={selectedService.id}
           serviceName={selectedService.name}
+          service={selectedService}
           duration={selectedDuration}
         >
           {null}

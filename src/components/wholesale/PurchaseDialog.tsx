@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,9 @@ import NotesInput from './NotesInput';
 import PriceDisplay from './PriceDisplay';
 import ServiceDisplay from './ServiceDisplay';
 import TotalPriceDisplay from './TotalPriceDisplay';
+import ProductSearch from './ProductSearch';
 import { v4 as uuidv4 } from 'uuid';
+import { loadServices } from '@/lib/productManager';
 
 interface PurchaseDialogProps {
   onPurchase: (order: WholesaleOrder) => void;
@@ -48,21 +51,35 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   const [notes, setNotes] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedDuration, setSelectedDuration] = useState(duration.toString());
+  const [selectedServiceId, setSelectedServiceId] = useState(serviceId);
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | undefined>(service);
 
+  // Load available services
+  useEffect(() => {
+    const availableServices = loadServices();
+    console.log('Available services in PurchaseDialog:', availableServices.length);
+    setServices(availableServices);
+  }, []);
+
+  // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setNotes('');
       setSelectedDuration(duration.toString());
+      setSelectedServiceId(serviceId);
     } else {
       setNotes(customerNotes || '');
       setSelectedDuration(duration.toString());
+      setSelectedServiceId(serviceId);
       
       if (selectedCustomerId) {
         setSelectedCustomer(selectedCustomerId);
       }
     }
-  }, [open, customerNotes, selectedCustomerId, duration]);
+  }, [open, customerNotes, selectedCustomerId, duration, serviceId]);
 
+  // Auto-select customer by name
   useEffect(() => {
     if (open && customerName && customers.length > 0 && !selectedCustomer) {
       const customer = customers.find(c => c.name === customerName);
@@ -74,12 +91,24 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   }, [customerName, customers, selectedCustomer, onCustomerChange, open]);
 
+  // Update selected customer when prop changes
   useEffect(() => {
     if (selectedCustomerId && selectedCustomerId !== selectedCustomer) {
       console.log('Setting customer from selectedCustomerId:', selectedCustomerId);
       setSelectedCustomer(selectedCustomerId);
     }
   }, [selectedCustomerId, selectedCustomer]);
+
+  // Update selected service when service ID changes
+  useEffect(() => {
+    if (selectedServiceId && services.length > 0) {
+      const foundService = services.find(s => s.id === selectedServiceId);
+      if (foundService) {
+        console.log('Service selected:', foundService.name);
+        setSelectedService(foundService);
+      }
+    }
+  }, [selectedServiceId, services]);
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomer(customerId);
@@ -88,25 +117,35 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     }
   };
 
+  const handleServiceChange = (serviceId: string) => {
+    console.log('Service changed to:', serviceId);
+    setSelectedServiceId(serviceId);
+  };
+
   const calculateTotalPrice = () => {
-    if (!service) return 0;
+    if (!selectedService) return 0;
     
     // Always use the wholesalePrice for this component since it's for wholesale purchases
-    const basePrice = service.wholesalePrice || 0;
+    const basePrice = selectedService.wholesalePrice || 0;
     
     // Calculate adjusted price based on service type and duration
-    const durationAdjustedPrice = service.type === 'subscription' 
+    const durationAdjustedPrice = selectedService.type === 'subscription' 
       ? basePrice * parseInt(selectedDuration) 
       : basePrice;
       
     return durationAdjustedPrice;
   };
 
-  const isSubscription = service?.type === 'subscription';
+  const isSubscription = selectedService?.type === 'subscription';
 
   const handleSubmit = () => {
     if (!selectedCustomer) {
       alert('Please select a customer');
+      return;
+    }
+
+    if (!selectedServiceId || !selectedService) {
+      alert('Please select a service');
       return;
     }
 
@@ -118,7 +157,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     const order: WholesaleOrder = {
       id: orderId,
       customerId: selectedCustomer,
-      serviceId: serviceId || '',
+      serviceId: selectedServiceId,
       quantity: 1,
       totalPrice: calculateTotalPrice(),
       status: 'pending',
@@ -135,7 +174,8 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   };
 
   // Log price details for debugging
-  console.log('Service wholesale price:', service?.wholesalePrice);
+  console.log('Selected service:', selectedService?.name);
+  console.log('Service wholesale price:', selectedService?.wholesalePrice);
   console.log('Calculated total price:', calculateTotalPrice());
 
   return (
@@ -149,26 +189,34 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <PriceDisplay 
-            service={service}
-            selectedDuration={selectedDuration}
-            isSubscription={service?.type === 'subscription'}
-            calculateTotalPrice={calculateTotalPrice}
-          />
-
           <CustomerSelector 
             customers={customers}
             selectedCustomer={selectedCustomer}
             onCustomerChange={handleCustomerChange}
           />
 
-          <ServiceDisplay serviceName={serviceName} />
-
-          <DurationSelector 
-            selectedDuration={selectedDuration}
-            onDurationChange={setSelectedDuration}
-            isSubscription={isSubscription}
+          <ProductSearch 
+            products={services}
+            selectedProductId={selectedServiceId}
+            onProductSelect={handleServiceChange}
           />
+
+          {selectedService && (
+            <PriceDisplay 
+              service={selectedService}
+              selectedDuration={selectedDuration}
+              isSubscription={isSubscription}
+              calculateTotalPrice={calculateTotalPrice}
+            />
+          )}
+
+          {selectedService && selectedService.type === 'subscription' && (
+            <DurationSelector 
+              selectedDuration={selectedDuration}
+              onDurationChange={setSelectedDuration}
+              isSubscription={isSubscription}
+            />
+          )}
 
           <NotesInput 
             notes={notes}
@@ -182,7 +230,10 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting || !selectedServiceId || !selectedCustomer}
+          >
             {isSubmitting ? 'Processing...' : 'Complete Purchase'}
           </Button>
         </DialogFooter>
