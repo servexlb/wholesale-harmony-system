@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import StockSubscriptions from '@/components/StockSubscriptions';
@@ -24,14 +23,12 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
   const [activeTab, setActiveTab] = useState('subscription-manager');
   const [userBalance, setUserBalance] = useState(0);
 
-  // Get current wholesaler ID
   const wholesalerId = localStorage.getItem('wholesalerId') || '';
-  
-  // Count ending soon subscriptions
+
   const endingSoonCount = subscriptions.filter(sub => 
     isSubscriptionEndingSoon(sub, 5)
   ).length;
-  
+
   useEffect(() => {
     try {
       if (!Array.isArray(subscriptions)) {
@@ -40,9 +37,7 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         return;
       }
       
-      // Filter out any potentially problematic subscriptions
       const validSubs = subscriptions.filter(sub => {
-        // Ensure subscription has all required properties
         return (
           sub && 
           typeof sub === 'object' &&
@@ -55,18 +50,17 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
       });
       
       setSafeSubscriptions(validSubs);
+      console.log(`Loaded ${validSubs.length} valid subscriptions in StockTab`);
     } catch (error) {
       console.error('Error processing subscriptions:', error);
       setSafeSubscriptions([]);
     }
   }, [subscriptions]);
-  
-  // Fetch user balance from Supabase
+
   const fetchUserBalance = useCallback(async () => {
     try {
       if (!wholesalerId) return 0;
 
-      // Get session to check if authenticated
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id || wholesalerId;
       
@@ -75,7 +69,6 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         return 0;
       }
 
-      // Fetch the user's balance from the profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
@@ -84,15 +77,12 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         
       if (error) {
         console.error('Error fetching user balance:', error);
-        // Fallback to localStorage
         const userBalanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
         return userBalanceStr ? parseFloat(userBalanceStr) : 0;
       }
       
       if (data) {
-        // Update the state with the fetched balance
         setUserBalance(data.balance || 0);
-        // Also sync to localStorage for fallback
         localStorage.setItem(`userBalance_${wholesalerId}`, data.balance.toString());
         return data.balance;
       }
@@ -100,26 +90,22 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
       return 0;
     } catch (error) {
       console.error('Error getting user balance:', error);
-      // Fallback to localStorage
       const userBalanceStr = localStorage.getItem(`userBalance_${wholesalerId}`);
       return userBalanceStr ? parseFloat(userBalanceStr) : 0;
     }
   }, [wholesalerId]);
 
-  // Load the user balance on component mount
   useEffect(() => {
     fetchUserBalance();
     
-    // Set up interval to refresh balance every minute
     const intervalId = setInterval(() => {
       fetchUserBalance();
-    }, 60000); // 60 seconds
+    }, 60000);
     
     return () => clearInterval(intervalId);
   }, [fetchUserBalance]);
 
   const handleRenewal = useCallback(async (subscription: Subscription) => {
-    // Prevent multiple simultaneous renewals
     if (isProcessing) {
       toast.info("Please wait while processing the current request");
       return;
@@ -142,23 +128,19 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         return;
       }
       
-      // Calculate renewal price (use wholesale price)
       const renewalPrice = product.wholesalePrice || 0;
       
-      // Check if user has sufficient balance
       const currentBalance = await fetchUserBalance();
       
       if (currentBalance < renewalPrice) {
         toast.error("Insufficient balance", {
           description: "You don't have enough funds to renew this subscription"
         });
-        // Redirect to payment page
         navigate("/payment");
         setIsProcessing(false);
         return;
       }
       
-      // Get session to check if authenticated
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id || wholesalerId;
       
@@ -168,7 +150,6 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         return;
       }
       
-      // Update user balance in Supabase
       const newBalance = currentBalance - renewalPrice;
       const { error: updateError } = await supabase
         .from('profiles')
@@ -182,21 +163,15 @@ const StockTab: React.FC<StockTabProps> = ({ subscriptions }) => {
         return;
       }
       
-      // Update local state
       setUserBalance(newBalance);
-      
-      // Also sync to localStorage for fallback
       localStorage.setItem(`userBalance_${wholesalerId}`, newBalance.toString());
       
-      // Add subscription to renewed list
       setRenewedSubscriptions(prev => [...prev, subscription.id]);
       
-      // Update UI with success message
       toast.success(`Subscription renewed successfully!`, {
         description: `$${renewalPrice.toFixed(2)} has been deducted from your balance.`
       });
       
-      // Release the lock
       setIsProcessing(false);
     } catch (error) {
       console.error('Error renewing subscription:', error);

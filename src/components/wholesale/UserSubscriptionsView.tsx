@@ -143,6 +143,30 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     return groups;
   }, [subscriptions]);
 
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm) return groupedSubscriptions;
+    
+    const filtered: { [key: string]: Subscription[] } = {};
+    
+    Object.entries(groupedSubscriptions).forEach(([serviceId, subs]) => {
+      const productName = getProductName(serviceId).toLowerCase();
+      const matchingSubs = subs.filter(sub => {
+        const credentialMatch = sub.credentials && (
+          (sub.credentials.email && sub.credentials.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (sub.credentials.username && sub.credentials.username.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+        
+        return productName.includes(searchTerm.toLowerCase()) || credentialMatch;
+      });
+      
+      if (matchingSubs.length > 0) {
+        filtered[serviceId] = matchingSubs;
+      }
+    });
+    
+    return filtered;
+  }, [groupedSubscriptions, searchTerm]);
+
   return (
     <Card>
       <CardHeader>
@@ -170,7 +194,7 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {Object.entries(groupedSubscriptions).map(([serviceId, serviceSubs]) => {
+            {Object.entries(filteredGroups).map(([serviceId, serviceSubs]) => {
               const productName = getProductName(serviceId);
               
               return (

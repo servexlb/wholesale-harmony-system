@@ -31,7 +31,7 @@ const WholesaleSubscriptionManager: React.FC<WholesaleSubscriptionManagerProps> 
   // Get the wholesaler ID from props or localStorage
   const effectiveWholesalerId = wholesalerId || localStorage.getItem('wholesalerId') || '';
 
-  // Fetch all wholesale subscriptions
+  // Fetch all wholesale subscriptions for the current wholesaler
   useEffect(() => {
     if (!effectiveWholesalerId) {
       setIsLoading(false);
@@ -42,55 +42,78 @@ const WholesaleSubscriptionManager: React.FC<WholesaleSubscriptionManagerProps> 
       try {
         setIsLoading(true);
         
-        // Try to fetch from Supabase first
-        const { data: wholesaleSubscriptions, error } = await supabase
-          .from('wholesale_subscriptions')
-          .select('*')
+        // First, get all customers of this wholesaler
+        const { data: wholesaleCustomers, error: customersError } = await supabase
+          .from('wholesale_customers')
+          .select('id')
           .eq('wholesaler_id', effectiveWholesalerId);
           
-        if (error) {
-          console.error('Error fetching wholesale subscriptions:', error);
-          // Fallback to localStorage
+        if (customersError) {
+          console.error('Error fetching wholesale customers:', customersError);
           fallbackToLocalStorage();
           return;
         }
         
-        if (wholesaleSubscriptions && wholesaleSubscriptions.length > 0) {
-          const formattedSubscriptions: Subscription[] = wholesaleSubscriptions.map(sub => {
-            // Process credentials if present
-            let parsedCredentials = undefined;
-            if (sub.credentials) {
-              try {
-                // Handle both string and object formats
-                const credsData = typeof sub.credentials === 'string' 
-                  ? JSON.parse(sub.credentials) 
-                  : sub.credentials;
-                
-                parsedCredentials = {
-                  email: credsData.email || '',
-                  password: credsData.password || '',
-                  username: credsData.username,
-                  ...(credsData || {})
-                };
-              } catch (e) {
-                console.error('Error parsing credentials:', e);
-              }
-            }
-            
-            return {
-              id: sub.id,
-              userId: sub.customer_id,
-              serviceId: sub.service_id,
-              startDate: sub.start_date,
-              endDate: sub.end_date,
-              status: sub.status as "active" | "expired" | "cancelled",
-              durationMonths: sub.duration_months,
-              credentials: parsedCredentials
-            };
-          });
+        if (wholesaleCustomers && wholesaleCustomers.length > 0) {
+          // Get all customer IDs
+          const customerIds = wholesaleCustomers.map(c => c.id);
           
-          setSubscriptions(formattedSubscriptions);
+          // Fetch all subscriptions for these customers
+          const { data: wholesaleSubscriptions, error } = await supabase
+            .from('wholesale_subscriptions')
+            .select('*')
+            .in('customer_id', customerIds);
+            
+          if (error) {
+            console.error('Error fetching wholesale subscriptions:', error);
+            fallbackToLocalStorage();
+            return;
+          }
+          
+          if (wholesaleSubscriptions && wholesaleSubscriptions.length > 0) {
+            console.log(`Fetched ${wholesaleSubscriptions.length} subscriptions for ${customerIds.length} customers`);
+            
+            const formattedSubscriptions: Subscription[] = wholesaleSubscriptions.map(sub => {
+              // Process credentials if present
+              let parsedCredentials = undefined;
+              if (sub.credentials) {
+                try {
+                  // Handle both string and object formats
+                  const credsData = typeof sub.credentials === 'string' 
+                    ? JSON.parse(sub.credentials) 
+                    : sub.credentials;
+                  
+                  parsedCredentials = {
+                    email: credsData.email || '',
+                    password: credsData.password || '',
+                    username: credsData.username,
+                    ...(credsData || {})
+                  };
+                } catch (e) {
+                  console.error('Error parsing credentials:', e);
+                }
+              }
+              
+              return {
+                id: sub.id,
+                userId: sub.customer_id,
+                serviceId: sub.service_id,
+                startDate: sub.start_date,
+                endDate: sub.end_date,
+                status: sub.status as "active" | "expired" | "cancelled" | "pending",
+                durationMonths: sub.duration_months,
+                credentials: parsedCredentials,
+                isPending: sub.status === 'pending' || !sub.credentials
+              };
+            });
+            
+            setSubscriptions(formattedSubscriptions);
+          } else {
+            console.log('No subscriptions found for these customers, trying fallback');
+            fallbackToLocalStorage();
+          }
         } else {
+          console.log('No customers found for this wholesaler, trying fallback');
           fallbackToLocalStorage();
         }
         
@@ -106,8 +129,14 @@ const WholesaleSubscriptionManager: React.FC<WholesaleSubscriptionManagerProps> 
         const savedSubscriptions = localStorage.getItem('wholesaleSubscriptions');
         if (savedSubscriptions) {
           const allSubs = JSON.parse(savedSubscriptions);
-          // Filter subscriptions managed by this wholesaler
-          setSubscriptions(allSubs);
+          // Include all subscriptions from localStorage for this wholesaler's customers
+          const relevantSubs = allSubs.filter((sub: Subscription) => {
+            const customer = customers.find(c => c.id === sub.userId);
+            return customer?.wholesalerId === effectiveWholesalerId;
+          });
+          
+          setSubscriptions(relevantSubs);
+          console.log(`Loaded ${relevantSubs.length} subscriptions from localStorage`);
         } else {
           setSubscriptions([]);
         }
@@ -127,8 +156,7 @@ const WholesaleSubscriptionManager: React.FC<WholesaleSubscriptionManagerProps> 
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'wholesale_subscriptions',
-        filter: `wholesaler_id=eq.${effectiveWholesalerId}`
+        table: 'wholesale_subscriptions'
       }, (_payload) => {
         // Refresh subscriptions when data changes
         fetchSubscriptions();

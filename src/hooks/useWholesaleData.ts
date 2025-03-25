@@ -72,42 +72,89 @@ export function useWholesaleData(currentWholesaler: string) {
           setCustomersData(formattedCustomers);
           
           localStorage.setItem('wholesaleCustomers', JSON.stringify(formattedCustomers));
+          
+          if (formattedCustomers.length > 0) {
+            const customerIds = formattedCustomers.map(c => c.id);
+            
+            const { data: allSubs, error: allSubsError } = await supabase
+              .from('wholesale_subscriptions')
+              .select('*')
+              .in('customer_id', customerIds);
+              
+            if (allSubsError) {
+              console.error('Error fetching all subscriptions:', allSubsError);
+            } else if (allSubs) {
+              const formattedAllSubs = allSubs.map(sub => {
+                let credentialsObj = undefined;
+                
+                if (sub.credentials) {
+                  const creds = sub.credentials as any;
+                  credentialsObj = {
+                    username: typeof creds === 'object' ? creds.username || '' : '',
+                    password: typeof creds === 'object' ? creds.password || '' : '',
+                    email: typeof creds === 'object' ? creds.email || '' : '',
+                    notes: typeof creds === 'object' ? creds.notes || '' : ''
+                  };
+                }
+                
+                return {
+                  id: sub.id,
+                  userId: sub.customer_id,
+                  serviceId: sub.service_id,
+                  startDate: sub.start_date,
+                  endDate: sub.end_date,
+                  status: sub.status as 'active' | 'expired' | 'cancelled' | 'pending',
+                  durationMonths: sub.duration_months,
+                  credentials: credentialsObj,
+                  isPending: sub.status === 'pending' || !sub.credentials
+                };
+              });
+              
+              setSubscriptions(formattedAllSubs);
+              localStorage.setItem('wholesaleSubscriptions', JSON.stringify(formattedAllSubs));
+            }
+          }
         }
 
-        const { data: subs, error: subsError } = await supabase
-          .from('wholesale_subscriptions')
-          .select('*')
-          .eq('wholesaler_id', session.session.user.id);
-          
-        if (subsError) {
-          console.error('Error fetching subscriptions:', subsError);
-          toast.error('Error loading subscription data');
-        } else if (subs) {
-          const formattedSubs = subs.map(sub => {
-            let credentialsObj = undefined;
+        if (subscriptions.length === 0) {
+          const { data: subs, error: subsError } = await supabase
+            .from('wholesale_subscriptions')
+            .select('*')
+            .eq('wholesaler_id', session.session.user.id);
             
-            if (sub.credentials) {
-              const creds = sub.credentials as any;
-              credentialsObj = {
-                username: typeof creds === 'object' ? creds.username || '' : '',
-                password: typeof creds === 'object' ? creds.password || '' : '',
-                email: typeof creds === 'object' ? creds.email || '' : '',
-                notes: typeof creds === 'object' ? creds.notes || '' : ''
+          if (subsError) {
+            console.error('Error fetching subscriptions:', subsError);
+            toast.error('Error loading subscription data');
+          } else if (subs && subs.length > 0) {
+            const formattedSubs = subs.map(sub => {
+              let credentialsObj = undefined;
+              
+              if (sub.credentials) {
+                const creds = sub.credentials as any;
+                credentialsObj = {
+                  username: typeof creds === 'object' ? creds.username || '' : '',
+                  password: typeof creds === 'object' ? creds.password || '' : '',
+                  email: typeof creds === 'object' ? creds.email || '' : '',
+                  notes: typeof creds === 'object' ? creds.notes || '' : ''
+                };
+              }
+              
+              return {
+                id: sub.id,
+                userId: sub.customer_id,
+                serviceId: sub.service_id,
+                startDate: sub.start_date,
+                endDate: sub.end_date,
+                status: sub.status as 'active' | 'expired' | 'cancelled' | 'pending',
+                durationMonths: sub.duration_months,
+                credentials: credentialsObj,
+                isPending: sub.status === 'pending' || !sub.credentials
               };
-            }
+            });
             
-            return {
-              id: sub.id,
-              userId: sub.customer_id,
-              serviceId: sub.service_id,
-              startDate: sub.start_date,
-              endDate: sub.end_date,
-              status: sub.status as 'active' | 'expired' | 'cancelled',
-              durationMonths: sub.duration_months,
-              credentials: credentialsObj
-            };
-          });
-          setSubscriptions(formattedSubs);
+            setSubscriptions(formattedSubs);
+            localStorage.setItem('wholesaleSubscriptions', JSON.stringify(formattedSubs));
+          }
         }
 
         const { data: orderData, error: ordersError } = await supabase
@@ -191,11 +238,8 @@ export function useWholesaleData(currentWholesaler: string) {
   }, [currentWholesaler, customersData]);
   
   const filteredSubscriptions = useMemo(() => {
-    if (!wholesalerCustomers.length) return [];
-    return subscriptions.filter(sub => 
-      wholesalerCustomers.some(customer => customer.id === sub.userId)
-    );
-  }, [wholesalerCustomers, subscriptions]);
+    return subscriptions;
+  }, [subscriptions]);
 
   const handleOrderPlaced = async (order: WholesaleOrder) => {
     try {
