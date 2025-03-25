@@ -172,6 +172,23 @@ const CustomerCredentials: React.FC<CustomerCredentialsProps> = ({ orderId }) =>
                         </div>
                       )}
                       
+                      {credentials.pinCode && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">PIN:</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyToClipboard(credentials.pinCode, 'PIN')}
+                            >
+                              {copiedField === 'PIN' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                            </Button>
+                          </div>
+                          <div className="text-sm font-mono bg-muted p-2 rounded">{credentials.pinCode}</div>
+                        </div>
+                      )}
+                      
                       {credentials.notes && (
                         <div className="space-y-1">
                           <span className="text-sm font-medium">Notes:</span>

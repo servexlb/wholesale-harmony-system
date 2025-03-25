@@ -14,6 +14,7 @@ interface CredentialDisplayProps {
     email?: string;
     password?: string;
     username?: string;
+    pinCode?: string;
     notes?: string;
   };
   isPending?: boolean;
@@ -38,6 +39,7 @@ Service: ${serviceName}
 ${credentials.email ? `Email: ${credentials.email}` : ''}
 ${credentials.username ? `Username: ${credentials.username}` : ''}
 ${credentials.password ? `Password: ${credentials.password}` : ''}
+${credentials.pinCode ? `PIN: ${credentials.pinCode}` : ''}
 ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
     `.trim();
     
@@ -110,6 +112,13 @@ ${credentials.notes ? `Notes: ${credentials.notes}` : ''}
                 <div className="grid grid-cols-3">
                   <span className="text-muted-foreground text-xs">Password:</span>
                   <span className="col-span-2 font-mono text-xs bg-gray-100 px-2 py-1 rounded">{credentials.password}</span>
+                </div>
+              )}
+              
+              {credentials.pinCode && (
+                <div className="grid grid-cols-3">
+                  <span className="text-muted-foreground text-xs">PIN:</span>
+                  <span className="col-span-2 font-mono text-xs bg-gray-100 px-2 py-1 rounded">{credentials.pinCode}</span>
                 </div>
               )}
               

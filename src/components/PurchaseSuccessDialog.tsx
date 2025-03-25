@@ -17,6 +17,7 @@ export interface PurchaseSuccessDialogProps {
     email?: string;
     password?: string;
     username?: string;
+    pinCode?: string;
     notes?: string;
   };
 }
@@ -128,6 +129,23 @@ const PurchaseSuccessDialog: React.FC<PurchaseSuccessDialogProps> = ({
                     </Button>
                   </div>
                   <div className="bg-muted p-2 rounded text-xs font-mono">{credentials.username}</div>
+                </div>
+              )}
+              
+              {credentials.pinCode && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>PIN:</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => handleCopyToClipboard(credentials.pinCode || '')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="bg-muted p-2 rounded text-xs font-mono">{credentials.pinCode}</div>
                 </div>
               )}
               

@@ -20,7 +20,8 @@ const CredentialDisplay: React.FC<CredentialDisplayProps> = ({ subscriptions, se
     sub.credentials && 
     (sub.credentials.email || 
      sub.credentials.username || 
-     sub.credentials.password)
+     sub.credentials.password ||
+     sub.credentials.pinCode)
   );
 
   if (subscriptionsWithCredentials.length === 0) {

@@ -24,7 +24,8 @@ const StockIssueManagerComponent = () => {
     email: '',
     password: '',
     username: '',
-    notes: ''
+    notes: '',
+    pinCode: ''
   });
   
   // Load stock issues
@@ -118,7 +119,8 @@ const StockIssueManagerComponent = () => {
       email: '',
       password: '',
       username: '',
-      notes: ''
+      notes: '',
+      pinCode: ''
     });
     setShowResolveDialog(true);
   };
@@ -328,6 +330,16 @@ const StockIssueManagerComponent = () => {
                   value={newCredential.password}
                   onChange={(e) => setNewCredential(prev => ({ ...prev, password: e.target.value }))}
                   placeholder="••••••••"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="pinCode">PIN Code (Optional)</Label>
+                <Input
+                  id="pinCode"
+                  value={newCredential.pinCode || ''}
+                  onChange={(e) => setNewCredential(prev => ({ ...prev, pinCode: e.target.value }))}
+                  placeholder="1234"
                 />
               </div>
               
