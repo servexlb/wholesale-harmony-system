@@ -300,8 +300,22 @@ export function useWholesaleData(currentWholesaler: string) {
         };
         
         setSubscriptions(prev => {
-          const updatedSubscriptions = [...prev, newSubscription];
-          return updatedSubscriptions;
+          const existingSubscriptionIndex = prev.findIndex(
+            sub => 
+              sub.userId === newSubscription.userId && 
+              sub.serviceId === newSubscription.serviceId
+          );
+          
+          if (existingSubscriptionIndex !== -1) {
+            const updatedSubscriptions = [...prev];
+            updatedSubscriptions[existingSubscriptionIndex] = {
+              ...updatedSubscriptions[existingSubscriptionIndex],
+              ...newSubscription
+            };
+            return updatedSubscriptions;
+          } else {
+            return [...prev, newSubscription];
+          }
         });
         
         if (session?.session) {

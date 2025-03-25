@@ -1,14 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Key, User, Clock, AlertTriangle } from 'lucide-react';
 import { Subscription } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 import { products } from '@/lib/data';
-import {
-  InputWithIcon
-} from '@/components/ui/input-with-icon';
+import { InputWithIcon } from '@/components/ui/input-with-icon';
 import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,7 +26,7 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     const fetchUserSubscriptions = async () => {
       setIsLoading(true);
       try {
-        // First try to fetch from Supabase
+        // Fetch ALL subscriptions for the user
         const { data: supabaseSubscriptions, error } = await supabase
           .from('wholesale_subscriptions')
           .select('*')
@@ -37,7 +34,6 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
           
         if (error) {
           console.error('Error fetching subscriptions:', error);
-          // Fallback to local storage
           loadFromLocalStorage();
           return;
         }
@@ -68,7 +64,13 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
               isPending: sub.status === 'pending' || !sub.credentials
             };
           });
-          setSubscriptions(formattedSubs);
+          
+          // Sort subscriptions by end date (most recent first)
+          const sortedSubs = formattedSubs.sort((a, b) => 
+            new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+          );
+          
+          setSubscriptions(sortedSubs);
         } else {
           loadFromLocalStorage();
         }
@@ -81,7 +83,6 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     };
     
     const loadFromLocalStorage = () => {
-      // Fallback to localStorage data
       const savedSubscriptions = localStorage.getItem('wholesaleSubscriptions');
       if (savedSubscriptions) {
         try {
@@ -91,7 +92,10 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
             .map((sub: Subscription) => ({
               ...sub,
               isPending: sub.status === 'pending' || !sub.credentials
-            }));
+            }))
+            .sort((a: Subscription, b: Subscription) => 
+              new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+            );
           setSubscriptions(userSubs);
         } catch (error) {
           console.error('Error parsing subscriptions from localStorage:', error);
@@ -128,17 +132,16 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     return product ? product.name : "Unknown Service";
   };
 
-  // Filter subscriptions based on search term
-  const filteredSubscriptions = subscriptions.filter(sub => {
-    const productName = getProductName(sub.serviceId).toLowerCase();
-    const searchLower = searchTerm.toLowerCase();
-    
-    return (
-      productName.includes(searchLower) ||
-      (sub.credentials?.email && sub.credentials.email.toLowerCase().includes(searchLower)) ||
-      (sub.credentials?.username && sub.credentials.username.toLowerCase().includes(searchLower))
-    );
-  });
+  const groupedSubscriptions = React.useMemo(() => {
+    const groups: { [key: string]: Subscription[] } = {};
+    subscriptions.forEach(sub => {
+      if (!groups[sub.serviceId]) {
+        groups[sub.serviceId] = [];
+      }
+      groups[sub.serviceId].push(sub);
+    });
+    return groups;
+  }, [subscriptions]);
 
   return (
     <Card>
@@ -161,97 +164,107 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
       <CardContent>
         {isLoading ? (
           <div className="p-4 text-center">Loading subscriptions...</div>
-        ) : filteredSubscriptions.length === 0 ? (
+        ) : subscriptions.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
             No subscriptions found for this user.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSubscriptions.map((subscription) => {
-              const productName = getProductName(subscription.serviceId);
-              const statusInfo = getSubscriptionStatus(subscription);
+          <div className="space-y-4">
+            {Object.entries(groupedSubscriptions).map(([serviceId, serviceSubs]) => {
+              const productName = getProductName(serviceId);
               
               return (
-                <Card key={subscription.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium">{productName}</h3>
-                      <Badge 
-                        variant={
-                          statusInfo.color === "green" ? "default" : 
-                          statusInfo.color === "orange" ? "outline" : 
-                          "destructive"
-                        }
-                        className={
-                          statusInfo.color === "orange" 
-                            ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
-                            : ""
-                        }
-                      >
-                        {statusInfo.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>Expires: {new Date(subscription.endDate).toLocaleDateString()}</span>
-                      </div>
+                <div key={serviceId} className="bg-muted/30 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-3">{productName}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {serviceSubs.map((subscription) => {
+                      const statusInfo = getSubscriptionStatus(subscription);
                       
-                      {subscription.durationMonths && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{subscription.durationMonths} month{subscription.durationMonths > 1 ? 's' : ''}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {subscription.isPending || !subscription.credentials ? (
-                      <div className="mt-3 pt-3 border-t">
-                        <div className="flex items-center gap-1 text-amber-600">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="font-medium">Pending Credentials</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Your subscription is active but credentials are being processed.
-                        </p>
-                      </div>
-                    ) : subscription.credentials && (
-                      <div className="mt-3 pt-3 border-t">
-                        <div className="flex items-center gap-1 mb-2">
-                          <Key className="h-4 w-4 text-primary" />
-                          <span className="font-medium">Credentials</span>
-                        </div>
-                        
-                        <div className="bg-muted/30 p-2 rounded text-sm">
-                          {subscription.credentials.email && (
-                            <div className="mb-1">
-                              <span className="font-medium">Email:</span> {subscription.credentials.email}
+                      return (
+                        <Card key={subscription.id} className="overflow-hidden">
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-medium">{productName}</h3>
+                              <Badge 
+                                variant={
+                                  statusInfo.color === "green" ? "default" : 
+                                  statusInfo.color === "orange" ? "outline" : 
+                                  "destructive"
+                                }
+                                className={
+                                  statusInfo.color === "orange" 
+                                    ? "border-orange-300 bg-orange-100 text-orange-800 hover:bg-orange-100" 
+                                    : ""
+                                }
+                              >
+                                {statusInfo.status}
+                              </Badge>
                             </div>
-                          )}
-                          
-                          {subscription.credentials.password && (
-                            <div className="mb-1">
-                              <span className="font-medium">Password:</span> {subscription.credentials.password}
+                            
+                            <div className="text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1 mt-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>Expires: {new Date(subscription.endDate).toLocaleDateString()}</span>
+                              </div>
+                              
+                              {subscription.durationMonths && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{subscription.durationMonths} month{subscription.durationMonths > 1 ? 's' : ''}</span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          
-                          {subscription.credentials.username && (
-                            <div className="mb-1">
-                              <span className="font-medium">Username:</span> {subscription.credentials.username}
-                            </div>
-                          )}
-                          
-                          {subscription.credentials.notes && (
-                            <div className="mt-1 pt-1 border-t border-gray-200">
-                              <span className="font-medium">Notes:</span> {subscription.credentials.notes}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                            
+                            {subscription.isPending || !subscription.credentials ? (
+                              <div className="mt-3 pt-3 border-t">
+                                <div className="flex items-center gap-1 text-amber-600">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <span className="font-medium">Pending Credentials</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Your subscription is active but credentials are being processed.
+                                </p>
+                              </div>
+                            ) : subscription.credentials && (
+                              <div className="mt-3 pt-3 border-t">
+                                <div className="flex items-center gap-1 mb-2">
+                                  <Key className="h-4 w-4 text-primary" />
+                                  <span className="font-medium">Credentials</span>
+                                </div>
+                                
+                                <div className="bg-muted/30 p-2 rounded text-sm">
+                                  {subscription.credentials.email && (
+                                    <div className="mb-1">
+                                      <span className="font-medium">Email:</span> {subscription.credentials.email}
+                                    </div>
+                                  )}
+                                  
+                                  {subscription.credentials.password && (
+                                    <div className="mb-1">
+                                      <span className="font-medium">Password:</span> {subscription.credentials.password}
+                                    </div>
+                                  )}
+                                  
+                                  {subscription.credentials.username && (
+                                    <div className="mb-1">
+                                      <span className="font-medium">Username:</span> {subscription.credentials.username}
+                                    </div>
+                                  )}
+                                  
+                                  {subscription.credentials.notes && (
+                                    <div className="mt-1 pt-1 border-t border-gray-200">
+                                      <span className="font-medium">Notes:</span> {subscription.credentials.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>
