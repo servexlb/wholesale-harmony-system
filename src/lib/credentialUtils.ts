@@ -1,5 +1,5 @@
 
-import { Credential, Subscription } from '@/lib/types';
+import { Credential, Subscription, Order } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 
 // Convert a subscription's credentials to a Credential object for stock
@@ -9,6 +9,7 @@ export const convertSubscriptionToStock = (data: {
     password?: string;
     email?: string;
     notes?: string;
+    pinCode?: string;
     [key: string]: any;
   } 
 }): Credential => {
@@ -197,20 +198,26 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       return null;
     }
     
-    // Add credentials property if it doesn't exist
+    // Handle case where credentials property might not exist
     if (!data.credentials) {
       console.log('No credentials found for order:', orderId);
       return null;
     }
     
-    // Parse credentials if they're a string, or use directly if object
     let credentials: Credential;
+    
+    // Parse credentials if they're a string, or use directly if object
     if (typeof data.credentials === 'string') {
       try {
         credentials = JSON.parse(data.credentials) as Credential;
       } catch (e) {
         console.error('Error parsing credentials string:', e);
-        return null;
+        return {
+          email: '',
+          password: '',
+          username: '',
+          pinCode: ''
+        };
       }
     } else {
       // Type assertion needed here

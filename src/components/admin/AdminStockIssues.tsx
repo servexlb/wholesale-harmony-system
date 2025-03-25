@@ -14,6 +14,17 @@ interface AdminStockIssuesProps {
   services?: Service[];
 }
 
+interface RawStockIssue {
+  id: string;
+  user_id: string;
+  service_id: string;
+  order_id: string;
+  status: string;
+  created_at: string;
+  resolved_at: string;
+  notes?: string;
+}
+
 const AdminStockIssues: React.FC<AdminStockIssuesProps> = ({ services }) => {
   const [stockRequests, setStockRequests] = useState<StockRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,19 +48,30 @@ const AdminStockIssues: React.FC<AdminStockIssuesProps> = ({ services }) => {
       }
 
       // Transform the data to match StockRequest type
-      const transformedData: StockRequest[] = (data || []).map(item => ({
-        id: item.id,
-        userId: item.user_id,
-        serviceId: item.service_id,
-        serviceName: item.service_name,
-        orderId: item.order_id,
-        status: item.status as 'pending' | 'fulfilled' | 'cancelled',
-        createdAt: item.created_at,
-        fulfilledAt: item.fulfilled_at,
-        customerName: item.customer_name,
-        priority: item.priority as 'high' | 'medium' | 'low',
-        notes: item.notes
-      }));
+      const transformedData: StockRequest[] = (data || []).map((item: RawStockIssue) => {
+        // Find service name if services array is available
+        let serviceName = "";
+        if (services) {
+          const service = services.find(s => s.id === item.service_id);
+          if (service) {
+            serviceName = service.name;
+          }
+        }
+
+        return {
+          id: item.id,
+          userId: item.user_id,
+          serviceId: item.service_id,
+          serviceName: serviceName, // Use found name or empty string
+          orderId: item.order_id,
+          status: item.status as 'pending' | 'fulfilled' | 'cancelled',
+          createdAt: item.created_at,
+          fulfilledAt: item.resolved_at, // Map resolved_at to fulfilledAt
+          customerName: "Unknown customer", // Default value
+          priority: "low" as 'high' | 'medium' | 'low', // Default priority
+          notes: item.notes || ''
+        };
+      });
 
       setStockRequests(transformedData);
     } catch (error) {

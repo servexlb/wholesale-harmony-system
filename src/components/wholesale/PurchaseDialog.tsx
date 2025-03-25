@@ -14,6 +14,9 @@ interface PurchaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  // Add the missing props that were referenced in Wholesale.tsx
+  customerName?: string;
+  customerNotes?: string;
 }
 
 const PurchaseDialog: React.FC<PurchaseDialogProps> = ({ 
@@ -22,7 +25,9 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   isMobile,
   open,
   onOpenChange,
-  children
+  children,
+  customerName = '', // Provide default value
+  customerNotes = ''  // Provide default value
 }) => {
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -38,8 +43,21 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       setNotes('');
       setQuantity(1);
       setSelectedCustomer('');
+    } else if (customerName) {
+      // Use the provided customer name for notes if available
+      setNotes(customerNotes || '');
     }
-  }, [open]);
+  }, [open, customerName, customerNotes]);
+
+  // Set selected customer based on customerName prop if available
+  useEffect(() => {
+    if (customerName && customers.length > 0) {
+      const customer = customers.find(c => c.name === customerName);
+      if (customer) {
+        setSelectedCustomer(customer.id);
+      }
+    }
+  }, [customerName, customers]);
 
   const handleSubmit = () => {
     if (!selectedCustomer) {
