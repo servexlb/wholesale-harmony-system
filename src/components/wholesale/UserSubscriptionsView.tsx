@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import { products } from '@/lib/data';
 import { InputWithIcon } from '@/components/ui/input-with-icon';
 import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/lib/toast';
 
 interface UserSubscriptionsViewProps {
   userId: string;
@@ -26,6 +28,8 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     const fetchUserSubscriptions = async () => {
       setIsLoading(true);
       try {
+        console.log('Fetching subscriptions for user ID:', userId);
+        
         // Fetch ALL subscriptions for the user
         const { data: supabaseSubscriptions, error } = await supabase
           .from('wholesale_subscriptions')
@@ -33,12 +37,14 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
           .eq('customer_id', userId);
           
         if (error) {
-          console.error('Error fetching subscriptions:', error);
+          console.error('Error fetching subscriptions from Supabase:', error);
           loadFromLocalStorage();
           return;
         }
         
         if (supabaseSubscriptions && supabaseSubscriptions.length > 0) {
+          console.log(`Found ${supabaseSubscriptions.length} subscriptions in Supabase for user ${userId}`);
+          
           const formattedSubs = supabaseSubscriptions.map(sub => {
             let credentialsObj = undefined;
             
@@ -71,7 +77,9 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
           );
           
           setSubscriptions(sortedSubs);
+          console.log('Sorted subscriptions:', sortedSubs);
         } else {
+          console.log('No subscriptions found in Supabase, checking localStorage');
           loadFromLocalStorage();
         }
       } catch (error) {
@@ -87,6 +95,8 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
       if (savedSubscriptions) {
         try {
           const allSubs = JSON.parse(savedSubscriptions);
+          console.log('Checking localStorage for user subscriptions');
+          
           const userSubs = allSubs
             .filter((sub: Subscription) => sub.userId === userId)
             .map((sub: Subscription) => ({
@@ -96,12 +106,15 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
             .sort((a: Subscription, b: Subscription) => 
               new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
             );
+            
+          console.log(`Found ${userSubs.length} subscriptions in localStorage for user ${userId}`);
           setSubscriptions(userSubs);
         } catch (error) {
           console.error('Error parsing subscriptions from localStorage:', error);
           setSubscriptions([]);
         }
       } else {
+        console.log('No subscriptions found in localStorage');
         setSubscriptions([]);
       }
     };
@@ -134,12 +147,20 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
 
   const groupedSubscriptions = React.useMemo(() => {
     const groups: { [key: string]: Subscription[] } = {};
+    
+    // Make sure we're actually grouping subscriptions (debug)
+    console.log(`Grouping ${subscriptions.length} subscriptions by service`);
+    
     subscriptions.forEach(sub => {
       if (!groups[sub.serviceId]) {
         groups[sub.serviceId] = [];
       }
       groups[sub.serviceId].push(sub);
     });
+    
+    // Log the number of unique services found
+    console.log(`Found ${Object.keys(groups).length} unique services`);
+    
     return groups;
   }, [subscriptions]);
 
@@ -166,6 +187,78 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     
     return filtered;
   }, [groupedSubscriptions, searchTerm]);
+  
+  // Function to save any fixed subscriptions back to Supabase
+  const saveSubscriptionsToSupabase = async (fixedSubscriptions: Subscription[]) => {
+    if (fixedSubscriptions.length === 0) return;
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        for (const sub of fixedSubscriptions) {
+          // Format for Supabase
+          const supabaseSub = {
+            id: sub.id,
+            wholesaler_id: sessionData.session.user.id,
+            customer_id: sub.userId,
+            service_id: sub.serviceId,
+            start_date: sub.startDate,
+            end_date: sub.endDate,
+            status: sub.status,
+            duration_months: sub.durationMonths,
+            credentials: sub.credentials,
+            updated_at: new Date().toISOString()
+          };
+          
+          // Check if exists first
+          const { data: existing } = await supabase
+            .from('wholesale_subscriptions')
+            .select('id')
+            .eq('id', sub.id)
+            .single();
+            
+          if (existing) {
+            // Update
+            const { error: updateError } = await supabase
+              .from('wholesale_subscriptions')
+              .update(supabaseSub)
+              .eq('id', sub.id);
+              
+            if (updateError) {
+              console.error('Error updating subscription in Supabase:', updateError);
+            } else {
+              console.log(`Updated subscription ${sub.id} in Supabase`);
+            }
+          } else {
+            // Insert
+            const { error: insertError } = await supabase
+              .from('wholesale_subscriptions')
+              .insert([supabaseSub]);
+              
+            if (insertError) {
+              console.error('Error inserting subscription to Supabase:', insertError);
+            } else {
+              console.log(`Inserted subscription ${sub.id} to Supabase`);
+            }
+          }
+        }
+        
+        toast.success('Subscriptions synchronized with database');
+      }
+    } catch (error) {
+      console.error('Error saving subscriptions to Supabase:', error);
+    }
+  };
+  
+  // This effect checks for subscriptions with issues and resolves them
+  useEffect(() => {
+    if (subscriptions.length > 0) {
+      const fixedSubscriptions = subscriptions.filter(sub => !sub.id || !sub.userId || !sub.serviceId);
+      if (fixedSubscriptions.length > 0) {
+        saveSubscriptionsToSupabase(fixedSubscriptions);
+      }
+    }
+  }, [subscriptions]);
 
   return (
     <Card>

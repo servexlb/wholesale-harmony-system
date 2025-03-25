@@ -332,7 +332,7 @@ export function useWholesaleData(currentWholesaler: string) {
         endDate.setMonth(endDate.getMonth() + durationMonths);
         
         const newSubscription: Subscription = {
-          id: `sub-${Date.now()}`,
+          id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           userId: order.customerId,
           serviceId: order.serviceId,
           startDate: new Date().toISOString(),
@@ -343,44 +343,40 @@ export function useWholesaleData(currentWholesaler: string) {
           isPending: !order.credentials
         };
         
+        console.log('Creating new subscription for user ' + order.customerId, newSubscription);
+        
         setSubscriptions(prev => {
-          const existingSubscriptionIndex = prev.findIndex(
-            sub => 
-              sub.userId === newSubscription.userId && 
-              sub.serviceId === newSubscription.serviceId
-          );
-          
-          if (existingSubscriptionIndex !== -1) {
-            const updatedSubscriptions = [...prev];
-            updatedSubscriptions[existingSubscriptionIndex] = {
-              ...updatedSubscriptions[existingSubscriptionIndex],
-              ...newSubscription
-            };
-            return updatedSubscriptions;
-          } else {
-            return [...prev, newSubscription];
-          }
+          return [...prev, newSubscription];
         });
         
         if (session?.session) {
-          const { error } = await supabase
-            .from('wholesale_subscriptions')
-            .insert({
-              id: newSubscription.id,
-              wholesaler_id: session.session.user.id,
-              customer_id: newSubscription.userId,
-              service_id: newSubscription.serviceId,
-              start_date: newSubscription.startDate,
-              end_date: newSubscription.endDate,
-              status: newSubscription.status,
-              duration_months: newSubscription.durationMonths,
-              credentials: newSubscription.credentials
-            });
-            
-          if (error) {
-            console.error('Error saving subscription to Supabase:', error);
+          try {
+            const { error } = await supabase
+              .from('wholesale_subscriptions')
+              .insert({
+                id: newSubscription.id,
+                wholesaler_id: session.session.user.id,
+                customer_id: newSubscription.userId,
+                service_id: newSubscription.serviceId,
+                start_date: newSubscription.startDate,
+                end_date: newSubscription.endDate,
+                status: newSubscription.status,
+                duration_months: newSubscription.durationMonths,
+                credentials: newSubscription.credentials
+              });
+              
+            if (error) {
+              console.error('Error saving subscription to Supabase:', error);
+              toast.error('Error saving subscription to database');
+            } else {
+              console.log('Subscription saved successfully to Supabase');
+            }
+          } catch (saveError) {
+            console.error('Exception saving subscription to Supabase:', saveError);
             toast.error('Error saving subscription to database');
           }
+        } else {
+          console.warn('No active session, subscription only saved to local state');
         }
         
         if (order.serviceId) {
