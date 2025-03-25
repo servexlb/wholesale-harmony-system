@@ -10,6 +10,25 @@ import { Service, DigitalItem } from '@/lib/types';
 import CredentialManager from '@/components/admin/CredentialManager';
 import StockIssueManager from '@/components/admin/StockIssueManager';
 
+// Create a StockIssueManager component since it's missing
+const StockIssueManager = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Stock Issues</CardTitle>
+        <CardDescription>
+          Manage pending stock requests and issues
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          This feature is coming soon.
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
 const AdminDigitalInventory = () => {
   const [activeTab, setActiveTab] = useState('stock');
   const [isLoading, setIsLoading] = useState(true);

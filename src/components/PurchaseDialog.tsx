@@ -72,375 +72,204 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
   
   const checkStockAvailability = async (serviceId: string) => {
     // For external API services, we don't need to check stock
-    if ((service.type === 'topup' || service.type === 'recharge') && service.useExternalApi) {
+    if (service.type === 'topup' || service.type === 'recharge' || service.useExternalApi) {
       return true;
     }
     
-    // For other services, check stock in the database
     try {
-      // Import from credentialService
-      const { checkStockAvailability } = await import('@/lib/credentialService');
-      return await checkStockAvailability(serviceId);
-    } catch (error) {
-      console.error('Error checking stock availability:', error);
-      // Default to true if there's an error checking
-      return true;
-    }
-  };
-
-  const savePurchaseToDatabase = async () => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session) {
-        console.log('No authenticated session, saving to localStorage instead');
+      const { data, error } = await supabase
+        .from('credential_stock')
+        .select('id')
+        .eq('service_id', serviceId)
+        .eq('status', 'available')
+        .limit(1);
+      
+      if (error) {
+        console.error('Error checking stock:', error);
         return false;
       }
       
-      const userId = session.session.user.id;
-      const orderId = `ord-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      setOrderId(orderId);
-      
-      // Check stock availability for subscription services
-      if (service.type === 'subscription') {
-        const isStockAvailable = await checkStockAvailability(service.id);
-        setStockAvailable(isStockAvailable);
-        
-        if (!isStockAvailable) {
-          // Create a stock request if no stock is available
-          const { createStockRequest } = await import('@/lib/credentialService');
-          await createStockRequest(
-            userId,
-            service.id,
-            service.name,
-            orderId,
-            user?.name,
-            notes
-          );
-        
-          // Set order status to 'pending' when there's no stock
-          const { error: orderError } = await supabase
-            .from('orders')
-            .insert({
-              id: orderId,
-              user_id: userId,
-              service_id: service.id,
-              service_name: service.name,
-              quantity: quantity,
-              total_price: totalPrice,
-              status: 'pending', // Important: mark as pending
-              credential_status: 'pending',
-              duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-              account_id: accountId || null,
-              notes: notes || null,
-              created_at: new Date().toISOString()
-            });
-            
-          if (orderError) {
-            console.error('Error saving order:', orderError);
-            return false;
-          }
-        } else {
-          // Stock is available, assign credential directly
-          const { assignCredentialsToCustomer } = await import('@/lib/credentialUtils');
-          const result = await assignCredentialsToCustomer(userId, service.id, orderId);
-          
-          if (result.success && result.credentials) {
-            setCredentials(result.credentials);
-            
-            // Create completed order
-            const { error: orderError } = await supabase
-              .from('orders')
-              .insert({
-                id: orderId,
-                user_id: userId,
-                service_id: service.id,
-                service_name: service.name,
-                quantity: quantity,
-                total_price: totalPrice,
-                status: 'completed',
-                credential_status: 'assigned',
-                credentials: result.credentials,
-                duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-                account_id: accountId || null,
-                notes: notes || null,
-                created_at: new Date().toISOString(),
-                completed_at: new Date().toISOString()
-              });
-              
-            if (orderError) {
-              console.error('Error saving order:', orderError);
-              return false;
-            }
-          } else {
-            // If credential assignment fails, create pending order
-            const { error: orderError } = await supabase
-              .from('orders')
-              .insert({
-                id: orderId,
-                user_id: userId,
-                service_id: service.id,
-                service_name: service.name,
-                quantity: quantity,
-                total_price: totalPrice,
-                status: 'pending',
-                credential_status: 'pending',
-                duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-                account_id: accountId || null,
-                notes: notes || null,
-                created_at: new Date().toISOString()
-              });
-              
-            if (orderError) {
-              console.error('Error saving order:', orderError);
-              return false;
-            }
-          }
-        }
-      } else {
-        // For non-subscription services, just create a regular order
-        const { error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            id: orderId,
-            user_id: userId,
-            service_id: service.id,
-            service_name: service.name,
-            quantity: quantity,
-            total_price: totalPrice,
-            status: 'completed',
-            duration_months: service.type === 'subscription' ? parseInt(duration) : null,
-            account_id: accountId || null,
-            notes: notes || null,
-            created_at: new Date().toISOString(),
-            completed_at: new Date().toISOString()
-          });
-          
-        if (orderError) {
-          console.error('Error saving order:', orderError);
-          return false;
-        }
-      }
-      
-      // Create a payment record
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          user_id: userId,
-          amount: totalPrice,
-          status: 'completed',
-          method: 'account_balance',
-          description: `Purchase of ${service.name}`,
-          order_id: orderId
-        });
-        
-      if (paymentError) {
-        console.error('Error saving payment:', paymentError);
-      }
-      
-      // Update user balance if available
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', userId)
-        .single();
-        
-      if (!userError && userData) {
-        const newBalance = (userData.balance || 0) - totalPrice;
-        
-        const { error: updateBalanceError } = await supabase
-          .from('profiles')
-          .update({ balance: newBalance >= 0 ? newBalance : 0 })
-          .eq('id', userId);
-          
-        if (updateBalanceError) {
-          console.error('Error updating balance:', updateBalanceError);
-        }
-      }
-      
-      return true;
+      return data && data.length > 0;
     } catch (error) {
-      console.error('Error in savePurchaseToDatabase:', error);
+      console.error('Error in checkStockAvailability:', error);
       return false;
     }
   };
 
   const handlePurchase = async () => {
-    if (service.requiresId && !accountId.trim()) {
-      toast.error('Account ID Required', {
-        description: 'Please provide your account ID to proceed with the purchase'
-      });
+    if (!user) {
+      toast.error('You must be logged in to make a purchase');
       return;
     }
-
+    
+    if (service.requiresId && !accountId.trim()) {
+      toast.error('Please enter your account ID');
+      return;
+    }
+    
     setIsProcessing(true);
-
+    
     try {
-      // Process through external API if this is a top-up or recharge service configured to use the API
-      if ((service.type === 'topup' || service.type === 'recharge') && service.useExternalApi) {
-        // Set order status to processing initially
-        setOrderStatus('processing');
-        
-        // Use the external API to process the top-up
-        const topUpData = {
-          serviceId: service.id,
-          accountId: accountId,
-          amount: quantity,
-          notes: notes
-        };
-        
-        try {
-          const result = await externalApi.processTopUp(topUpData);
-          
-          if (result.success) {
-            setOrderId(result.orderId);
-            
-            // Check status (this would typically be done via webhook in production)
-            const statusCheck = await externalApi.checkTopUpStatus(result.orderId);
-            if (statusCheck.status === 'completed') {
-              setOrderStatus('completed');
-            } else {
-              setOrderStatus('processing');
-            }
-            
-            // Show success dialog
-            onPurchase();
-            setShowSuccessDialog(true);
-          } else {
-            throw new Error('Top-up processing failed');
-          }
-        } catch (error) {
-          console.error('Error with external API:', error);
-          toast.error('Purchase Failed', {
-            description: 'There was an error processing your top-up request. Please try again.',
-          });
-          setIsProcessing(false);
-          return;
-        }
-      } else {
-        // For regular products that don't use the external API, use the existing flow
-        // Save to database
-        const saveSuccess = await savePurchaseToDatabase();
-        
-        if (!saveSuccess) {
-          // If saving to database fails, store in localStorage as fallback
-          const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-          
-          // Generate mock credentials for the purchased service
-          const mockCredentials = service.type === 'subscription' ? {
-            email: `user${Math.floor(Math.random() * 10000)}@${service.name.toLowerCase().replace(/\s+/g, '')}.com`,
-            password: `pass${Math.random().toString(36).substring(2, 10)}`,
-            username: `user${Math.floor(Math.random() * 10000)}`,
-            notes: "These are demo credentials. In a real application, these would be fetched from a credential stock."
-          } : undefined;
-          
-          // Set credentials for the success dialog
-          setCredentials(mockCredentials);
-          
-          const newOrder = {
-            id: `order-${Date.now()}`,
-            serviceId: service.id,
-            serviceName: service.name,
-            quantity: quantity,
-            totalPrice: totalPrice,
-            status: 'completed',
-            durationMonths: service.type === 'subscription' ? parseInt(duration) : null,
-            accountId: accountId,
-            notes: notes,
-            createdAt: new Date().toISOString(),
-            credentials: mockCredentials
-          };
-          
-          orders.push(newOrder);
-          localStorage.setItem('orders', JSON.stringify(orders));
-        }
-        
-        // Set order status based on stock availability for subscriptions
-        if (service.type === 'subscription') {
-          setOrderStatus(stockAvailable ? 'completed' : 'processing');
-        } else {
-          // For non-subscription products, always set to completed
-          setOrderStatus('completed');
-        }
-        
-        // Notify parent component 
-        onPurchase();
-        
-        // Show success dialog instead of closing this dialog
-        setShowSuccessDialog(true);
+      // Check stock availability
+      const stockCheck = await checkStockAvailability(service.id);
+      setStockAvailable(stockCheck);
+      
+      if (!stockCheck && service.type === 'subscription') {
+        setOrderStatus('pending');
+        toast.error('This service is currently out of stock. Your order will be placed and fulfilled as soon as stock becomes available.');
       }
       
-      setIsProcessing(false);
-    } catch (error) {
-      console.error('Error processing purchase:', error);
-      setIsProcessing(false);
+      // Create order ID
+      const newOrderId = `order-${Date.now()}`;
+      setOrderId(newOrderId);
       
-      toast.error('Purchase Failed', {
-        description: 'There was an error processing your purchase. Please try again.',
-      });
+      // Create an order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          id: newOrderId,
+          user_id: user.id,
+          service_id: service.id,
+          service_name: service.name,
+          quantity: quantity,
+          duration_months: parseInt(duration),
+          total_price: totalPrice,
+          status: stockCheck ? 'processing' : 'pending',
+          account_id: accountId || null,
+          notes: notes || null,
+          created_at: new Date().toISOString()
+        });
+      
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        toast.error('Failed to create order');
+        setIsProcessing(false);
+        return;
+      }
+      
+      // If stock is available, assign credentials
+      if (stockCheck && service.type === 'subscription') {
+        try {
+          const { data: credentialAssignment, error: assignError } = await supabase
+            .rpc('assign_credential', {
+              p_service_id: service.id,
+              p_user_id: user.id,
+              p_order_id: newOrderId
+            });
+          
+          if (assignError) {
+            console.error('Error assigning credential:', assignError);
+          } else if (credentialAssignment) {
+            // Update order status to completed
+            await supabase
+              .from('orders')
+              .update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', newOrderId);
+            
+            // Get the assigned credential details
+            const { data: credentialData } = await supabase
+              .from('credential_stock')
+              .select('credentials')
+              .eq('id', credentialAssignment)
+              .single();
+            
+            if (credentialData) {
+              setCredentials(credentialData.credentials);
+            }
+            
+            setOrderStatus('completed');
+          }
+        } catch (assignmentError) {
+          console.error('Error in credential assignment process:', assignmentError);
+        }
+      } else if (service.type === 'topup' || service.type === 'recharge' || service.useExternalApi) {
+        // For topup/recharge, just mark order as completed
+        await supabase
+          .from('orders')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', newOrderId);
+        
+        setOrderStatus('completed');
+      } else {
+        // Handle case for subscription services when stock is unavailable
+        // Create stock request
+        try {
+          const { error: stockRequestError } = await supabase
+            .from('stock_issue_logs')
+            .insert({
+              user_id: user.id,
+              service_id: service.id,
+              order_id: newOrderId,
+              status: 'pending',
+              notes: 'Automatic request due to empty stock'
+            });
+          
+          if (stockRequestError) {
+            console.error('Error creating stock request:', stockRequestError);
+          }
+          
+          // Create admin notification
+          await supabase
+            .from('admin_notifications')
+            .insert({
+              type: 'stock',
+              title: 'Stock Replenishment Needed',
+              message: `A customer has purchased ${service.name} but stock is empty.`,
+              user_id: user.id,
+              service_id: service.id,
+              service_name: service.name,
+              is_read: false
+            });
+        } catch (stockRequestError) {
+          console.error('Error creating stock request:', stockRequestError);
+        }
+      }
+      
+      // Show success dialog
+      setShowSuccessDialog(true);
+      onPurchase();
+    } catch (error) {
+      console.error('Error in purchase process:', error);
+      toast.error('An error occurred during the purchase process');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const isSubscription = service.type === 'subscription';
-
   return (
     <>
-      <Dialog open={open} onOpenChange={(newOpen) => {
-        // Only allow closing if we're not showing the success dialog
-        if (!showSuccessDialog) {
-          onOpenChange(newOpen);
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Confirm Purchase</DialogTitle>
+            <DialogTitle>Complete Your Purchase</DialogTitle>
             <DialogDescription>
-              Please review your order details before proceeding
+              Review your order details and confirm your purchase.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">Order Summary</h4>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Service:</span>
-                <span>{service.name}</span>
+          <div className="grid gap-4 py-4">
+            <div className="bg-muted p-3 rounded-md">
+              <div className="flex justify-between mb-1 text-sm">
+                <span>Service:</span>
+                <span className="font-medium">{service.name}</span>
               </div>
               
-              {isSubscription && (
-                <div className="space-y-2">
-                  <Label htmlFor="duration" className="text-sm">Subscription Duration</Label>
-                  <Select 
-                    value={duration} 
-                    onValueChange={setDuration}
-                  >
-                    <SelectTrigger id="duration" className="w-full">
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableDurations.map((months) => (
-                        <SelectItem key={months} value={months}>
-                          {months} {parseInt(months) === 1 ? 'month' : 'months'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 mr-1" />
-                    <span>Subscription will renew every {duration} {parseInt(duration) === 1 ? 'month' : 'months'}</span>
-                  </div>
+              {service.type === 'subscription' && (
+                <div className="flex justify-between mb-1 text-sm">
+                  <span>Duration:</span>
+                  <span>{duration} {parseInt(duration) === 1 ? 'month' : 'months'}</span>
                 </div>
               )}
               
-              {!isSubscription && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Quantity:</span>
-                  <span>{quantity}</span>
-                </div>
-              )}
-              
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Price:</span>
-                <span>${service.price.toFixed(2)} {isSubscription ? '/month' : 'each'}</span>
+              <div className="flex justify-between mb-1 text-sm">
+                <span>Quantity:</span>
+                <span>{quantity}</span>
               </div>
               
               <div className="flex justify-between font-medium border-t pt-2 mt-2">
@@ -449,78 +278,100 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
               </div>
             </div>
             
+            {service.type === 'subscription' && (
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="duration">Subscription Duration</Label>
+                <Select
+                  value={duration}
+                  onValueChange={setDuration}
+                >
+                  <SelectTrigger id="duration">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {service.availableMonths ? (
+                      service.availableMonths.map(month => (
+                        <SelectItem key={month} value={month.toString()}>
+                          {month} {month === 1 ? 'month' : 'months'}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      availableDurations.map(month => (
+                        <SelectItem key={month} value={month}>
+                          {month} {month === '1' ? 'month' : 'months'}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {service.type !== 'subscription' && (
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                />
+              </div>
+            )}
+            
             {service.requiresId && (
-              <div className="space-y-2">
-                <label htmlFor="accountId" className="text-sm font-medium block">
-                  Your Account ID <span className="text-red-500">*</span>
-                </label>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="accountId">
+                  Account ID / Username <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="accountId"
+                  placeholder="Your account ID for this service"
                   value={accountId}
                   onChange={(e) => setAccountId(e.target.value)}
-                  placeholder="Enter your account ID for this service"
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Required for service authentication
+                  This is required to link the service to your account.
                 </p>
               </div>
             )}
             
-            <div className="space-y-2">
-              <label htmlFor="notes" className="text-sm font-medium block">
-                Order Notes (Optional)
-              </label>
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
               <Input
                 id="notes"
+                placeholder="Any special instructions"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any special instructions for this order"
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isProcessing}
-            >
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
               Cancel
             </Button>
-            <Button 
-              onClick={handlePurchase}
-              disabled={isProcessing || (service.requiresId && !accountId.trim())}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>Confirm Purchase</>
-              )}
+            <Button onClick={handlePurchase} disabled={isProcessing || (service.requiresId && !accountId.trim())}>
+              {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isProcessing ? 'Processing...' : `Pay $${totalPrice.toFixed(2)}`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Success Dialog */}
-      <PurchaseSuccessDialog 
-        open={showSuccessDialog}
-        onOpenChange={(open) => {
-          setShowSuccessDialog(open);
-          if (!open) {
-            // When success dialog is closed, also close the purchase dialog
-            onOpenChange(false);
-          }
-        }}
-        service={service}
-        credentials={credentials}
-        stockAvailable={stockAvailable}
-        orderStatus={orderStatus}
-        orderId={orderId}
-      />
+      
+      {showSuccessDialog && orderId && (
+        <PurchaseSuccessDialog
+          open={showSuccessDialog}
+          onOpenChange={setShowSuccessDialog}
+          service={service}
+          orderId={orderId}
+          status={orderStatus}
+          stockAvailable={stockAvailable}
+          credentials={credentials}
+        />
+      )}
     </>
   );
 };

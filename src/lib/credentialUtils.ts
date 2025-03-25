@@ -169,7 +169,15 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
         return null;
       }
     } else {
-      credentials = data.credentials as unknown as Credential;
+      // Type assertion needed here
+      const credentialsData = data.credentials as any;
+      credentials = {
+        email: credentialsData.email || '',
+        password: credentialsData.password || '',
+        username: credentialsData.username || '',
+        pinCode: credentialsData.pinCode || '',
+        notes: credentialsData.notes || ''
+      };
     }
     
     return credentials;

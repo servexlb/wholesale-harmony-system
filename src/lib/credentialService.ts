@@ -72,7 +72,9 @@ export const createStockRequest = async (
       .eq('id', userId)
       .single();
     
-    const customerDisplayName = customerName || (userData ? userData.name : 'Unknown Customer');
+    // Type-safe check (userError has no 'name' property)
+    const userProfile = userError ? null : userData;
+    const customerDisplayName = customerName || (userProfile && userProfile.name ? userProfile.name : 'Unknown Customer');
     
     // Create a stock request
     const { error: requestError } = await supabase
@@ -150,8 +152,9 @@ export const getPendingStockRequests = async (): Promise<StockRequest[]> => {
       return [];
     }
     
-    return data.map(item => {
-      const profile = item.profiles as any;
+    // Type-safe map with correct type assertions
+    return (data || []).map(item => {
+      const profile = item.profiles ? item.profiles as Record<string, any> : null;
       return {
         id: item.id,
         userId: item.user_id,
@@ -182,8 +185,9 @@ export const getStockIssues = async () => {
       return [];
     }
     
-    return data.map(item => {
-      const profile = item.profiles as any;
+    // Type-safe map with correct type assertions
+    return (data || []).map(item => {
+      const profile = item.profiles ? item.profiles as Record<string, any> : null;
       return {
         id: item.id,
         userId: item.user_id,

@@ -32,7 +32,7 @@ import CsvUploader from './CsvUploader';
 import { toast } from '@/lib/toast';
 import { useServiceManager } from '@/hooks/useServiceManager';
 
-const CredentialManager = () => {
+const CredentialManager: React.FC<{services: Service[]}> = ({ services }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -40,7 +40,6 @@ const CredentialManager = () => {
   const [notes, setNotes] = useState('');
   const [selectedService, setSelectedService] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [services, setServices] = useState<Service[]>([]);
   const [activeTab, setActiveTab] = useState('add-single');
   const { loadServices } = useServiceManager();
   
@@ -49,20 +48,17 @@ const CredentialManager = () => {
     if (storedServices) {
       try {
         const parsedServices = JSON.parse(storedServices) as Service[];
-        setServices(parsedServices);
       } catch (error) {
         console.error('Error parsing services from localStorage', error);
       }
     } else {
       // If no services in localStorage, try to load them
-      const fetchedServices = loadServices();
-      setServices(fetchedServices);
+      loadServices();
     }
     
     // Listen for service updates
     const handleServiceUpdate = () => {
-      const fetchedServices = loadServices();
-      setServices(fetchedServices);
+      loadServices();
     };
     
     window.addEventListener('service-updated', handleServiceUpdate);
@@ -127,6 +123,7 @@ const CredentialManager = () => {
       return;
     }
     
+    // Safely check if data is an array and has length
     if (!Array.isArray(data) || data.length === 0) {
       toast.error('Invalid or empty CSV data');
       return;

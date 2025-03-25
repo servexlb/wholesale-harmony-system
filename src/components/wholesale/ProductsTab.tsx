@@ -11,16 +11,16 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Service } from '@/lib/types';
+import { Service, WholesaleOrder, Customer } from '@/lib/types';
 import { Search, Plus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PurchaseDialog from './PurchaseDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProductsTabProps {
-  products: Service[];
-  onPurchase: (order: any) => void;
-  isMobile: boolean;
+  services: Service[];
+  customers: Customer[];
+  onOrderPlaced: (order: WholesaleOrder) => void;
 }
 
 function sortServices(services: Service[], sortOption: string): Service[] {
@@ -51,7 +51,7 @@ function filterServices(services: Service[], searchTerm: string, categoryFilter:
   });
 }
 
-const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobile }) => {
+const ProductsTab: React.FC<ProductsTabProps> = ({ services, customers, onOrderPlaced }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('name_asc');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -60,16 +60,16 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobil
   const [showDetails, setShowDetails] = useState(false);
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const mobileCheck = useIsMobile();
+  const isMobile = useIsMobile();
   
   // Get unique categories from products
-  const categories = Array.from(new Set(products.map(p => p.category || p.categoryId || 'Uncategorized')));
+  const categories = Array.from(new Set(services.map(p => p.category || p.categoryId || 'Uncategorized')));
   
   // Get unique product types
-  const types = Array.from(new Set(products.filter(p => p.type).map(p => p.type))) as string[];
+  const types = Array.from(new Set(services.filter(p => p.type).map(p => p.type))) as string[];
   
   // Filter and sort products
-  const filteredProducts = filterServices(products, searchTerm, categoryFilter, typeFilter);
+  const filteredProducts = filterServices(services, searchTerm, categoryFilter, typeFilter);
   const sortedProducts = sortServices(filteredProducts, sortOption);
   
   useEffect(() => {
@@ -97,9 +97,9 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobil
     setShowPurchaseDialog(true);
   };
   
-  const handlePurchase = (order: any) => {
+  const handlePurchase = (order: WholesaleOrder) => {
     setIsProcessing(true);
-    onPurchase(order);
+    onOrderPlaced(order);
     setTimeout(() => {
       setIsProcessing(false);
       setShowPurchaseDialog(false);
@@ -129,8 +129,8 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobil
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map((category, index) => (
-                <SelectItem key={index} value={category}>
-                  {category}
+                <SelectItem key={index} value={category || 'uncategorized'}>
+                  {category || 'Uncategorized'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -143,14 +143,14 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobil
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               {types.map((type, index) => (
-                <SelectItem key={index} value={type}>
+                <SelectItem key={index} value={type || 'none'}>
                   {type === 'one-time' ? 'One-Time Purchase' : 
                    type === 'subscription' ? 'Subscription' :
                    type === 'topup' ? 'Top-up' :
                    type === 'recharge' ? 'Recharge' :
                    type === 'lifetime' ? 'Lifetime' :
                    type === 'giftcard' ? 'Gift Card' : 
-                   type}
+                   type || 'Unknown'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -187,7 +187,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobil
             key={service.id}
             service={service}
             isWholesale={true}
-            isMobile={isMobile || mobileCheck}
+            isMobile={!!isMobile}
             onClick={() => handleServiceClick(service)}
             onViewDetails={(e) => handleViewDetails(e, service)}
           />
@@ -210,7 +210,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({ products, onPurchase, isMobil
         <PurchaseDialog
           onPurchase={handlePurchase}
           isSubmitting={isProcessing}
-          isMobile={isMobile || mobileCheck}
+          isMobile={!!isMobile}
           open={showPurchaseDialog}
           onOpenChange={setShowPurchaseDialog}
         >

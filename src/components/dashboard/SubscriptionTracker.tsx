@@ -83,7 +83,7 @@ const SubscriptionTracker: React.FC<SubscriptionTrackerProps> = ({ services }) =
         status: subscription.status as 'active' | 'expired' | 'cancelled',
         durationMonths: subscription.duration_months || undefined,
         credentials: subscription.credentials as any,
-        credentialStatus: subscription.credential_stock?.status || 'pending',
+        credentialStatus: (subscription.credential_stock?.status || 'pending') as 'available' | 'assigned' | 'pending',
         credentialStockId: subscription.credential_stock_id || undefined
       }));
 
@@ -141,7 +141,7 @@ const SubscriptionTracker: React.FC<SubscriptionTrackerProps> = ({ services }) =
                       <Badge 
                         variant={
                           daysRemaining <= 3 ? "destructive" : 
-                          daysRemaining <= 7 ? "warning" : 
+                          daysRemaining <= 7 ? "outline" : 
                           "default"
                         }
                       >
@@ -244,7 +244,7 @@ const SubscriptionTracker: React.FC<SubscriptionTrackerProps> = ({ services }) =
                     <CardHeader className="pb-2 bg-amber-50 dark:bg-amber-900/20">
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{service?.name || 'Unknown Service'}</CardTitle>
-                        <Badge variant="warning">
+                        <Badge variant="outline">
                           {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
                         </Badge>
                       </div>
