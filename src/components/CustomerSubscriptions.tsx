@@ -44,6 +44,8 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
     if (daysLeft <= 3) return { status: `expires in ${daysLeft} days`, color: "orange", icon: <CircleAlert className="h-4 w-4" /> };
     return { status: "active", color: "green", icon: <Clock className="h-4 w-4" /> };
   };
+
+  console.log('Customer subscriptions:', customerSubscriptions);
   
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
@@ -69,6 +71,8 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
             {customerSubscriptions.map((subscription) => {
               const product = products.find(p => p.id === subscription.serviceId);
               const statusInfo = getSubscriptionStatus(subscription.endDate);
+              
+              console.log('Subscription credentials:', subscription.credentials);
               
               return (
                 <TableRow key={subscription.id}>
@@ -101,11 +105,13 @@ const CustomerSubscriptions: React.FC<CustomerSubscriptionsProps> = ({
                             <TooltipTrigger asChild>
                               <div className="flex items-center cursor-pointer gap-1 text-sm">
                                 <Key className="h-4 w-4 text-primary" />
-                                <span className="font-medium">{subscription.credentials.email}</span>
+                                <span className="font-medium">{subscription.credentials.email || subscription.credentials.username}</span>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Password: {subscription.credentials.password}</p>
+                              {subscription.credentials.username && <p>Username: {subscription.credentials.username}</p>}
+                              {subscription.credentials.pinCode && <p>PIN: {subscription.credentials.pinCode}</p>}
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

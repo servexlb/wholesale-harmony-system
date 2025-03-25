@@ -208,8 +208,16 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
 
     const customer = customers.find(c => c.id === selectedCustomer);
 
-    // Generate a proper UUID for the order ID instead of a string format
+    // Generate a proper UUID for the order ID
     const orderId = uuidv4();
+
+    // Generate random demo credentials for the order
+    const demoCredentials = {
+      email: `user${Math.floor(Math.random() * 10000)}@example.com`,
+      password: `pass${Math.floor(Math.random() * 10000)}`,
+      username: `user${Math.floor(Math.random() * 10000)}`,
+      pinCode: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    };
 
     const order: WholesaleOrder = {
       id: orderId,
@@ -224,9 +232,11 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
       customerEmail: customer?.email,
       customerPhone: customer?.phone,
       customerCompany: customer?.company,
-      durationMonths: parseInt(selectedDuration)
+      durationMonths: parseInt(selectedDuration),
+      credentials: demoCredentials // Add demo credentials to the order
     };
 
+    console.log('Submitting order with credentials:', order.credentials);
     onPurchase(order);
   };
 

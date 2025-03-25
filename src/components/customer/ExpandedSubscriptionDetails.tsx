@@ -48,6 +48,8 @@ const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = 
     );
   }
 
+  console.log('Valid subscriptions with credentials:', validSubscriptions);
+
   return (
     <div className="p-4">
       <h4 className="font-medium mb-2">Subscription Details</h4>
@@ -65,6 +67,8 @@ const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = 
             const today = new Date();
             const end = new Date(sub.endDate);
             const daysLeft = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            console.log('Subscription:', sub.id, 'Credentials:', sub.credentials);
             
             return (
               <div key={sub.id} className="bg-white p-3 rounded-md border shadow-sm">
@@ -104,8 +108,14 @@ const ExpandedSubscriptionDetails: React.FC<ExpandedSubscriptionDetailsProps> = 
                       <span className="text-sm font-medium">Credentials</span>
                     </div>
                     <div className="bg-muted/30 p-2 rounded text-sm">
-                      <div><span className="font-medium">Email:</span> {sub.credentials.email}</div>
-                      <div><span className="font-medium">Password:</span> {sub.credentials.password}</div>
+                      <div><span className="font-medium">Email:</span> {sub.credentials.email || 'N/A'}</div>
+                      <div><span className="font-medium">Password:</span> {sub.credentials.password || 'N/A'}</div>
+                      {sub.credentials.username && (
+                        <div><span className="font-medium">Username:</span> {sub.credentials.username}</div>
+                      )}
+                      {sub.credentials.pinCode && (
+                        <div><span className="font-medium">PIN:</span> {sub.credentials.pinCode}</div>
+                      )}
                     </div>
                   </div>
                 )}

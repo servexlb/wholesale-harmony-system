@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -183,7 +184,8 @@ export function useWholesaleData(currentWholesaler: string) {
             customerPhone: order.customer_phone,
             customerAddress: order.customer_address,
             customerCompany: order.customer_company,
-            notes: order.notes
+            notes: order.notes,
+            credentials: order.credentials
           }));
           setOrders(formattedOrders);
         }
@@ -243,6 +245,8 @@ export function useWholesaleData(currentWholesaler: string) {
 
   const handleOrderPlaced = async (order: WholesaleOrder) => {
     try {
+      console.log('Processing order with credentials:', order.credentials);
+      
       setOrders(prev => {
         const updatedOrders = [order, ...prev];
         return updatedOrders.slice(0, 100);
@@ -266,7 +270,8 @@ export function useWholesaleData(currentWholesaler: string) {
             customer_phone: order.customerPhone,
             customer_address: order.customerAddress,
             customer_company: order.customerCompany,
-            notes: order.notes
+            notes: order.notes,
+            credentials: order.credentials // Store credentials in the order
           });
           
         if (error) {
