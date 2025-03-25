@@ -198,8 +198,11 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       return null;
     }
     
+    // Create a typed version of data to work with
+    const typedData: any = data;
+    
     // Handle case where credentials property might not exist
-    if (!data.credentials) {
+    if (!typedData.credentials) {
       console.log('No credentials found for order:', orderId);
       return null;
     }
@@ -207,9 +210,9 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
     let credentials: Credential;
     
     // Parse credentials if they're a string, or use directly if object
-    if (typeof data.credentials === 'string') {
+    if (typeof typedData.credentials === 'string') {
       try {
-        credentials = JSON.parse(data.credentials) as Credential;
+        credentials = JSON.parse(typedData.credentials) as Credential;
       } catch (e) {
         console.error('Error parsing credentials string:', e);
         return {
@@ -221,7 +224,7 @@ export const getCredentialsByOrderId = async (orderId: string): Promise<Credenti
       }
     } else {
       // Type assertion needed here
-      const credentialsData = data.credentials as any;
+      const credentialsData = typedData.credentials as any;
       credentials = {
         email: credentialsData.email || '',
         password: credentialsData.password || '',

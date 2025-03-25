@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from '@/lib/toast';
 import { useServiceManager } from '@/hooks/useServiceManager';
 import { Service, Credential } from '@/lib/types';
+import { addCredentialToStock } from '@/lib/credentialService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddCredentialDialogProps {
   open: boolean;
@@ -46,33 +48,30 @@ const AddCredentialDialog: React.FC<AddCredentialDialogProps> = ({ open, setOpen
       return;
     }
 
-    if (!credentials.email || !credentials.password) {
-      toast.error('Email and password are required');
+    if (!credentials.email && !credentials.username) {
+      toast.error('Email or username is required');
+      return;
+    }
+
+    if (!credentials.password) {
+      toast.error('Password is required');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Create credential stock item in local storage for demo
-      const credentialStock = {
-        id: `cred-${Date.now()}`,
-        serviceId: selectedService,
-        credentials: credentials,
-        status: 'available',
-        createdAt: new Date().toISOString()
-      };
-
-      // Store in local storage
-      const stockItems = JSON.parse(localStorage.getItem('credential_stock') || '[]');
-      stockItems.push(credentialStock);
-      localStorage.setItem('credential_stock', JSON.stringify(stockItems));
-
-      toast.success('Credential added successfully');
-      setOpen(false);
+      console.log('Adding credential for service:', selectedService);
       
-      // Dispatch an event to notify other components
-      window.dispatchEvent(new Event('credential-added'));
+      // Add to Supabase
+      const success = await addCredentialToStock(selectedService, credentials);
+      
+      if (success) {
+        toast.success('Credential added successfully');
+        setOpen(false);
+      } else {
+        toast.error('Failed to add credential to Supabase');
+      }
     } catch (error) {
       console.error('Error adding credential:', error);
       toast.error('Failed to add credential');
