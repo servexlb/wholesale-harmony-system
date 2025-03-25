@@ -2,6 +2,7 @@
 import React from 'react';
 import { DollarSign } from 'lucide-react';
 import { Service } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface PriceDisplayProps {
   service?: Service;
@@ -16,6 +17,9 @@ const PriceDisplay: React.FC<PriceDisplayProps> = ({
   isSubscription,
   calculateTotalPrice
 }) => {
+  // Get the base price with proper fallback
+  const basePrice = service?.wholesalePrice || service?.price || 0;
+  
   return (
     <div className="bg-muted/30 p-4 rounded-lg flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -24,14 +28,14 @@ const PriceDisplay: React.FC<PriceDisplayProps> = ({
           <span className="font-medium">Base Price:</span>
         </div>
         <span className="text-lg font-bold">
-          ${service?.wholesalePrice?.toFixed(2) || service?.price?.toFixed(2) || '0.00'}
+          {formatCurrency(basePrice)}
         </span>
       </div>
       
       {isSubscription && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>For {selectedDuration} {parseInt(selectedDuration) === 1 ? 'month' : 'months'}</span>
-          <span>${calculateTotalPrice().toFixed(2)}</span>
+          <span>{formatCurrency(calculateTotalPrice())}</span>
         </div>
       )}
     </div>

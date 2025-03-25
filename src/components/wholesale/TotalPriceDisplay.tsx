@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { DollarSign } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface TotalPriceDisplayProps {
   totalPrice: number;
@@ -14,7 +15,7 @@ const TotalPriceDisplay: React.FC<TotalPriceDisplayProps> = ({ totalPrice }) => 
         <span className="font-medium">Total Price:</span>
       </div>
       <span className="text-xl font-bold text-primary">
-        ${totalPrice.toFixed(2)}
+        {formatCurrency(totalPrice)}
       </span>
     </div>
   );
