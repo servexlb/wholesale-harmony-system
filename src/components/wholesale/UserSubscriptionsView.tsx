@@ -7,12 +7,8 @@ import { Subscription } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 import { products } from '@/lib/data';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { InputWithIcon } from '@/components/ui/input-with-icon';
+  InputWithIcon
+} from '@/components/ui/input-with-icon';
 import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 

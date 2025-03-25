@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -294,19 +293,15 @@ export function useWholesaleData(currentWholesaler: string) {
           serviceId: order.serviceId,
           startDate: new Date().toISOString(),
           endDate: endDate.toISOString(),
-          status: 'active',
+          status: order.credentials ? 'active' : 'pending',
           durationMonths: durationMonths,
-          credentials: order.credentials || {
-            email: "",
-            password: "", 
-            username: "",
-            pinCode: ""
-          }
+          credentials: order.credentials || undefined,
+          isPending: !order.credentials
         };
         
         setSubscriptions(prev => {
           const updatedSubscriptions = [...prev, newSubscription];
-          return updatedSubscriptions.slice(0, 100);
+          return updatedSubscriptions;
         });
         
         if (session?.session) {
