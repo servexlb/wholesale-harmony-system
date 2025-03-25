@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ const StockIssueManagerComponent = () => {
   const [selectedIssue, setSelectedIssue] = useState<StockRequest | null>(null);
   const { services } = useServiceManager();
   
-  // New credential state
   const [newCredential, setNewCredential] = useState<Credential>({
     email: '',
     password: '',
@@ -29,11 +27,9 @@ const StockIssueManagerComponent = () => {
     pinCode: ''
   });
   
-  // Load stock issues
   useEffect(() => {
     loadIssues();
     
-    // Handle stock issue resolution
     const handleStockIssueResolved = () => {
       loadIssues();
     };
@@ -49,7 +45,6 @@ const StockIssueManagerComponent = () => {
     setIsLoading(true);
     
     try {
-      // Load both the stock issues and related order details
       const { data: issuesData, error: issuesError } = await supabase
         .from('stock_issue_logs')
         .select('*')
@@ -60,7 +55,6 @@ const StockIssueManagerComponent = () => {
         throw issuesError;
       }
       
-      // Fetch the associated orders to get additional customer details and options
       const orderIds = issuesData.map(issue => issue.order_id).filter(Boolean);
       
       const { data: ordersData, error: ordersError } = await supabase
@@ -72,12 +66,10 @@ const StockIssueManagerComponent = () => {
         console.error('Error fetching associated orders:', ordersError);
       }
       
-      // Match orders with their issues and combine the data
       const enhancedIssues = issuesData.map(issue => {
         const service = services.find(s => s.id === issue.service_id);
         const associatedOrder = ordersData?.find(order => order.id === issue.order_id) || null;
         
-        // Safe access to customer email from credentials
         let customerEmail = '';
         if (associatedOrder?.credentials && typeof associatedOrder.credentials === 'object') {
           const credentials = associatedOrder.credentials as any;
@@ -96,7 +88,6 @@ const StockIssueManagerComponent = () => {
           customerName: issue.customer_name || "Unknown Customer",
           priority: (issue.priority as 'high' | 'medium' | 'low') || 'medium',
           notes: issue.notes || '',
-          // Additional order details
           orderDetails: associatedOrder ? {
             quantity: associatedOrder.quantity,
             totalPrice: associatedOrder.total_price,
@@ -117,7 +108,6 @@ const StockIssueManagerComponent = () => {
     }
   };
   
-  // Handle resolving an issue as cancelled
   const handleCancelIssue = async (issue: StockRequest) => {
     try {
       const { error } = await supabase
@@ -135,7 +125,6 @@ const StockIssueManagerComponent = () => {
       toast.success('Issue marked as cancelled');
       loadIssues();
       
-      // Dispatch event for UI updates
       window.dispatchEvent(new CustomEvent('stock-issue-resolved'));
     } catch (error) {
       console.error('Error cancelling issue:', error);
@@ -143,7 +132,6 @@ const StockIssueManagerComponent = () => {
     }
   };
   
-  // Handle opening the resolve dialog
   const handleOpenResolveDialog = (issue: StockRequest) => {
     setSelectedIssue(issue);
     setNewCredential({
@@ -156,7 +144,6 @@ const StockIssueManagerComponent = () => {
     setShowResolveDialog(true);
   };
   
-  // Handle resolving an issue by providing credentials
   const handleResolveWithCredentials = async () => {
     if (!selectedIssue) return;
     
@@ -176,7 +163,6 @@ const StockIssueManagerComponent = () => {
       console.log('Resolving issue with credentials:', newCredential);
       console.log('Selected issue:', selectedIssue);
       
-      // First, add the credential to the stock with assigned status
       const { data: stockData, error: stockError } = await supabase
         .from('credential_stock')
         .insert({
@@ -194,7 +180,6 @@ const StockIssueManagerComponent = () => {
       
       console.log('Added credential to stock:', stockData);
       
-      // Update the order with the credentials
       const { error: orderError } = await supabase
         .from('orders')
         .update({
@@ -212,7 +197,6 @@ const StockIssueManagerComponent = () => {
       
       console.log('Updated order with credentials');
       
-      // Update the stock issue status
       const { error: issueError } = await supabase
         .from('stock_issue_logs')
         .update({
@@ -231,7 +215,6 @@ const StockIssueManagerComponent = () => {
       setShowResolveDialog(false);
       loadIssues();
       
-      // Dispatch events for UI updates
       window.dispatchEvent(new CustomEvent('credential-added'));
       window.dispatchEvent(new CustomEvent('stock-issue-resolved'));
     } catch (error) {
@@ -242,7 +225,6 @@ const StockIssueManagerComponent = () => {
     }
   };
   
-  // Format date for better display
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -279,14 +261,19 @@ const StockIssueManagerComponent = () => {
             {issues.map(issue => (
               <div key={issue.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
-                    <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
-                      {issue.serviceName || issue.serviceId}
-                    </Badge>
-                    <Badge variant={issue.priority === 'high' ? 'destructive' : 'outline'}>
-                      {issue.priority} priority
-                    </Badge>
+                  <div>
+                    <h3 className="text-lg font-medium mb-1 flex items-center">
+                      <Package className="h-5 w-5 text-primary mr-2" />
+                      {issue.serviceName || "Unknown Service"}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
+                        Service ID: {issue.serviceId}
+                      </Badge>
+                      <Badge variant={issue.priority === 'high' ? 'destructive' : 'outline'}>
+                        {issue.priority} priority
+                      </Badge>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -306,6 +293,14 @@ const StockIssueManagerComponent = () => {
                       Resolve
                     </Button>
                   </div>
+                </div>
+                
+                <div className="flex items-center gap-2 mt-1 mb-3">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Customer: <span className="font-medium">{issue.customerName}</span></span>
+                  {issue.orderDetails?.customerEmail && (
+                    <span className="text-sm text-muted-foreground">({issue.orderDetails.customerEmail})</span>
+                  )}
                 </div>
                 
                 <Accordion type="single" collapsible className="w-full border-t pt-2">
@@ -408,7 +403,6 @@ const StockIssueManagerComponent = () => {
           </div>
         )}
         
-        {/* Resolve Issue Dialog */}
         <Dialog open={showResolveDialog} onOpenChange={setShowResolveDialog}>
           <DialogContent>
             <DialogHeader>
@@ -422,7 +416,7 @@ const StockIssueManagerComponent = () => {
               <div className="bg-primary/10 p-3 rounded-md border border-primary/20">
                 <div className="flex items-center gap-2 mb-1">
                   <Package className="h-5 w-5 text-primary" />
-                  <h3 className="font-medium text-primary">
+                  <h3 className="font-medium text-primary text-lg">
                     {selectedIssue?.serviceName}
                   </h3>
                 </div>
