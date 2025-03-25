@@ -143,9 +143,10 @@ const ServiceDetail = () => {
     
     if (userBalance < finalPrice) {
       toast.error("Insufficient balance", {
-        description: "You don't have enough funds to make this purchase"
+        description: `You need $${finalPrice.toFixed(2)} but only have $${userBalance.toFixed(2)} available.`
       });
       setIsPurchasing(false);
+      setIsConfirmDialogOpen(false);
       navigate("/payment");
       return;
     }
@@ -662,4 +663,3 @@ const ServiceDetail = () => {
 };
 
 export default ServiceDetail;
-
