@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Key, User, Clock } from 'lucide-react';
+import { Calendar, Key, User, Clock, AlertTriangle } from 'lucide-react';
 import { Subscription } from '@/lib/types';
 import { differenceInDays, parseISO } from 'date-fns';
 import { products } from '@/lib/data';
@@ -66,9 +66,10 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
               serviceId: sub.service_id,
               startDate: sub.start_date,
               endDate: sub.end_date,
-              status: sub.status as 'active' | 'expired' | 'cancelled',
+              status: sub.status as 'active' | 'expired' | 'cancelled' | 'pending',
               durationMonths: sub.duration_months,
-              credentials: credentialsObj
+              credentials: credentialsObj,
+              isPending: sub.status === 'pending' || !sub.credentials
             };
           });
           setSubscriptions(formattedSubs);
@@ -89,7 +90,12 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
       if (savedSubscriptions) {
         try {
           const allSubs = JSON.parse(savedSubscriptions);
-          const userSubs = allSubs.filter((sub: Subscription) => sub.userId === userId);
+          const userSubs = allSubs
+            .filter((sub: Subscription) => sub.userId === userId)
+            .map((sub: Subscription) => ({
+              ...sub,
+              isPending: sub.status === 'pending' || !sub.credentials
+            }));
           setSubscriptions(userSubs);
         } catch (error) {
           console.error('Error parsing subscriptions from localStorage:', error);
@@ -105,9 +111,15 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
     }
   }, [userId]);
 
-  const getSubscriptionStatus = (endDate: string) => {
+  const getSubscriptionStatus = (subscription: Subscription) => {
+    // First check if it's pending due to lack of credentials
+    if (subscription.isPending || subscription.status === 'pending' || !subscription.credentials) {
+      return { status: "pending", color: "orange" };
+    }
+
+    // Then check expiration status
     const today = new Date();
-    const end = parseISO(endDate);
+    const end = parseISO(subscription.endDate);
     const daysLeft = differenceInDays(end, today);
     
     if (daysLeft < 0) return { status: "expired", color: "destructive" };
@@ -161,7 +173,7 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSubscriptions.map((subscription) => {
               const productName = getProductName(subscription.serviceId);
-              const statusInfo = getSubscriptionStatus(subscription.endDate);
+              const statusInfo = getSubscriptionStatus(subscription);
               
               return (
                 <Card key={subscription.id} className="overflow-hidden">
@@ -198,7 +210,17 @@ const UserSubscriptionsView: React.FC<UserSubscriptionsViewProps> = ({
                       )}
                     </div>
                     
-                    {subscription.credentials && (
+                    {subscription.isPending || !subscription.credentials ? (
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex items-center gap-1 text-amber-600">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="font-medium">Pending Credentials</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Your subscription is active but credentials are being processed.
+                        </p>
+                      </div>
+                    ) : subscription.credentials && (
                       <div className="mt-3 pt-3 border-t">
                         <div className="flex items-center gap-1 mb-2">
                           <Key className="h-4 w-4 text-primary" />
