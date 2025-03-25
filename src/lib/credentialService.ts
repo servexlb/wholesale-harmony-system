@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Credential, StockRequest } from '@/lib/types';
 import { toast } from '@/lib/toast';
+import { v4 as uuidv4 } from 'uuid';
 
 // Check if stock is available for a given service
 export const checkStockAvailability = async (serviceId: string): Promise<boolean> => {
@@ -33,8 +34,8 @@ export const addCredentialToStock = async (
   try {
     console.log('Adding credential to stock:', { serviceId, credentials, status });
     
-    // Generate a unique ID for the stock item
-    const stockId = `stock-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+    // Generate a proper UUID for the stock item
+    const stockId = uuidv4();
     
     // Insert the credential into Supabase
     const { error } = await supabase
@@ -50,21 +51,7 @@ export const addCredentialToStock = async (
     if (error) {
       console.error('Error adding credential to stock:', error);
       toast.error('Failed to add credential to stock');
-      
-      // Fallback to localStorage for demo/testing
-      const stockItems = JSON.parse(localStorage.getItem('credential_stock') || '[]');
-      stockItems.push({
-        id: stockId,
-        serviceId: serviceId,
-        credentials: credentials,
-        status: status,
-        createdAt: new Date().toISOString()
-      });
-      localStorage.setItem('credential_stock', JSON.stringify(stockItems));
-      
-      // Dispatching the event despite the error to refresh the UI
-      window.dispatchEvent(new CustomEvent('credential-added'));
-      return true;
+      return false;
     }
     
     toast.success('Credential added to stock successfully');
@@ -76,23 +63,7 @@ export const addCredentialToStock = async (
   } catch (error) {
     console.error('Error in addCredentialToStock:', error);
     toast.error('Failed to add credential to stock');
-    
-    // Fallback to localStorage for demo/testing
-    const stockId = `stock-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-    const stockItems = JSON.parse(localStorage.getItem('credential_stock') || '[]');
-    stockItems.push({
-      id: stockId,
-      serviceId: serviceId,
-      credentials: credentials,
-      status: status,
-      createdAt: new Date().toISOString()
-    });
-    localStorage.setItem('credential_stock', JSON.stringify(stockItems));
-    
-    // Dispatching the event despite the error to refresh the UI
-    window.dispatchEvent(new CustomEvent('credential-added'));
-    
-    return true;
+    return false;
   }
 };
 

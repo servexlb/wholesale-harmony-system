@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from '@/lib/toast';
 import { useServiceManager } from '@/hooks/useServiceManager';
 import { Service, Credential } from '@/lib/types';
-import { addCredentialToStock } from '@/lib/credentialService';
 import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddCredentialDialogProps {
   open: boolean;
@@ -67,8 +67,8 @@ const AddCredentialDialog: React.FC<AddCredentialDialogProps> = ({ open, setOpen
       const service = services.find(s => s.id === selectedService);
       const serviceName = service ? service.name : "Unknown Service";
       
-      // Generate a unique stock ID
-      const stockId = `stock-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      // Generate a proper UUID instead of a string ID
+      const stockId = uuidv4();
       
       // Insert directly into Supabase
       const { error } = await supabase

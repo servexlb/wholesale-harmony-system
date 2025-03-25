@@ -9,6 +9,7 @@ import { Service } from '@/lib/types';
 import { toast } from '@/lib/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Plus } from 'lucide-react';
+import AddCredentialDialog from './AddCredentialDialog';
 
 interface AdminStockManagerProps {
   services: Service[];
@@ -20,6 +21,8 @@ export function AdminStockManager({ services, isLoading, fetchServices }: AdminS
   const [searchTerm, setSearchTerm] = useState('');
   const [stockCounts, setStockCounts] = useState<Record<string, { available: number, assigned: number }>>({});
   const [loadingStock, setLoadingStock] = useState(true);
+  const [isAddCredentialOpen, setIsAddCredentialOpen] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   
   // Fetch stock counts when component mounts
   useEffect(() => {
@@ -140,6 +143,12 @@ export function AdminStockManager({ services, isLoading, fetchServices }: AdminS
     toast.success('Stock data refreshed');
   };
 
+  // Open add credential dialog for a specific service
+  const handleAddStock = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setIsAddCredentialOpen(true);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -211,7 +220,11 @@ export function AdminStockManager({ services, isLoading, fetchServices }: AdminS
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleAddStock(service.id)}
+                      >
                         <Plus className="h-4 w-4 mr-1" />
                         Add Stock
                       </Button>
@@ -223,6 +236,11 @@ export function AdminStockManager({ services, isLoading, fetchServices }: AdminS
           </Table>
         </div>
       </CardContent>
+      
+      <AddCredentialDialog 
+        open={isAddCredentialOpen} 
+        setOpen={setIsAddCredentialOpen} 
+      />
     </Card>
   );
 }
