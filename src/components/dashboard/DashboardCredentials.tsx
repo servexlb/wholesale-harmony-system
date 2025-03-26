@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -57,9 +56,13 @@ const DashboardCredentials: React.FC = () => {
             serviceId: sub.service_id,
             startDate: sub.start_date,
             endDate: sub.end_date,
-            status: sub.status,
+            status: sub.status as 'active' | 'expired' | 'cancelled' | 'pending',
             durationMonths: sub.duration_months,
-            credentials: sub.credentials,
+            credentials: sub.credentials ? (
+              typeof sub.credentials === 'string' 
+                ? JSON.parse(sub.credentials) 
+                : sub.credentials
+            ) : undefined,
             credentialStockId: sub.credential_stock_id,
             isPending: sub.status === 'pending'
           }));
@@ -96,7 +99,7 @@ const DashboardCredentials: React.FC = () => {
     return () => {
       supabase.removeChannel(subscriptionsChannel);
     };
-  }, [user]);
+  }, [user, selectedTab]);
 
   if (loading) {
     return (
