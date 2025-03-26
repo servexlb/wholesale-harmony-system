@@ -69,7 +69,21 @@ const AdminOrders: React.FC = () => {
           .order('created_at', { ascending: false });
 
         if (!wholesaleError && wholesaleOrders) {
-          const formattedWholesaleOrders = wholesaleOrders.map(order => {
+          const formattedWholesaleOrders: Order[] = wholesaleOrders.map(order => {
+            // Parse credentials if they exist
+            let parsedCredentials = undefined;
+            if (order.credentials) {
+              if (typeof order.credentials === 'string') {
+                try {
+                  parsedCredentials = JSON.parse(order.credentials);
+                } catch (e) {
+                  parsedCredentials = { notes: "Error parsing credentials" };
+                }
+              } else {
+                parsedCredentials = order.credentials;
+              }
+            }
+            
             return {
               id: order.id,
               userId: order.wholesaler_id,
@@ -80,13 +94,15 @@ const AdminOrders: React.FC = () => {
               totalPrice: order.total_price,
               status: order.status,
               createdAt: order.created_at,
-              credentials: order.credentials,
-              customerName: order.customer_name
+              credentials: parsedCredentials,
+              customerName: order.customer_name,
+              total: order.total_price || 0,
+              products: []
             };
           });
 
           // Combine with regular orders
-          const allOrders = [...processedOrders, ...formattedWholesaleOrders];
+          const allOrders = [...processOrders(supabaseOrders || []), ...formattedWholesaleOrders];
           const allPending = allOrders.filter(order => order.status === 'pending');
           const allCompleted = allOrders.filter(order => order.status === 'completed');
           
