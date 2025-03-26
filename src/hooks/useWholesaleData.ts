@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -168,34 +167,38 @@ export function useWholesaleData(currentWholesaler: string) {
           console.error('Error fetching orders:', ordersError);
           toast.error('Error loading order data');
         } else if (orderData) {
-          const formattedOrders = orderData.map(order => {
-            let orderCredentials = undefined;
-            
-            // Fix the TypeScript error - Check if 'credentials' property exists in the order object
-            if (order.credentials !== undefined && order.credentials !== null) {
-              orderCredentials = order.credentials;
-            }
-            
-            return {
-              id: order.id,
-              userId: order.wholesaler_id,
-              wholesalerId: order.wholesaler_id,
-              customerId: order.customer_id,
-              serviceId: order.service_id,
-              quantity: order.quantity || 1,
-              totalPrice: order.total_price,
-              status: order.status,
-              createdAt: order.created_at,
-              durationMonths: order.duration_months,
-              customerName: order.customer_name,
-              customerEmail: order.customer_email,
-              customerPhone: order.customer_phone,
-              customerAddress: order.customer_address,
-              customerCompany: order.customer_company,
-              notes: order.notes,
-              credentials: orderCredentials
-            };
-          });
+          const formatOrders = (ordersData: any[]): WholesaleOrder[] => {
+            return ordersData.map(order => {
+              let credentials = undefined;
+              if (order.credentials) {
+                credentials = typeof order.credentials === 'string'
+                  ? JSON.parse(order.credentials)
+                  : order.credentials;
+              }
+              
+              return {
+                id: order.id,
+                wholesalerId: order.wholesaler_id,
+                customerId: order.customer_id,
+                customerName: order.customer_name,
+                customerEmail: order.customer_email,
+                customerPhone: order.customer_phone,
+                customerAddress: order.customer_address,
+                customerCompany: order.customer_company,
+                serviceId: order.service_id,
+                serviceName: order.service_name,
+                quantity: order.quantity,
+                totalPrice: order.total_price,
+                durationMonths: order.duration_months,
+                status: order.status,
+                createdAt: order.created_at,
+                notes: order.notes,
+                credentials: credentials
+              };
+            });
+          };
+          
+          const formattedOrders = formatOrders(orderData);
           setOrders(formattedOrders);
         }
       } catch (error) {
@@ -258,7 +261,6 @@ export function useWholesaleData(currentWholesaler: string) {
       
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
-        // Check for available credentials in stock
         const { data: availableCredential, error: credentialError } = await supabase
           .from('credential_stock')
           .select('*')
@@ -273,7 +275,6 @@ export function useWholesaleData(currentWholesaler: string) {
           console.log('Found available credential in stock:', availableCredential.id);
           orderCredentials = availableCredential.credentials;
           
-          // Update credential status to assigned
           const { error: updateError } = await supabase
             .from('credential_stock')
             .update({ 
@@ -289,7 +290,6 @@ export function useWholesaleData(currentWholesaler: string) {
         } else {
           console.log('No credentials available in stock for service:', order.serviceId);
           
-          // Create a stock issue record for admin notification
           const stockIssueId = `stock-issue-${Date.now()}`;
           const { error: stockIssueError } = await supabase
             .from('stock_issue_logs')
@@ -309,7 +309,6 @@ export function useWholesaleData(currentWholesaler: string) {
             console.error('Error creating stock issue record:', stockIssueError);
           }
           
-          // Create admin notification
           const notificationId = `notification-${Date.now()}`;
           const { error: notificationError } = await supabase
             .from('admin_notifications')
@@ -333,7 +332,6 @@ export function useWholesaleData(currentWholesaler: string) {
         }
       }
       
-      // Set order status based on credential availability
       if (orderCredentials) {
         order.credentials = orderCredentials;
         order.status = 'completed';
@@ -343,14 +341,12 @@ export function useWholesaleData(currentWholesaler: string) {
         console.log('No credentials available, order status set to pending');
       }
       
-      // Add order to local state
       setOrders(prev => {
         const updatedOrders = [order, ...prev];
         return updatedOrders.slice(0, 100);
       });
       
       if (session?.session) {
-        // Save order to Supabase
         const orderInsertData = {
           id: order.id,
           wholesaler_id: session.session.user.id,
@@ -379,7 +375,6 @@ export function useWholesaleData(currentWholesaler: string) {
           return;
         }
         
-        // Update user balance
         const totalPrice = order.totalPrice || 0;
         
         const { data: profileData, error: profileError } = await supabase
@@ -410,7 +405,6 @@ export function useWholesaleData(currentWholesaler: string) {
         
         localStorage.setItem(`userBalance_${session.session.user.id}`, newBalance.toString());
         
-        // Create payment record
         const paymentId = `pmt-${Date.now()}`;
         const { error: paymentError } = await supabase
           .from('payments')
@@ -432,7 +426,6 @@ export function useWholesaleData(currentWholesaler: string) {
         const service = services.find(s => s.id === order.serviceId);
         
         if (service?.type === 'subscription') {
-          // Create subscription
           const durationMonths = order.durationMonths || 1;
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + durationMonths);

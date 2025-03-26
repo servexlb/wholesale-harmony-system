@@ -23,11 +23,11 @@ const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service,
       <TableCell>
         <div className="flex items-center gap-2">
           {displayItem?.type === 'subscription' && <Calendar className="h-4 w-4 text-blue-500" />}
-          {displayItem?.name || "Unknown Service"}
+          {displayItem?.name || order.serviceName || "Unknown Service"}
         </div>
       </TableCell>
       <TableCell>{order.quantity}</TableCell>
-      <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
+      <TableCell>${order.totalPrice?.toFixed(2)}</TableCell>
       <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
       <TableCell>
         <span className={`px-2 py-1 rounded-full text-xs ${

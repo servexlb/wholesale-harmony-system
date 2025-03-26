@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -24,6 +23,8 @@ import {
   History,
   Calendar,
   Clock,
+  Key,
+  Copy
 } from "lucide-react";
 
 const getUserId = () => {
@@ -326,32 +327,91 @@ const Account: React.FC = () => {
                           const daysRemaining = getDaysRemaining(subscription.endDate);
                           
                           return (
-                            <div key={subscription.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-2 rounded-md">
-                                  <Package className="h-6 w-6 text-primary" />
+                            <div key={subscription.id} className="border-b pb-4 mb-4 last:border-0 last:pb-0 last:mb-0">
+                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-primary/10 p-2 rounded-md">
+                                    <Package className="h-6 w-6 text-primary" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-medium">{getServiceName(subscription.serviceId)}</h3>
+                                    <div className="flex items-center text-sm text-muted-foreground">
+                                      <Calendar className="h-3.5 w-3.5 mr-1" />
+                                      <span>Expires in {daysRemaining} days</span>
+                                    </div>
+                                    <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                      <Clock className="h-3.5 w-3.5 mr-1" />
+                                      <span>
+                                        {subscription.durationMonths 
+                                          ? `${subscription.durationMonths} month subscription` 
+                                          : 'Ongoing subscription'}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h3 className="font-medium">{getServiceName(subscription.serviceId)}</h3>
-                                  <div className="flex items-center text-sm text-muted-foreground">
-                                    <Calendar className="h-3.5 w-3.5 mr-1" />
-                                    <span>Expires in {daysRemaining} days</span>
-                                  </div>
-                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                    <Clock className="h-3.5 w-3.5 mr-1" />
-                                    <span>
-                                      {subscription.durationMonths 
-                                        ? `${subscription.durationMonths} month subscription` 
-                                        : 'Ongoing subscription'}
-                                    </span>
-                                  </div>
+                                <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
+                                  <Button size="sm" variant="outline" asChild className="mt-2">
+                                    <Link to={`/subscription/${subscription.id}`}>Manage</Link>
+                                  </Button>
                                 </div>
                               </div>
-                              <div className="flex flex-col mt-3 sm:mt-0 sm:text-right">
-                                <Button size="sm" variant="outline" asChild className="mt-2">
-                                  <Link to={`/subscription/${subscription.id}`}>Manage</Link>
-                                </Button>
-                              </div>
+                              
+                              {subscription.credentials && (
+                                <div className="mt-2 bg-muted/30 rounded-md p-3">
+                                  <h4 className="text-sm font-medium mb-2 flex items-center">
+                                    <Key className="h-4 w-4 mr-1" />
+                                    Access Credentials
+                                  </h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {subscription.credentials.email && (
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-muted-foreground">Email:</span>
+                                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{subscription.credentials.email}</span>
+                                      </div>
+                                    )}
+                                    {subscription.credentials.username && (
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-muted-foreground">Username:</span>
+                                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{subscription.credentials.username}</span>
+                                      </div>
+                                    )}
+                                    {subscription.credentials.password && (
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-muted-foreground">Password:</span>
+                                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{subscription.credentials.password}</span>
+                                      </div>
+                                    )}
+                                    {subscription.credentials.pinCode && (
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-muted-foreground">PIN:</span>
+                                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded">{subscription.credentials.pinCode}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {subscription.credentials.notes && (
+                                    <div className="mt-2 pt-2 border-t border-muted-foreground/20">
+                                      <span className="text-sm text-muted-foreground">Notes: </span>
+                                      <span className="text-sm">{subscription.credentials.notes}</span>
+                                    </div>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="mt-2 text-xs" 
+                                    onClick={() => {
+                                      const credText = Object.entries(subscription.credentials || {})
+                                        .filter(([key, value]) => value && typeof value === 'string')
+                                        .map(([key, value]) => `${key}: ${value}`)
+                                        .join('\n');
+                                      navigator.clipboard.writeText(credText);
+                                      toast.success("Credentials copied to clipboard");
+                                    }}
+                                  >
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    Copy All
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           );
                         })

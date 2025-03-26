@@ -61,7 +61,7 @@ export interface StockRequest {
   serviceName?: string;
   productName?: string; // Add this new property
   orderId: string;
-  status: 'pending' | 'fulfilled' | 'cancelled';
+  status: 'pending' | 'fulfilled' | 'cancelled' | string; // Add string to allow for more status types
   createdAt: string;
   fulfilledAt?: string;
   customerName?: string;
@@ -321,6 +321,7 @@ export interface WholesaleOrder {
   wholesalerId?: string;
   customerId?: string;
   serviceId?: string;
+  serviceName?: string;  // Add this field
   quantity?: number;
   totalPrice?: number;
   status: string;
@@ -355,4 +356,13 @@ export interface ServiceCategory {
   order?: number;
   icon?: string;
   image?: string; // Added image property
+}
+
+// Define CredentialInput interface for StockIssueManager
+export interface CredentialInput {
+  username?: string;
+  password?: string;
+  email?: string;
+  notes?: string;
+  [key: string]: string | undefined;
 }
