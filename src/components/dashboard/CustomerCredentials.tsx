@@ -1,213 +1,184 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Check } from 'lucide-react';
+import { Subscription, Service } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/lib/toast';
-import Loader from '../ui/Loader';
-import NoDataMessage from '../ui/NoDataMessage';
+import { CopyIcon, CheckIcon } from 'lucide-react';
 
 interface CustomerCredentialsProps {
-  orderId?: string;
+  subscription?: Subscription;
+  service?: Service;
 }
 
-const CustomerCredentials: React.FC<CustomerCredentialsProps> = ({ orderId }) => {
+const CustomerCredentials: React.FC<CustomerCredentialsProps> = ({ subscription, service }) => {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [credentials, setCredentials] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [copied, setCopied] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        let query = supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'completed');
-          
-        if (orderId) {
-          query = query.eq('id', orderId);
-        }
-        
-        const { data, error } = await query.order('created_at', { ascending: false });
-        
-        if (error) {
-          throw error;
-        }
-        
-        // Try to get credential information for each order
-        const ordersWithCredentials = await Promise.all((data || []).map(async (order) => {
-          // Check if there's credential in credential_stock for this order
-          const { data: stockData, error: stockError } = await supabase
-            .from('credential_stock')
-            .select('*')
-            .eq('order_id', order.id)
-            .eq('status', 'assigned')
-            .single();
-            
-          if (!stockError && stockData) {
-            // Return order with credentials from stock
-            return {
-              ...order,
-              credentials: stockData.credentials
-            };
-          }
-          
-          return order;
-        }));
-        
-        setOrders(ordersWithCredentials);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-        toast.error('Failed to load credential information');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchOrders();
-  }, [user, orderId]);
+    fetchCredentials();
+  }, [subscription]);
 
-  const handleCopyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    toast.success(`${field} copied to clipboard`);
-    setTimeout(() => setCopiedField(null), 2000);
+  const fetchCredentials = async () => {
+    if (!user || !subscription) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Try to get credentials from subscription first
+      if (subscription.credentials) {
+        setCredentials(subscription.credentials);
+        setLoading(false);
+        return;
+      }
+
+      // Try to get from credential_stock if there's a reference
+      if (subscription.credentialStockId) {
+        const { data, error } = await supabase
+          .from('credential_stock')
+          .select('credentials')
+          .eq('id', subscription.credentialStockId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching credential stock:', error);
+        } else if (data) {
+          setCredentials(data.credentials);
+        }
+      } else {
+        // Fallback - look for any assigned credentials for this subscription
+        const { data, error } = await supabase
+          .from('credential_stock')
+          .select('credentials')
+          .eq('service_id', subscription.serviceId)
+          .eq('user_id', user.id)
+          .eq('status', 'assigned')
+          .single();
+
+        if (error) {
+          console.error('Error fetching assigned credentials:', error);
+        } else if (data) {
+          setCredentials(data.credentials);
+        }
+      }
+    } catch (error) {
+      console.error('Error in fetchCredentials:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyText = (key: string, text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopied(prev => ({ ...prev, [key]: false }));
+      }, 2000);
+    });
+  };
+
+  const handleCopyAll = () => {
+    if (!credentials) return;
+    
+    const credText = Object.entries(credentials)
+      .filter(([key, value]) => value && key !== 'notes')
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+    
+    navigator.clipboard.writeText(credText).then(() => {
+      toast.success('All credentials copied to clipboard');
+    });
   };
 
   if (loading) {
-    return <Loader text="Loading credentials..." />;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Credentials</CardTitle>
+          <CardDescription>Loading your access credentials...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </CardContent>
+      </Card>
+    );
   }
 
-  if (orders.length === 0) {
+  if (!credentials) {
     return (
-      <NoDataMessage
-        title="No Credentials Found"
-        description="You don't have any active subscriptions with credentials."
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Credentials</CardTitle>
+          <CardDescription>Credentials for your subscription</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-muted-foreground">
+            {subscription?.status === 'pending' ? (
+              <p>Your credentials are pending. We'll notify you when they're ready.</p>
+            ) : (
+              <p>No credentials found for this subscription.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {orders.map((order) => {
-        // Get credentials from the credential_stock relation
-        const credentials = order.credentials;
-        
-        return (
-          <Card key={order.id} className="overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Credentials</CardTitle>
+        <CardDescription>
+          Access credentials for {service?.name || 'your subscription'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {Object.entries(credentials)
+            .filter(([key, value]) => value && key !== 'notes')
+            .map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">{order.service_name}</CardTitle>
-                  <CardDescription>Order ID: {order.id}</CardDescription>
+                  <p className="text-sm font-medium capitalize">{key}</p>
+                  <p className="text-sm text-muted-foreground font-mono">{value as string}</p>
                 </div>
-                <Badge variant="outline">{order.status}</Badge>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleCopyText(key, value as string)}
+                >
+                  {copied[key] ? <CheckIcon className="h-4 w-4 text-green-500" /> : <CopyIcon className="h-4 w-4" />}
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {credentials ? (
-                <div className="space-y-3">
-                  {typeof credentials === 'string' ? (
-                    <div className="text-sm text-muted-foreground">
-                      Credentials available but in legacy format. Please contact support.
-                    </div>
-                  ) : (
-                    <>
-                      {credentials.email && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">Email:</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleCopyToClipboard(credentials.email, 'Email')}
-                            >
-                              {copiedField === 'Email' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                            </Button>
-                          </div>
-                          <div className="text-sm font-mono bg-muted p-2 rounded">{credentials.email}</div>
-                        </div>
-                      )}
-                      
-                      {credentials.password && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">Password:</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleCopyToClipboard(credentials.password, 'Password')}
-                            >
-                              {copiedField === 'Password' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                            </Button>
-                          </div>
-                          <div className="text-sm font-mono bg-muted p-2 rounded">{credentials.password}</div>
-                        </div>
-                      )}
-                      
-                      {credentials.username && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">Username:</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleCopyToClipboard(credentials.username, 'Username')}
-                            >
-                              {copiedField === 'Username' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                            </Button>
-                          </div>
-                          <div className="text-sm font-mono bg-muted p-2 rounded">{credentials.username}</div>
-                        </div>
-                      )}
-                      
-                      {credentials.pinCode && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">PIN:</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleCopyToClipboard(credentials.pinCode, 'PIN')}
-                            >
-                              {copiedField === 'PIN' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                            </Button>
-                          </div>
-                          <div className="text-sm font-mono bg-muted p-2 rounded">{credentials.pinCode}</div>
-                        </div>
-                      )}
-                      
-                      {credentials.notes && (
-                        <div className="space-y-1">
-                          <span className="text-sm font-medium">Notes:</span>
-                          <div className="text-sm bg-muted p-2 rounded">{credentials.notes}</div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="py-4 text-center text-muted-foreground">
-                  No credentials available for this order.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+            ))}
+
+          {credentials.notes && (
+            <div className="mt-4 border-t pt-4">
+              <p className="text-sm font-medium">Notes</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{credentials.notes}</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button onClick={handleCopyAll} className="w-full">
+          Copy All Credentials
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

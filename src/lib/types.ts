@@ -10,7 +10,7 @@ export interface Order {
     name?: string; // Add name property to fix error in AdminOrders
   }>;
   total: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: 'pending' | 'processing' | 'completed' | 'cancelled' | string; // Add string to allow for more status types
   createdAt: string;
   serviceId?: string;
   serviceName?: string;

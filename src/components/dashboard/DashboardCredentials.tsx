@@ -1,176 +1,155 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal, RefreshCw, Copy, Check } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/lib/toast';
-import NoDataMessage from '../ui/NoDataMessage';
-import Loader from '../ui/Loader';
+import { supabase } from '@/integrations/supabase/client';
+import { Subscription, Service } from '@/lib/types';
+import CustomerCredentials from './CustomerCredentials';
+import { loadServices } from '@/lib/productManager';
 
-const DashboardCredentials = () => {
+const DashboardCredentials: React.FC = () => {
   const { user } = useAuth();
-  const [completedOrders, setCompletedOrders] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchCompletedOrders = async () => {
-      if (!user) return;
-      
+    setServices(loadServices());
+    
+    // Listen for service updates
+    const handleServiceUpdated = () => {
+      setServices(loadServices());
+    };
+    
+    window.addEventListener('service-updated', handleServiceUpdated);
+    return () => {
+      window.removeEventListener('service-updated', handleServiceUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchSubscriptions = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const { data, error } = await supabase
-          .from('orders')
+          .from('subscriptions')
           .select('*')
           .eq('user_id', user.id)
-          .eq('status', 'completed')
           .order('created_at', { ascending: false });
           
         if (error) {
-          throw error;
-        }
-        
-        // Try to get credential information for each order
-        const ordersWithCredentials = await Promise.all((data || []).map(async (order) => {
-          // Check if there's credential in credential_stock for this order
-          const { data: stockData, error: stockError } = await supabase
-            .from('credential_stock')
-            .select('*')
-            .eq('order_id', order.id)
-            .eq('status', 'assigned')
-            .single();
-            
-          if (!stockError && stockData) {
-            // Return order with credentials from stock
-            return {
-              ...order,
-              credentials: stockData.credentials
-            };
-          }
+          console.error('Error fetching subscriptions:', error);
+        } else if (data) {
+          // Transform data to match Subscription interface
+          const transformedData: Subscription[] = data.map(sub => ({
+            id: sub.id,
+            userId: sub.user_id,
+            serviceId: sub.service_id,
+            startDate: sub.start_date,
+            endDate: sub.end_date,
+            status: sub.status,
+            durationMonths: sub.duration_months,
+            credentials: sub.credentials,
+            credentialStockId: sub.credential_stock_id,
+            isPending: sub.status === 'pending'
+          }));
           
-          return order;
-        }));
-        
-        setCompletedOrders(ordersWithCredentials);
+          setSubscriptions(transformedData);
+          
+          // Set first subscription as default tab
+          if (transformedData.length > 0 && !selectedTab) {
+            setSelectedTab(transformedData[0].id);
+          }
+        }
       } catch (error) {
-        console.error('Error fetching completed orders:', error);
-        toast.error('Failed to load orders');
+        console.error('Error in fetchSubscriptions:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchCompletedOrders();
+    fetchSubscriptions();
+    
+    // Listen for subscription updates
+    const subscriptionsChannel = supabase
+      .channel('subscriptions-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'subscriptions',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        fetchSubscriptions();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(subscriptionsChannel);
+    };
   }, [user]);
 
-  const handleCopyToClipboard = (text: string, id: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setCopiedField(field);
-    toast.success(`${field} copied to clipboard`);
-    setTimeout(() => {
-      setCopiedId(null);
-      setCopiedField(null);
-    }, 2000);
-  };
-
   if (loading) {
-    return <Loader text="Loading credentials..." />;
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
-  if (completedOrders.length === 0) {
+  if (subscriptions.length === 0) {
     return (
-      <NoDataMessage
-        title="No Credentials Found"
-        description="You don't have any completed orders with credentials yet."
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Subscriptions</CardTitle>
+          <CardDescription>You don't have any active subscriptions yet</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center py-6 text-muted-foreground">
+            Purchase a subscription to see your credentials here.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Your Credentials</CardTitle>
-            <CardDescription>
-              Access credentials for your purchased services
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />
-            Refresh
-          </Button>
-        </div>
+        <CardTitle>Your Subscriptions</CardTitle>
+        <CardDescription>Access your subscription details and credentials</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Service</TableHead>
-              <TableHead>Order Date</TableHead>
-              <TableHead>Credentials</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {completedOrders.map((order) => {
-              const hasCredentials = !!order.credentials;
-              
+        <Tabs value={selectedTab || undefined} onValueChange={setSelectedTab}>
+          <TabsList className="mb-4 w-full flex overflow-x-auto">
+            {subscriptions.map(subscription => {
+              const service = services.find(s => s.id === subscription.serviceId);
               return (
-                <TableRow key={order.id}>
-                  <TableCell>
-                    <div className="font-medium">{order.service_name}</div>
-                    <div className="text-xs text-muted-foreground">Order #{order.id}</div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {hasCredentials ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
-                        Available
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-50">
-                        Not Available
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {hasCredentials && order.credentials && (
-                      <div className="flex justify-end gap-2">
-                        {typeof order.credentials === 'object' && order.credentials.email && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleCopyToClipboard(order.credentials.email, order.id, 'Email')}
-                            title="Copy email"
-                          >
-                            {copiedId === order.id && copiedField === 'Email' ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
+                <TabsTrigger key={subscription.id} value={subscription.id} className="flex-1 min-w-max">
+                  {service?.name || 'Subscription'}
+                </TabsTrigger>
               );
             })}
-          </TableBody>
-        </Table>
+          </TabsList>
+          
+          {subscriptions.map(subscription => {
+            const service = services.find(s => s.id === subscription.serviceId);
+            return (
+              <TabsContent key={subscription.id} value={subscription.id}>
+                <CustomerCredentials subscription={subscription} service={service} />
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       </CardContent>
     </Card>
   );
