@@ -1,7 +1,7 @@
 
 import React, { memo } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Calendar } from 'lucide-react';
+import { Calendar, Clock } from 'lucide-react';
 import { Customer } from '@/lib/data';
 import { WholesaleOrder } from '@/lib/types';
 
@@ -33,8 +33,10 @@ const OrderTableRow: React.FC<OrderTableRowProps> = ({ order, customer, service,
         <span className={`px-2 py-1 rounded-full text-xs ${
           order.status === 'completed' ? 'bg-green-100 text-green-800' :
           order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+          order.status === 'pending' ? 'bg-amber-100 text-amber-800 flex items-center gap-1' : 
           'bg-amber-100 text-amber-800'
         }`}>
+          {order.status === 'pending' && <Clock className="h-3 w-3" />}
           {order.status}
         </span>
       </TableCell>

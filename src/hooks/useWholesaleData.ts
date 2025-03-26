@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -168,9 +169,11 @@ export function useWholesaleData(currentWholesaler: string) {
           toast.error('Error loading order data');
         } else if (orderData) {
           const formattedOrders = orderData.map(order => {
-            let credentials = undefined;
-            if ('credentials' in order && order.credentials) {
-              credentials = order.credentials;
+            let orderCredentials = undefined;
+            
+            // Fix the TypeScript error - Check if 'credentials' property exists in the order object
+            if (order.credentials !== undefined && order.credentials !== null) {
+              orderCredentials = order.credentials;
             }
             
             return {
@@ -190,7 +193,7 @@ export function useWholesaleData(currentWholesaler: string) {
               customerAddress: order.customer_address,
               customerCompany: order.customer_company,
               notes: order.notes,
-              credentials: credentials
+              credentials: orderCredentials
             };
           });
           setOrders(formattedOrders);
@@ -255,6 +258,7 @@ export function useWholesaleData(currentWholesaler: string) {
       
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
+        // Check for available credentials in stock
         const { data: availableCredential, error: credentialError } = await supabase
           .from('credential_stock')
           .select('*')
@@ -269,6 +273,7 @@ export function useWholesaleData(currentWholesaler: string) {
           console.log('Found available credential in stock:', availableCredential.id);
           orderCredentials = availableCredential.credentials;
           
+          // Update credential status to assigned
           const { error: updateError } = await supabase
             .from('credential_stock')
             .update({ 
@@ -283,9 +288,52 @@ export function useWholesaleData(currentWholesaler: string) {
           }
         } else {
           console.log('No credentials available in stock for service:', order.serviceId);
+          
+          // Create a stock issue record for admin notification
+          const stockIssueId = `stock-issue-${Date.now()}`;
+          const { error: stockIssueError } = await supabase
+            .from('stock_issue_logs')
+            .insert({
+              id: stockIssueId,
+              user_id: session.session.user.id,
+              service_id: order.serviceId,
+              service_name: services.find(s => s.id === order.serviceId)?.name || 'Unknown Service',
+              order_id: order.id,
+              status: 'pending',
+              customer_name: order.customerName,
+              priority: 'high',
+              notes: `Wholesale order requires credentials for ${order.customerName}`
+            });
+            
+          if (stockIssueError) {
+            console.error('Error creating stock issue record:', stockIssueError);
+          }
+          
+          // Create admin notification
+          const notificationId = `notification-${Date.now()}`;
+          const { error: notificationError } = await supabase
+            .from('admin_notifications')
+            .insert({
+              id: notificationId,
+              type: 'stock',
+              title: 'Stock Issue',
+              message: `Pending order requires credentials for ${order.customerName}`,
+              customer_id: order.customerId,
+              service_id: order.serviceId,
+              service_name: services.find(s => s.id === order.serviceId)?.name || 'Unknown Service',
+              customer_name: order.customerName,
+              created_at: new Date().toISOString(),
+              is_read: false,
+              link_to: '/admin/stock-issues'
+            });
+            
+          if (notificationError) {
+            console.error('Error creating admin notification:', notificationError);
+          }
         }
       }
       
+      // Set order status based on credential availability
       if (orderCredentials) {
         order.credentials = orderCredentials;
         order.status = 'completed';
@@ -295,12 +343,14 @@ export function useWholesaleData(currentWholesaler: string) {
         console.log('No credentials available, order status set to pending');
       }
       
+      // Add order to local state
       setOrders(prev => {
         const updatedOrders = [order, ...prev];
         return updatedOrders.slice(0, 100);
       });
       
       if (session?.session) {
+        // Save order to Supabase
         const orderInsertData = {
           id: order.id,
           wholesaler_id: session.session.user.id,
@@ -329,6 +379,7 @@ export function useWholesaleData(currentWholesaler: string) {
           return;
         }
         
+        // Update user balance
         const totalPrice = order.totalPrice || 0;
         
         const { data: profileData, error: profileError } = await supabase
@@ -359,6 +410,7 @@ export function useWholesaleData(currentWholesaler: string) {
         
         localStorage.setItem(`userBalance_${session.session.user.id}`, newBalance.toString());
         
+        // Create payment record
         const paymentId = `pmt-${Date.now()}`;
         const { error: paymentError } = await supabase
           .from('payments')
@@ -380,6 +432,7 @@ export function useWholesaleData(currentWholesaler: string) {
         const service = services.find(s => s.id === order.serviceId);
         
         if (service?.type === 'subscription') {
+          // Create subscription
           const durationMonths = order.durationMonths || 1;
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + durationMonths);

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Routes, Route } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import AdminPayments from "@/components/admin/AdminPayments";
 import SubscriptionIssues from "@/components/admin/SubscriptionIssues";
 import AdminChatMessages from "@/components/admin/AdminChatMessages";
 import AdminGmailSettings from "@/components/admin/AdminGmailSettings";
+import NotificationBadge from "@/components/admin/NotificationBadge";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, Package, ShoppingCart, TicketCheck, 
   BarChart3, Settings, AlertCircle, PlusCircle,
@@ -32,6 +34,70 @@ import StockIssueManager from "@/components/admin/StockIssueManager";
 
 const AdminPanel: React.FC = () => {
   const navigate = useNavigate();
+  const [pendingStockIssuesCount, setPendingStockIssuesCount] = useState(0);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  useEffect(() => {
+    fetchPendingCounts();
+
+    // Set up real-time subscriptions for stock issues and orders
+    const stockChannel = supabase
+      .channel('stock-issues-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'stock_issue_logs'
+      }, () => {
+        fetchPendingCounts();
+      })
+      .subscribe();
+
+    const ordersChannel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'wholesale_orders'
+      }, () => {
+        fetchPendingCounts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(stockChannel);
+      supabase.removeChannel(ordersChannel);
+    };
+  }, []);
+
+  const fetchPendingCounts = async () => {
+    try {
+      // Fetch pending stock issues count
+      const { count: stockIssuesCount, error: stockError } = await supabase
+        .from('stock_issue_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      if (stockError) {
+        console.error('Error fetching pending stock issues:', stockError);
+      } else {
+        setPendingStockIssuesCount(stockIssuesCount || 0);
+      }
+
+      // Fetch pending orders count
+      const { count: ordersCount, error: ordersError } = await supabase
+        .from('wholesale_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      if (ordersError) {
+        console.error('Error fetching pending orders:', ordersError);
+      } else {
+        setPendingOrdersCount(ordersCount || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching pending counts:', error);
+    }
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("adminAuthenticated");
@@ -89,11 +155,12 @@ const AdminPanel: React.FC = () => {
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start" 
+                    className="w-full justify-start relative" 
                     onClick={() => navigate("/admin/orders")}
                   >
                     <ShoppingCart className="mr-2 h-4 w-4" />
                     Orders
+                    <NotificationBadge count={pendingOrdersCount} />
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -137,11 +204,12 @@ const AdminPanel: React.FC = () => {
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start" 
+                    className="w-full justify-start relative" 
                     onClick={() => navigate("/admin/stock-issues")}
                   >
                     <AlertTriangle className="mr-2 h-4 w-4" />
                     Stock Issues
+                    <NotificationBadge count={pendingStockIssuesCount} />
                   </Button>
                   <Button 
                     variant="ghost" 

@@ -6,6 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import {
   Table,
@@ -15,6 +16,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { Order } from "@/lib/types";
 import { format } from "date-fns";
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +27,10 @@ import { toast } from '@/lib/toast';
 
 const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -42,9 +50,49 @@ const AdminOrders: React.FC = () => {
           // Process orders to ensure all products have a name property
           const processedOrders = processOrders(supabaseOrders);
           setOrders(processedOrders);
+          
+          // Filter orders by status
+          const pending = processedOrders.filter(order => order.status === 'pending');
+          const completed = processedOrders.filter(order => order.status === 'completed');
+          
+          setPendingOrders(pending);
+          setCompletedOrders(completed);
         } else {
           // If no orders in Supabase, fall back to localStorage
           loadOrdersFromLocalStorage();
+        }
+
+        // Also fetch wholesale orders
+        const { data: wholesaleOrders, error: wholesaleError } = await supabase
+          .from('wholesale_orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!wholesaleError && wholesaleOrders) {
+          const formattedWholesaleOrders = wholesaleOrders.map(order => {
+            return {
+              id: order.id,
+              userId: order.wholesaler_id,
+              customerId: order.customer_id,
+              serviceId: order.service_id,
+              serviceName: order.service_name || 'Unknown Service',
+              quantity: order.quantity || 1,
+              totalPrice: order.total_price,
+              status: order.status,
+              createdAt: order.created_at,
+              credentials: order.credentials,
+              customerName: order.customer_name
+            };
+          });
+
+          // Combine with regular orders
+          const allOrders = [...processedOrders, ...formattedWholesaleOrders];
+          const allPending = allOrders.filter(order => order.status === 'pending');
+          const allCompleted = allOrders.filter(order => order.status === 'completed');
+          
+          setOrders(allOrders);
+          setPendingOrders(allPending);
+          setCompletedOrders(allCompleted);
         }
       } catch (error) {
         console.error('Error in fetchOrders:', error);
@@ -64,10 +112,189 @@ const AdminOrders: React.FC = () => {
       const processedOrders = processOrders(parsedOrders);
       
       setOrders(processedOrders);
+      
+      // Filter orders by status
+      const pending = processedOrders.filter(order => order.status === 'pending');
+      const completed = processedOrders.filter(order => order.status === 'completed');
+      
+      setPendingOrders(pending);
+      setCompletedOrders(completed);
     };
     
     fetchOrders();
+
+    // Set up realtime subscription for orders
+    const ordersChannel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders'
+      }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    const wholesaleOrdersChannel = supabase
+      .channel('wholesale-orders-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'wholesale_orders'
+      }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(wholesaleOrdersChannel);
+    };
   }, []);
+
+  const resolveOrder = async (order: Order) => {
+    try {
+      // First check if there's an available credential
+      const { data: availableCredential, error: credentialError } = await supabase
+        .from('credential_stock')
+        .select('*')
+        .eq('service_id', order.serviceId || order.products?.[0]?.productId)
+        .eq('status', 'available')
+        .limit(1)
+        .single();
+        
+      if (credentialError) {
+        console.error('Error fetching available credential:', credentialError);
+        toast.error("No credentials available in stock");
+        return;
+      }
+      
+      if (!availableCredential) {
+        toast.error("No credentials available for this service");
+        return;
+      }
+      
+      // Update the credential status
+      const { error: updateCredentialError } = await supabase
+        .from('credential_stock')
+        .update({
+          status: 'assigned',
+          user_id: order.userId,
+          order_id: order.id
+        })
+        .eq('id', availableCredential.id);
+        
+      if (updateCredentialError) {
+        console.error('Error updating credential status:', updateCredentialError);
+        toast.error("Failed to assign credential");
+        return;
+      }
+      
+      // Update the order status
+      const table = order.customerId ? 'wholesale_orders' : 'orders';
+      const updateData = {
+        status: 'completed',
+        credentials: availableCredential.credentials,
+        completed_at: new Date().toISOString()
+      };
+      
+      const { error: updateOrderError } = await supabase
+        .from(table)
+        .update(updateData)
+        .eq('id', order.id);
+        
+      if (updateOrderError) {
+        console.error('Error updating order status:', updateOrderError);
+        toast.error("Failed to update order status");
+        return;
+      }
+      
+      // Update subscription if exists
+      if (order.customerId) {
+        // This is a wholesale order, check for wholesale subscription
+        const { data: subscription, error: subscriptionError } = await supabase
+          .from('wholesale_subscriptions')
+          .select('*')
+          .eq('customer_id', order.customerId)
+          .eq('service_id', order.serviceId)
+          .single();
+          
+        if (!subscriptionError && subscription) {
+          const { error: updateSubError } = await supabase
+            .from('wholesale_subscriptions')
+            .update({
+              status: 'active',
+              credentials: availableCredential.credentials
+            })
+            .eq('id', subscription.id);
+            
+          if (updateSubError) {
+            console.error('Error updating wholesale subscription:', updateSubError);
+          }
+        }
+      } else {
+        // Regular order, check for regular subscription
+        const { data: subscription, error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', order.userId)
+          .eq('service_id', order.serviceId || order.products?.[0]?.productId)
+          .single();
+          
+        if (!subscriptionError && subscription) {
+          const { error: updateSubError } = await supabase
+            .from('subscriptions')
+            .update({
+              status: 'active',
+              credentials: availableCredential.credentials,
+              credential_stock_id: availableCredential.id
+            })
+            .eq('id', subscription.id);
+            
+          if (updateSubError) {
+            console.error('Error updating subscription:', updateSubError);
+          }
+        }
+      }
+      
+      // Update stock issue if exists
+      const { error: updateStockIssueError } = await supabase
+        .from('stock_issue_logs')
+        .update({
+          status: 'resolved',
+          resolved_at: new Date().toISOString(),
+          notes: `Resolved with credential ID: ${availableCredential.id}`
+        })
+        .eq('order_id', order.id);
+        
+      if (updateStockIssueError) {
+        console.error('Error updating stock issue:', updateStockIssueError);
+      }
+      
+      toast.success("Order successfully resolved");
+      
+      // Refresh order lists
+      const updatedOrders = orders.map(o => 
+        o.id === order.id 
+          ? { ...o, status: 'completed', credentials: availableCredential.credentials } 
+          : o
+      );
+      
+      setOrders(updatedOrders);
+      setPendingOrders(updatedOrders.filter(o => o.status === 'pending'));
+      setCompletedOrders(updatedOrders.filter(o => o.status === 'completed'));
+      
+    } catch (error) {
+      console.error('Error resolving order:', error);
+      toast.error("Failed to resolve order");
+    }
+  };
+
+  const displayOrders = activeTab === "pending" 
+    ? pendingOrders 
+    : activeTab === "completed" 
+      ? completedOrders 
+      : orders;
 
   return (
     <Card>
@@ -78,55 +305,116 @@ const AdminOrders: React.FC = () => {
             A list of all orders placed by customers.
           </CardDescription>
         </div>
+        {pendingOrders.length > 0 && (
+          <Badge variant="destructive" className="flex gap-1">
+            <Clock className="h-3 w-3" />
+            {pendingOrders.length} Pending
+          </Badge>
+        )}
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No orders found.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer ID</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created At</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.id}</TableCell>
-                  <TableCell>{order.customerId || order.userId}</TableCell>
-                  <TableCell>
-                    {order.products && Array.isArray(order.products) ? (
-                      order.products.map((product, index) => (
-                        <div key={index}>
-                          {product.name || `Product ${product.productId}`}: {product.quantity} x ${product.price}
-                        </div>
-                      ))
-                    ) : (
-                      <div>{order.serviceName || 'Unknown Product'}: {order.quantity || 1} x ${order.totalPrice}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>${order.total?.toFixed(2) || order.totalPrice?.toFixed(2) || '0.00'}</TableCell>
-                  <TableCell>{order.status}</TableCell>
-                  <TableCell>
-                    {order.createdAt ? format(new Date(order.createdAt), 'PPP') : 'Unknown date'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="all">All Orders</TabsTrigger>
+            <TabsTrigger value="pending" className="relative">
+              Pending
+              {pendingOrders.length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {pendingOrders.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value={activeTab}>
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : displayOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No {activeTab} orders found.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Products</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                      <TableCell>{order.customerName || order.customerId || order.userId}</TableCell>
+                      <TableCell>
+                        {order.products && Array.isArray(order.products) ? (
+                          order.products.map((product, index) => (
+                            <div key={index}>
+                              {product.name || `Product ${product.productId}`}: {product.quantity} x ${product.price}
+                            </div>
+                          ))
+                        ) : (
+                          <div>{order.serviceName || 'Unknown Product'}: {order.quantity || 1} x ${order.totalPrice}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>${order.total?.toFixed(2) || order.totalPrice?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${
+                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                          order.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {order.status === 'pending' && <Clock className="h-3 w-3" />}
+                          {order.status === 'completed' && <CheckCircle className="h-3 w-3" />}
+                          {order.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {order.createdAt ? format(new Date(order.createdAt), 'PPP') : 'Unknown date'}
+                      </TableCell>
+                      <TableCell>
+                        {order.status === 'pending' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex items-center gap-1"
+                            onClick={() => resolveOrder(order)}
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Resolve
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
+      <CardFooter className="bg-muted/50 p-3 text-xs text-muted-foreground flex justify-between">
+        <span>Total Orders: {orders.length}</span>
+        <div className="flex gap-4">
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+            Pending: {pendingOrders.length}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+            Completed: {completedOrders.length}
+          </span>
+        </div>
+      </CardFooter>
     </Card>
   );
 };
