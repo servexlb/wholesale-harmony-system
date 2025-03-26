@@ -69,38 +69,26 @@ const AdminOrders: React.FC = () => {
           .order('created_at', { ascending: false });
 
         if (!wholesaleError && wholesaleOrders) {
+          // Convert wholesale orders to the Order type
           const formattedWholesaleOrders: Order[] = wholesaleOrders.map(order => {
-            // Parse credentials if they exist
-            let parsedCredentials = undefined;
-            if (order.credentials) {
-              if (typeof order.credentials === 'string') {
-                try {
-                  parsedCredentials = JSON.parse(order.credentials);
-                } catch (e) {
-                  parsedCredentials = { notes: "Error parsing credentials" };
-                }
-              } else {
-                parsedCredentials = order.credentials;
-              }
-            }
-            
+            // Create an object with the correct properties
             return {
               id: order.id,
-              userId: order.wholesaler_id,
+              userId: order.wholesaler_id || '',
               customerId: order.customer_id,
               serviceId: order.service_id,
-              serviceName: order.service_name || 'Unknown Service',
+              serviceName: order.service_id, // We'll try to get a better name below
               quantity: order.quantity || 1,
               totalPrice: order.total_price,
               status: order.status,
               createdAt: order.created_at,
-              credentials: parsedCredentials,
-              customerName: order.customer_name,
+              credentials: {}, // Initialize empty credentials
+              customerName: order.customer_name || 'Unknown Customer',
               total: order.total_price || 0,
               products: []
             };
           });
-
+          
           // Combine with regular orders
           const allOrders = [...processOrders(supabaseOrders || []), ...formattedWholesaleOrders];
           const allPending = allOrders.filter(order => order.status === 'pending');
@@ -292,7 +280,7 @@ const AdminOrders: React.FC = () => {
       // Refresh order lists
       const updatedOrders = orders.map(o => 
         o.id === order.id 
-          ? { ...o, status: 'completed', credentials: availableCredential.credentials } 
+          ? { ...o, status: 'completed', credentials: availableCredential.credentials as any } 
           : o
       );
       
