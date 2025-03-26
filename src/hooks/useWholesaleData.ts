@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { WholesaleOrder, Subscription, Service, Credential } from '@/lib/types';
 import { Customer } from '@/lib/data';
@@ -168,26 +167,32 @@ export function useWholesaleData(currentWholesaler: string) {
           console.error('Error fetching orders:', ordersError);
           toast.error('Error loading order data');
         } else if (orderData) {
-          const formattedOrders = orderData.map(order => ({
-            id: order.id,
-            userId: order.wholesaler_id,
-            wholesalerId: order.wholesaler_id,
-            customerId: order.customer_id,
-            serviceId: order.service_id,
-            quantity: order.quantity || 1,
-            totalPrice: order.total_price,
-            status: order.status,
-            createdAt: order.created_at,
-            durationMonths: order.duration_months,
-            customerName: order.customer_name,
-            customerEmail: order.customer_email,
-            customerPhone: order.customer_phone,
-            customerAddress: order.customer_address,
-            customerCompany: order.customer_company,
-            notes: order.notes,
-            // Fix for TypeScript error - ensures credentials property exists
-            credentials: order.credentials as any
-          }));
+          const formattedOrders = orderData.map(order => {
+            let credentials = undefined;
+            if ('credentials' in order && order.credentials) {
+              credentials = order.credentials;
+            }
+            
+            return {
+              id: order.id,
+              userId: order.wholesaler_id,
+              wholesalerId: order.wholesaler_id,
+              customerId: order.customer_id,
+              serviceId: order.service_id,
+              quantity: order.quantity || 1,
+              totalPrice: order.total_price,
+              status: order.status,
+              createdAt: order.created_at,
+              durationMonths: order.duration_months,
+              customerName: order.customer_name,
+              customerEmail: order.customer_email,
+              customerPhone: order.customer_phone,
+              customerAddress: order.customer_address,
+              customerCompany: order.customer_company,
+              notes: order.notes,
+              credentials: credentials
+            };
+          });
           setOrders(formattedOrders);
         }
       } catch (error) {
@@ -246,10 +251,8 @@ export function useWholesaleData(currentWholesaler: string) {
 
   const handleOrderPlaced = async (order: WholesaleOrder) => {
     try {
-      // Get credentials from stock for this service
       let orderCredentials: any = null;
       
-      // We'll check for available credentials in the credential_stock table
       const { data: session } = await supabase.auth.getSession();
       if (session?.session) {
         const { data: availableCredential, error: credentialError } = await supabase
@@ -262,12 +265,10 @@ export function useWholesaleData(currentWholesaler: string) {
           
         if (credentialError) {
           console.error('Error fetching credential from stock:', credentialError);
-          // Still proceed with the order, but it will have pending status
         } else if (availableCredential) {
           console.log('Found available credential in stock:', availableCredential.id);
           orderCredentials = availableCredential.credentials;
           
-          // Update the credential status to assigned
           const { error: updateError } = await supabase
             .from('credential_stock')
             .update({ 
@@ -285,7 +286,6 @@ export function useWholesaleData(currentWholesaler: string) {
         }
       }
       
-      // Add credentials to the order if found
       if (orderCredentials) {
         order.credentials = orderCredentials;
         order.status = 'completed';
@@ -301,25 +301,27 @@ export function useWholesaleData(currentWholesaler: string) {
       });
       
       if (session?.session) {
+        const orderInsertData = {
+          id: order.id,
+          wholesaler_id: session.session.user.id,
+          customer_id: order.customerId,
+          service_id: order.serviceId,
+          quantity: order.quantity || 1,
+          total_price: order.totalPrice,
+          status: order.status,
+          duration_months: order.durationMonths,
+          customer_name: order.customerName,
+          customer_email: order.customerEmail,
+          customer_phone: order.customerPhone,
+          customer_address: order.customerAddress,
+          customer_company: order.customerCompany,
+          notes: order.notes,
+          credentials: order.credentials || null
+        };
+        
         const { error } = await supabase
           .from('wholesale_orders')
-          .insert({
-            id: order.id,
-            wholesaler_id: session.session.user.id,
-            customer_id: order.customerId,
-            service_id: order.serviceId,
-            quantity: order.quantity || 1,
-            total_price: order.totalPrice,
-            status: order.status,
-            duration_months: order.durationMonths,
-            customer_name: order.customerName,
-            customer_email: order.customerEmail,
-            customer_phone: order.customerPhone,
-            customer_address: order.customerAddress,
-            customer_company: order.customerCompany,
-            notes: order.notes,
-            credentials: order.credentials
-          });
+          .insert(orderInsertData);
           
         if (error) {
           console.error('Error saving order to Supabase:', error);
@@ -374,74 +376,74 @@ export function useWholesaleData(currentWholesaler: string) {
         if (paymentError) {
           console.error('Error creating payment record:', paymentError);
         }
-      }
-      
-      const service = services.find(s => s.id === order.serviceId);
-      
-      if (service?.type === 'subscription') {
-        const durationMonths = order.durationMonths || 1;
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + durationMonths);
         
-        const newSubscription: Subscription = {
-          id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          userId: order.customerId,
-          serviceId: order.serviceId,
-          startDate: new Date().toISOString(),
-          endDate: endDate.toISOString(),
-          status: order.credentials ? 'active' : 'pending',
-          durationMonths: durationMonths,
-          credentials: order.credentials || undefined,
-          isPending: !order.credentials
-        };
+        const service = services.find(s => s.id === order.serviceId);
         
-        console.log('Creating new subscription for user ' + order.customerId, newSubscription);
-        
-        setSubscriptions(prev => {
-          return [...prev, newSubscription];
-        });
-        
-        if (session?.session) {
-          try {
-            const { error } = await supabase
-              .from('wholesale_subscriptions')
-              .insert({
-                id: newSubscription.id,
-                wholesaler_id: session.session.user.id,
-                customer_id: newSubscription.userId,
-                service_id: newSubscription.serviceId,
-                start_date: newSubscription.startDate,
-                end_date: newSubscription.endDate,
-                status: newSubscription.status,
-                duration_months: newSubscription.durationMonths,
-                credentials: newSubscription.credentials
-              });
-              
-            if (error) {
-              console.error('Error saving subscription to Supabase:', error);
+        if (service?.type === 'subscription') {
+          const durationMonths = order.durationMonths || 1;
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + durationMonths);
+          
+          const newSubscription: Subscription = {
+            id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            userId: order.customerId,
+            serviceId: order.serviceId,
+            startDate: new Date().toISOString(),
+            endDate: endDate.toISOString(),
+            status: order.credentials ? 'active' : 'pending',
+            durationMonths: durationMonths,
+            credentials: order.credentials || undefined,
+            isPending: !order.credentials
+          };
+          
+          console.log('Creating new subscription for user ' + order.customerId, newSubscription);
+          
+          setSubscriptions(prev => {
+            return [...prev, newSubscription];
+          });
+          
+          if (session?.session) {
+            try {
+              const { error } = await supabase
+                .from('wholesale_subscriptions')
+                .insert({
+                  id: newSubscription.id,
+                  wholesaler_id: session.session.user.id,
+                  customer_id: newSubscription.userId,
+                  service_id: newSubscription.serviceId,
+                  start_date: newSubscription.startDate,
+                  end_date: newSubscription.endDate,
+                  status: newSubscription.status,
+                  duration_months: newSubscription.durationMonths,
+                  credentials: newSubscription.credentials
+                });
+                
+              if (error) {
+                console.error('Error saving subscription to Supabase:', error);
+                toast.error('Error saving subscription to database');
+              } else {
+                console.log('Subscription saved successfully to Supabase');
+              }
+            } catch (saveError) {
+              console.error('Exception saving subscription to Supabase:', saveError);
               toast.error('Error saving subscription to database');
-            } else {
-              console.log('Subscription saved successfully to Supabase');
             }
-          } catch (saveError) {
-            console.error('Exception saving subscription to Supabase:', saveError);
-            toast.error('Error saving subscription to database');
+          } else {
+            console.warn('No active session, subscription only saved to local state');
           }
-        } else {
-          console.warn('No active session, subscription only saved to local state');
         }
-      }
-      
-      window.dispatchEvent(new CustomEvent('orderPlaced'));
-      
-      if (order.credentials) {
-        toast.success('Order completed with credentials', {
-          description: 'Credentials have been assigned from stock'
-        });
-      } else {
-        toast.warning('Order pending', {
-          description: 'No credentials available in stock. Please add credentials in the Admin Panel.'
-        });
+        
+        window.dispatchEvent(new CustomEvent('orderPlaced'));
+        
+        if (order.credentials) {
+          toast.success('Order completed with credentials', {
+            description: 'Credentials have been assigned from stock'
+          });
+        } else {
+          toast.warning('Order pending', {
+            description: 'No credentials available in stock. Please add credentials in the Admin Panel.'
+          });
+        }
       }
     } catch (error) {
       console.error('Error in handleOrderPlaced:', error);
